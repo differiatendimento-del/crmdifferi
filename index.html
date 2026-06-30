@@ -230,6 +230,7 @@ textarea.fc{resize:vertical;min-height:60px}
       <div class="user-opt" onclick="selectUser('Fernanda',this)"><div class="user-opt-av" style="background:#1a6b4a">FJ</div><div class="user-opt-name">Fernanda</div><div class="user-opt-role">Corretora</div></div>
       <div class="user-opt" onclick="selectUser('Renata',this)"><div class="user-opt-av" style="background:#e74c3c">RT</div><div class="user-opt-name">Renata</div><div class="user-opt-role">Corretora</div></div>
     </div>
+    <div class="fld" style="margin-bottom:12px"><label class="lbl">Senha de acesso</label><input class="fc" id="admin-login-senha" type="password" placeholder="Senha" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="doLogin()"><i class="ti ti-login"></i>Entrar no CRM</button>
 
     <div style="display:flex;align-items:center;gap:10px;margin:18px 0 14px">
@@ -5073,14 +5074,20 @@ function applyRolePermissions() {
   }
 }
 
-// Após login de administrador (fluxo original), aplica permissões de admin (sem alterar doLogin original)
+// Após login de administrador (fluxo original), exige senha única e aplica permissões de admin
+var ADMIN_SENHA_UNICA = 'differi26';
 var _origDoLoginAdmin = doLogin;
 doLogin = function() {
+  if (!selLoginUser) { toast('Selecione quem está acessando'); return; }
+  var senhaInput = document.getElementById('admin-login-senha');
+  var senha = senhaInput ? senhaInput.value : '';
+  if (senha !== ADMIN_SENHA_UNICA) { toast('❌ Senha incorreta'); return; }
   _origDoLoginAdmin();
   if (currentUser) {
     currentUser.tipo = currentUser.tipo || 'admin';
     applyRolePermissions();
   }
+  if (senhaInput) senhaInput.value = '';
 };
 
 // Logout: também reseta a tela de login de corretor
@@ -5093,6 +5100,7 @@ doLogout = function() {
   if (btn) btn.style.display = 'flex';
   var cpfEl = document.getElementById('corr-login-cpf'); if (cpfEl) cpfEl.value = '';
   var senhaEl = document.getElementById('corr-login-senha'); if (senhaEl) senhaEl.value = '';
+  var adminSenhaEl = document.getElementById('admin-login-senha'); if (adminSenhaEl) adminSenhaEl.value = '';
 };
 
 // Restringe a base de leads ao próprio corretor (cobre também Clientes Vendidos, que usa o mesmo array `leads`)
