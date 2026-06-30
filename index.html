@@ -231,6 +231,20 @@ textarea.fc{resize:vertical;min-height:60px}
       <div class="user-opt" onclick="selectUser('Renata',this)"><div class="user-opt-av" style="background:#e74c3c">RT</div><div class="user-opt-name">Renata</div><div class="user-opt-role">Corretora</div></div>
     </div>
     <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="doLogin()"><i class="ti ti-login"></i>Entrar no CRM</button>
+
+    <div style="display:flex;align-items:center;gap:10px;margin:18px 0 14px">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:11px;color:var(--muted)">ou</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+    <button type="button" class="btn" id="btn-toggle-corretor-login" style="width:100%;justify-content:center;padding:9px" onclick="toggleCorretorLogin()"><i class="ti ti-id-badge-2"></i>Sou corretor — entrar com CPF</button>
+
+    <div id="corretor-login-box" style="display:none;margin-top:14px">
+      <div class="fld"><label class="lbl">CPF</label><input class="fc" id="corr-login-cpf" placeholder="000.000.000-00" maxlength="14" oninput="formatCPFInput(this)"></div>
+      <div class="fld" style="margin-bottom:14px"><label class="lbl">Senha</label><input class="fc" id="corr-login-senha" type="password" placeholder="Sua senha" onkeydown="if(event.key==='Enter')doLoginCorretor()"></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="doLoginCorretor()" id="btn-corretor-entrar"><i class="ti ti-login"></i>Entrar</button>
+      <button type="button" class="btn" style="width:100%;justify-content:center;padding:8px;margin-top:8px" onclick="toggleCorretorLogin()">Voltar</button>
+    </div>
   </div>
 </div>
 
@@ -383,6 +397,15 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="panel" id="panel-equipe">
       <div class="sec-hdr" style="margin-bottom:14px"><div class="sec-title" style="font-size:15px">Equipe & Metas do mês</div><button class="btn btn-sm" onclick="openMetasModal()"><i class="ti ti-target"></i>Definir metas</button></div>
       <div id="equipe-cards"></div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="sec-hdr">
+          <div class="sec-title"><i class="ti ti-id-badge-2" style="margin-right:6px;color:var(--accent)"></i>Login dos Corretores (CPF / Senha)</div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('new-corretor')"><i class="ti ti-plus"></i>Novo corretor</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Corretores com login individual têm acesso apenas aos próprios Leads e Clientes Vendidos, além de acesso completo a Captações, Agenda, Script e Catálogo.</div>
+        <div id="corretores-login-list"></div>
+      </div>
     </div>
 
     <!-- ALERTAS -->
@@ -1732,6 +1755,23 @@ textarea.fc{resize:vertical;min-height:60px}
   </div>
 </div>
 
+<!-- MODAL NOVO CORRETOR (LOGIN) -->
+<div class="modal-overlay" id="modal-new-corretor" style="display:none" onclick="if(event.target===this)closeModal('new-corretor')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hdr"><div class="modal-title">Novo corretor — Login</div><button class="modal-close" onclick="closeModal('new-corretor')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div class="fld"><label class="lbl">Nome completo</label><input class="fc" id="nc-nome" placeholder="Nome do corretor"></div>
+      <div class="fld"><label class="lbl">CPF</label><input class="fc" id="nc-cpf" placeholder="000.000.000-00" maxlength="14" oninput="formatCPFInput(this)"></div>
+      <div class="fld"><label class="lbl">Senha de acesso</label><input class="fc" id="nc-senha" type="text" placeholder="Defina uma senha"></div>
+      <div style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 11px">O corretor usará este CPF e senha para entrar no CRM clicando em "Sou corretor — entrar com CPF" na tela de login.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('new-corretor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCorretorLogin()"><i class="ti ti-check"></i>Cadastrar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1746,10 +1786,10 @@ var agFilter = 'todos', editAgId = null, filterSR = false;
 var metas = JSON.parse(localStorage.getItem('crm_metas') || '{}');
 
 var USERS = {
-  'Sandryne': {nome:'Sandryne', role:'Assistente Comercial', av:'SN', cor:'#9b59b6'},
-  'Diogo':    {nome:'Diogo',    role:'Corretor',             av:'DG', cor:'#2980b9'},
-  'Fernanda': {nome:'Fernanda', role:'Corretora',            av:'FJ', cor:'#1a6b4a'},
-  'Renata':   {nome:'Renata',   role:'Corretora',            av:'RT', cor:'#e74c3c'}
+  'Sandryne': {nome:'Sandryne', role:'Assistente Comercial', av:'SN', cor:'#9b59b6', tipo:'admin'},
+  'Diogo':    {nome:'Diogo',    role:'Corretor',             av:'DG', cor:'#2980b9', tipo:'admin'},
+  'Fernanda': {nome:'Fernanda', role:'Corretora',            av:'FJ', cor:'#1a6b4a', tipo:'admin'},
+  'Renata':   {nome:'Renata',   role:'Corretora',            av:'RT', cor:'#e74c3c', tipo:'admin'}
 };
 
 var TIPO_CFG = {
@@ -4922,6 +4962,228 @@ showPanel = function(id, el) {
   _prevShowPanelPP(id, el);
   if (id==='parcerias') renderParcerias();
   else if (id==='permutas') renderPermutas();
+};
+
+/* ════════════════════════════════════════════════════════════════
+   SISTEMA DE LOGIN INDIVIDUAL (CPF/SENHA) E PERMISSÕES POR PERFIL
+   — Bloco 100% adicional. Nenhuma função/elemento existente foi
+   removido ou alterado em seu comportamento original. ════════════ */
+
+var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes'];
+
+function formatCPFInput(el) {
+  var v = el.value.replace(/\D/g,'').slice(0,11);
+  if (v.length > 9)      v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+  else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+  else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+  el.value = v;
+}
+
+function toggleCorretorLogin() {
+  var box = document.getElementById('corretor-login-box');
+  var btn = document.getElementById('btn-toggle-corretor-login');
+  var showing = box.style.display === 'none';
+  box.style.display = showing ? 'block' : 'none';
+  if (btn) btn.style.display = showing ? 'none' : 'flex';
+}
+
+// Garante que o nome do corretor logado exista como opção nos selects de corretor
+function garantirOpcaoCorretor(selectId, nome) {
+  var sel = document.getElementById(selectId);
+  if (!sel || !nome) return;
+  var existe = Array.prototype.some.call(sel.options, function(o){ return o.value === nome; });
+  if (!existe) {
+    var opt = document.createElement('option');
+    opt.value = nome; opt.textContent = nome;
+    sel.appendChild(opt);
+  }
+  sel.value = nome;
+}
+
+async function doLoginCorretor() {
+  var cpf = (document.getElementById('corr-login-cpf').value || '').trim();
+  var senha = (document.getElementById('corr-login-senha').value || '').trim();
+  if (!cpf || !senha) { toast('Preencha CPF e senha'); return; }
+  var btn = document.getElementById('btn-corretor-entrar');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>Entrando...'; }
+  try {
+    var r = await sb.from('corretores_login').select('*').eq('cpf', cpf).eq('senha', senha).eq('ativo', true).maybeSingle();
+    if (r.error || !r.data) {
+      toast('❌ CPF ou senha inválidos');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-login"></i>Entrar'; }
+      return;
+    }
+    var corretor = r.data;
+    currentUser = {
+      nome: corretor.nome,
+      role: 'Corretor',
+      tipo: 'corretor',
+      av: ini(corretor.nome),
+      cor: '#16697A',
+      cpf: corretor.cpf
+    };
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('sidebar-av').textContent = currentUser.av;
+    document.getElementById('sidebar-av').style.color = currentUser.cor;
+    document.getElementById('sidebar-name').textContent = currentUser.nome;
+    document.getElementById('sidebar-role').textContent = currentUser.role;
+    garantirOpcaoCorretor('f-corretor', currentUser.nome);
+    document.getElementById('f-data-contato').value = todayStr();
+    await initApp();
+    applyRolePermissions();
+    var leadsNav = Array.prototype.find.call(document.querySelectorAll('.nav-item'), function(n){
+      return (n.getAttribute('onclick')||'').indexOf("showPanel('leads'") === 0;
+    });
+    showPanel('leads', leadsNav);
+  } catch(e) {
+    toast('❌ Erro ao entrar: ' + (e.message||e));
+  }
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-login"></i>Entrar'; }
+}
+
+// Aplica restrições de menu conforme o perfil do usuário logado (admin x corretor)
+function applyRolePermissions() {
+  if (!currentUser) return;
+  var isAdmin = currentUser.tipo !== 'corretor';
+  var navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(function(item) {
+    if (isAdmin) { item.style.display = ''; return; }
+    var onclick = item.getAttribute('onclick') || '';
+    var m = onclick.match(/showPanel\('([^']+)'/);
+    var panelId = m ? m[1] : null;
+    item.style.display = (panelId && ALLOWED_PANELS_CORRETOR.indexOf(panelId) !== -1) ? '' : 'none';
+  });
+  // Esconde rótulos de grupo (nav-lbl) que ficaram sem nenhum item visível
+  var groups = document.querySelectorAll('.nav-lbl');
+  groups.forEach(function(lbl) {
+    var anyVisible = false;
+    var sib = lbl.nextElementSibling;
+    while (sib && !sib.classList.contains('nav-lbl')) {
+      if (sib.classList.contains('nav-item') && sib.style.display !== 'none') anyVisible = true;
+      sib = sib.nextElementSibling;
+    }
+    lbl.style.display = (isAdmin || anyVisible) ? '' : 'none';
+  });
+  // Trava o campo "corretor" no formulário de novo lead para corretores
+  var fCorretor = document.getElementById('f-corretor');
+  if (fCorretor) {
+    if (!isAdmin) { garantirOpcaoCorretor('f-corretor', currentUser.nome); fCorretor.disabled = true; }
+    else { fCorretor.disabled = false; }
+  }
+}
+
+// Após login de administrador (fluxo original), aplica permissões de admin (sem alterar doLogin original)
+var _origDoLoginAdmin = doLogin;
+doLogin = function() {
+  _origDoLoginAdmin();
+  if (currentUser) {
+    currentUser.tipo = currentUser.tipo || 'admin';
+    applyRolePermissions();
+  }
+};
+
+// Logout: também reseta a tela de login de corretor
+var _origDoLogoutPerm = doLogout;
+doLogout = function() {
+  _origDoLogoutPerm();
+  var box = document.getElementById('corretor-login-box');
+  if (box) box.style.display = 'none';
+  var btn = document.getElementById('btn-toggle-corretor-login');
+  if (btn) btn.style.display = 'flex';
+  var cpfEl = document.getElementById('corr-login-cpf'); if (cpfEl) cpfEl.value = '';
+  var senhaEl = document.getElementById('corr-login-senha'); if (senhaEl) senhaEl.value = '';
+};
+
+// Restringe a base de leads ao próprio corretor (cobre também Clientes Vendidos, que usa o mesmo array `leads`)
+var _origLoadLeadsPerm = loadLeads;
+loadLeads = async function() {
+  await _origLoadLeadsPerm();
+  if (currentUser && currentUser.tipo === 'corretor') {
+    leads = leads.filter(function(l){ return l.corretor === currentUser.nome; });
+    filteredLeads = leads.slice();
+    filterLeads();
+    var badge = document.getElementById('badge-leads');
+    if (badge) badge.textContent = leads.length;
+  }
+};
+
+// Trava o campo "corretor" na aba de edição do lead para corretores (não podem reatribuir o lead)
+var _origRenderTabPerm = renderTab;
+renderTab = function(l, tab) {
+  _origRenderTabPerm(l, tab);
+  if (currentUser && currentUser.tipo === 'corretor' && tab === 'edit') {
+    var eCorretor = document.getElementById('e-corretor');
+    if (eCorretor) { garantirOpcaoCorretor('e-corretor', currentUser.nome); eCorretor.disabled = true; }
+  }
+};
+
+/* ── Gestão de logins dos corretores (somente administradores) ── */
+var corretoresLogin = [];
+
+async function loadCorretoresLogin() {
+  try {
+    var r = await sb.from('corretores_login').select('*').order('created_at', {ascending:false});
+    corretoresLogin = r.data || [];
+  } catch(e) { corretoresLogin = []; }
+  renderCorretoresLogin();
+}
+
+function renderCorretoresLogin() {
+  var el = document.getElementById('corretores-login-list');
+  if (!el) return;
+  if (!corretoresLogin.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum corretor cadastrado ainda.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>CPF</th><th>Status</th><th>Ação</th></tr></thead><tbody>'
+    + corretoresLogin.map(function(c) {
+        var ativo = c.ativo !== false;
+        return '<tr><td><strong>' + (c.nome||'—') + '</strong></td>'
+          + '<td style="font-size:12px;color:var(--muted)">' + (c.cpf||'—') + '</td>'
+          + '<td><span class="pill ' + (ativo?'pill-ativo':'pill-perdido') + '">' + (ativo?'Ativo':'Inativo') + '</span></td>'
+          + '<td style="white-space:nowrap">'
+          + '<button class="btn btn-xs" onclick="toggleCorretorAtivo(' + c.id + ',' + (!ativo) + ')">' + (ativo?'<i class="ti ti-lock"></i>Desativar':'<i class="ti ti-lock-open"></i>Ativar') + '</button>'
+          + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteCorretorLogin(' + c.id + ')"><i class="ti ti-trash"></i></button>'
+          + '</td></tr>';
+      }).join('')
+    + '</tbody></table></div>';
+}
+
+async function saveCorretorLogin() {
+  var nome = document.getElementById('nc-nome').value.trim();
+  var cpf = document.getElementById('nc-cpf').value.trim();
+  var senha = document.getElementById('nc-senha').value.trim();
+  if (!nome || !cpf || !senha) { toast('Preencha nome, CPF e senha'); return; }
+  try {
+    await sb.from('corretores_login').insert([{nome:nome, cpf:cpf, senha:senha, ativo:true}]);
+    toast('✅ Corretor cadastrado!');
+    closeModal('new-corretor');
+    ['nc-nome','nc-cpf','nc-senha'].forEach(function(id){ document.getElementById(id).value=''; });
+    await loadCorretoresLogin();
+  } catch(e) {
+    toast('❌ Erro: ' + (e.message||'CPF já pode estar cadastrado'));
+  }
+}
+
+async function toggleCorretorAtivo(id, novoStatus) {
+  await sb.from('corretores_login').update({ativo: novoStatus}).eq('id', id);
+  toast(novoStatus ? '✅ Corretor ativado!' : '🔒 Corretor desativado!');
+  await loadCorretoresLogin();
+}
+
+async function deleteCorretorLogin(id) {
+  if (!confirm('Remover este login de corretor?')) return;
+  await sb.from('corretores_login').delete().eq('id', id);
+  toast('🗑️ Removido!');
+  await loadCorretoresLogin();
+}
+
+// Carrega a lista de corretores sempre que o painel Equipe & Metas é aberto (somente admins veem este painel)
+var _prevShowPanelCorrLogin = showPanel;
+showPanel = function(id, el) {
+  _prevShowPanelCorrLogin(id, el);
+  if (id === 'equipe') loadCorretoresLogin();
 };
 
 </script>
