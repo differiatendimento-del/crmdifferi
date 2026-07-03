@@ -1130,6 +1130,13 @@ textarea.fc{resize:vertical;min-height:60px}
         <div><label class="lbl">Data de contato inicial</label><input class="fc" id="f-data-contato" type="date"></div>
       </div>
       <div class="form-row">
+        <div><label class="lbl">Canal / Número de contato</label>
+          <input class="fc" id="f-canal" list="lista-canais" placeholder="Ex: Differi Vendas, Principal...">
+          <datalist id="lista-canais"><option>Principal</option><option>Differi Vendas</option><option>WhatsApp Pessoal</option><option>Telefone Fixo</option><option>Instagram Direct</option><option>Facebook Messenger</option><option>Portal Imóvel Web</option><option>Portal Zap</option></datalist>
+        </div>
+        <div></div>
+      </div>
+      <div class="form-row">
         <div><label class="lbl">Anúncio</label>
           <div style="display:flex;gap:6px">
             <select class="fc" id="f-empr" style="flex:1"><option value="">Selecione...</option><option>HOGAR 120</option><option>MAVIE</option><option>FLOREZZA</option><option>FLAT CB</option><option>GRAN GARDEM</option><option>BREEZE</option><option>SETAI MIRAJ</option><option>BLANC</option><option>NAUT</option><option>Mio Formosa</option><option>ARTEFACTO</option><option>Bliss Navegante</option></select>
@@ -1968,7 +1975,7 @@ async function saveLead(andWA){
   var enviados=Array.from(document.querySelectorAll('#empr-env-wrap input:checked')).map(function(x){return x.value;}).join(', ');
   var histTxt=document.getElementById('f-hist').value.trim();
   var hist=[{tipo:'env',texto:histTxt||'Lead cadastrado no CRM',data:nowStr(),autor:currentUser.nome}];
-  var lead={nome:nome,telefone:tel,interesse:perfil,empreendimento:document.getElementById('f-empr').value.trim(),origem:document.getElementById('f-origem').value,status:etiq,status_geral:document.getElementById('f-sg').value,valor:faixa,corretor:document.getElementById('f-corretor').value,observacoes:document.getElementById('f-obs').value.trim(),data_contato:document.getElementById('f-data-contato').value,historico:JSON.stringify(hist),criado_por:currentUser.nome,propostas:'[]',empreendimentos_enviados:enviados};
+  var lead={nome:nome,telefone:tel,interesse:perfil,empreendimento:document.getElementById('f-empr').value.trim(),origem:document.getElementById('f-origem').value,canal:document.getElementById('f-canal')?document.getElementById('f-canal').value.trim():'',status:etiq,status_geral:document.getElementById('f-sg').value,valor:faixa,corretor:document.getElementById('f-corretor').value,observacoes:document.getElementById('f-obs').value.trim(),data_contato:document.getElementById('f-data-contato').value,historico:JSON.stringify(hist),criado_por:currentUser.nome,propostas:'[]',empreendimentos_enviados:enviados};
   var r=await sb.from('leads').insert([lead]);
   if(r.error){toast('Erro: '+r.error.message);return;}
   toast('Lead salvo!');
@@ -2109,6 +2116,7 @@ function renderTab(l,tab){
       +'<div><div class="lbl">Perfil</div><div>'+(l.interesse||'—')+'</div></div>'
       +'<div><div class="lbl">Faixa de valor</div><div style="font-weight:600;color:var(--accent)">'+(l.valor||'—')+'</div></div>'
       +'<div><div class="lbl">Origem</div><span class="tag">'+(l.origem||'—')+'</span></div>'
+      +'<div><div class="lbl">Canal de contato</div><span class="tag">'+(l.canal||'—')+'</span></div>'
       +'<div><div class="lbl">Corretor</div><div>'+(l.corretor||'—')+'</div></div>'
       +'<div><div class="lbl">Data contato inicial</div><div>'+dEntry+'</div></div>'
       +(l.data_venda?'<div><div class="lbl">Data da venda</div><div style="font-weight:600;color:var(--accent)">'+dVenda+'</div></div>':'')
@@ -2226,7 +2234,8 @@ function renderTab(l,tab){
       +'<div><label class="lbl">Faixa de valor</label><select class="fc" id="e-valor">'+FAIXAS.map(function(o){return '<option'+(l.valor===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div></div>'
       +'<div class="form-row"><div><label class="lbl">Etiqueta</label><select class="fc" id="e-status">'+ETIQUETAS.map(function(o){return '<option'+(l.status===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div>'
       +'<div><label class="lbl">Status Geral</label><select class="fc" id="e-sg">'+STATUS_GERAL.map(function(o){return '<option'+(l.status_geral===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div></div>'
-      +'<div class="form-row"><div><label class="lbl">Origem</label><select class="fc" id="e-origem">'+['ANUNCIO','DISPARO','INTERNET','pessoalmente','LOJA','INDICAÇÃO','WASELLER'].map(function(o){return '<option'+(l.origem===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div>'
+      +'<div class="form-row"><div><label class="lbl">Origem</label><input class="fc" id="e-origem" list="lista-origens" value="'+(l.origem||'')+'"></div>'
+      +'<div><label class="lbl">Canal de contato</label><input class="fc" id="e-canal" list="lista-canais" value="'+(l.canal||'')+'"></div></div>'
       +'<div><label class="lbl">Data contato inicial</label><input class="fc" id="e-data-contato" type="date" value="'+(l.data_contato||'')+'"></div></div>'
       +'<div class="form-row"><div><label class="lbl">Anúncio</label><div style="display:flex;gap:6px"><select class="fc" id="e-empr" style="flex:1">'+ANUNCIOS.map(function(a){return '<option'+(l.empreendimento===a?' selected':'')+'>'+a+'</option>';}).join('')+'</select><button type="button" class="btn btn-sm" onclick="addNovoAnuncio(\'e-empr\')"><i class="ti ti-plus"></i></button></div></div>'
       +'<div><label class="lbl">Corretor</label><select class="fc" id="e-corretor">'+['Sandryne','Diogo','Fernanda','Renata'].map(function(o){return '<option'+(l.corretor===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div></div>'
@@ -2293,7 +2302,7 @@ async function saveEdit(id){
     empreendimento:document.getElementById('e-empr').value,
     status:document.getElementById('e-status').value,
     status_geral:document.getElementById('e-sg').value,
-    origem:document.getElementById('e-origem').value,
+    origem:document.getElementById('e-origem').value,canal:document.getElementById('e-canal')?document.getElementById('e-canal').value.trim():'',
     valor:document.getElementById('e-valor').value,
     corretor:document.getElementById('e-corretor').value,
     observacoes:document.getElementById('e-obs').value.trim(),
@@ -3397,18 +3406,23 @@ function renderScript() {
   el.innerHTML = lista.map(function(s, i) {
     var realIdx = scriptItems.indexOf(s);
     var catColor = s.cat==='Qualificação'?'var(--accent)':s.cat==='Objeção'?'var(--warn)':s.cat==='Fechamento'?'var(--success)':'var(--info)';
-    return '<div style="background:var(--card);border:1px solid var(--border);border-left:4px solid '+catColor+';border-radius:var(--radius);padding:14px 16px;margin-bottom:8px">'
+    var textoCompleto = (s.pergunta||'') + (s.info ? '\n\n💡 ' + s.info : '') + (s.obs ? '\n' + s.obs : '');
+    return '<div style="background:var(--card);border:1px solid var(--border);border-left:4px solid '+catColor+';border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:box-shadow .15s" '
+      + 'onmouseover="this.style.boxShadow=\'0 2px 12px rgba(0,0,0,.1)\'" onmouseout="this.style.boxShadow=\'none\'" '
+      + 'onclick="copiarScript(' + realIdx + ')" title="Clique para copiar">'
       + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">'
       + '<div style="flex:1">'
       + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
       + '<span style="font-size:11px;font-weight:700;color:'+catColor+';background:'+catColor+'22;border-radius:99px;padding:2px 8px">' + (s.cat||'Qualificação') + '</span>'
       + '<span style="font-size:11px;color:var(--muted)">#' + (s.num||i+1) + '</span>'
+      + '<span style="font-size:11px;color:var(--muted);margin-left:auto"><i class="ti ti-copy"></i> clique para copiar</span>'
       + '</div>'
       + '<div style="font-size:14px;font-weight:600;margin-bottom:4px">' + (s.pergunta||'—') + '</div>'
       + (s.info ? '<div style="font-size:12px;color:var(--accent);margin-bottom:3px"><strong>💡 </strong>' + s.info + '</div>' : '')
       + (s.obs ? '<div style="font-size:12px;color:var(--muted)">' + s.obs + '</div>' : '')
       + '</div>'
-      + '<div style="display:flex;gap:5px;flex-shrink:0">'
+      + '<div style="display:flex;gap:5px;flex-shrink:0" onclick="event.stopPropagation()">'
+      + '<button class="btn btn-xs btn-primary" onclick="copiarScript(' + realIdx + ')" title="Copiar"><i class="ti ti-copy"></i></button>'
       + '<button class="btn btn-xs" onclick="editScript(' + realIdx + ')"><i class="ti ti-edit"></i></button>'
       + '<button class="btn btn-xs" style="color:var(--danger)" onclick="deleteScript(' + realIdx + ')"><i class="ti ti-trash"></i></button>'
       + '</div></div></div>';
@@ -3443,6 +3457,24 @@ function saveScript() {
   localStorage.setItem('crm_scripts', JSON.stringify(scriptItems));
   closeModal('new-script');
   renderScript();
+}
+
+function copiarScript(idx) {
+  var s = scriptItems[idx];
+  if (!s) return;
+  var texto = (s.pergunta||'');
+  if (s.info) texto += '\n\n' + s.info;
+  if (s.obs)  texto += '\n' + s.obs;
+  navigator.clipboard.writeText(texto).then(function(){
+    toast('✅ Script copiado!');
+  }).catch(function(){
+    // fallback
+    var ta = document.createElement('textarea');
+    ta.value = texto; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('✅ Script copiado!');
+  });
 }
 
 function deleteScript(idx) {
@@ -4970,7 +5002,7 @@ showPanel = function(id, el) {
    — Bloco 100% adicional. Nenhuma função/elemento existente foi
    removido ou alterado em seu comportamento original. ════════════ */
 
-var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes'];
+var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos'];
 
 function formatCPFInput(el) {
   var v = el.value.replace(/\D/g,'').slice(0,11);
