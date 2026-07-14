@@ -2502,7 +2502,7 @@ function renderEquipe(){
     }).join('')+'</div>';
 }
 function openMetasModal(){
-  document.getElementById('metas-body').innerHTML=Object.values(USERS).map(function(u){
+  document.getElementById('metas-body').innerHTML=getAllEquipe().map(function(u){
     return '<div style="margin-bottom:12px;padding:11px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border)">'
       +'<div style="font-size:13px;font-weight:600;margin-bottom:9px;display:flex;align-items:center;gap:7px"><div class="avatar av-xs" style="background:'+u.cor+'22;color:'+u.cor+'">'+u.av+'</div>'+u.nome+'</div>'
       +'<div class="form-row" style="margin-bottom:0">'
@@ -2513,7 +2513,8 @@ function openMetasModal(){
   openModal('metas');
 }
 function saveMetas(){
-  Object.keys(USERS).forEach(function(nome){
+  getAllEquipe().forEach(function(u){
+    var nome=u.nome;
     var vl=document.getElementById('meta-'+nome+'-leads');var vv=document.getElementById('meta-'+nome+'-visitas');
     if(vl)metas[nome+'_leads']=parseInt(vl.value)||30;if(vv)metas[nome+'_visitas']=parseInt(vv.value)||10;
   });
@@ -2980,14 +2981,15 @@ function renderIndicadores() {
   var ct = document.getElementById('ind-corretor-table');
   if (ct) ct.innerHTML = '<div style="overflow-x:auto"><table style="min-width:600px">'
     + '<thead><tr><th>Corretor</th><th>Leads</th><th>Atendimentos</th><th>Ligações</th><th>Propostas</th><th>Vendas</th><th>Conversão</th></tr></thead><tbody>'
-    + Object.keys(USERS).map(function(nome){
+    + getAllEquipe().map(function(u){
+        var nome = u.nome;
         var meus = filteredL.filter(function(l){return l.corretor===nome;});
+        if (!meus.length) return '';
         var atd = meus.reduce(function(s,l){return s+(l.historico||[]).length;},0);
         var ligs = meus.reduce(function(s,l){return s+(l.historico||[]).filter(function(h){return h.tipo==='lig'||h.tipo==='sem';}).length;},0);
         var props = meus.reduce(function(s,l){return s+JSON.parse(l.propostas||'[]').length;},0);
         var vds = meus.filter(function(l){return (l.status_geral||'').toUpperCase()==='VENDIDO';}).length;
         var conv = meus.length ? Math.round(vds/meus.length*100) : 0;
-        var u = USERS[nome];
         return '<tr><td><div style="display:flex;align-items:center;gap:7px"><div class="avatar av-xs" style="background:'+u.cor+'22;color:'+u.cor+'">'+u.av+'</div>'+nome+'</div></td>'
           +'<td><strong>'+meus.length+'</strong></td><td>'+atd+'</td><td style="color:var(--info)">'+ligs+'</td>'
           +'<td style="color:var(--warn)">'+props+'</td><td style="color:var(--success);font-weight:600">'+vds+'</td>'
@@ -5225,6 +5227,79 @@ var _prevShowPanelCorrLogin = showPanel;
 showPanel = function(id, el) {
   _prevShowPanelCorrLogin(id, el);
   if (id === 'equipe') loadCorretoresLogin();
+};
+
+
+// ═══ CORRETOR CHIPS NO PAINEL DE LEADS ═══
+var corretorChipAtivo = '';
+var corretorChipsVisible = false;
+
+function toggleCorretorChips(el) {
+  corretorChipsVisible = !corretorChipsVisible;
+  el.classList.toggle('on', corretorChipsVisible);
+  var bar = document.getElementById('corretor-chips-bar');
+  if (bar) bar.style.display = corretorChipsVisible ? 'flex' : 'none';
+  if (corretorChipsVisible) renderCorretorChips();
+}
+
+function renderCorretorChips() {
+  var wrap = document.getElementById('corretor-chips-dynamic');
+  if (!wrap) return;
+  var equipe = getAllEquipe();
+  wrap.innerHTML = equipe.map(function(u) {
+    var isOn = corretorChipAtivo === u.nome;
+    return '<div class="chip' + (isOn?' on':'') + '" onclick="setCorretorChip(' + JSON.stringify(u.nome) + ',this)">'
+      + '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+u.cor+';margin-right:4px"></span>'
+      + u.nome + '</div>';
+  }).join('');
+}
+
+function setCorretorChip(nome, el) {
+  corretorChipAtivo = nome;
+  // Update "Todos" chip
+  var todos = document.querySelector('#corretor-chips-bar .chip');
+  if (todos) todos.classList.toggle('on', !nome);
+  // Update dynamic chips
+  document.querySelectorAll('#corretor-chips-dynamic .chip').forEach(function(c2) { c2.classList.remove('on'); });
+  if (el && nome) el.classList.add('on');
+  // Sync with fil-cr select
+  var sel = document.getElementById('fil-cr');
+  if (sel) sel.value = nome;
+  filterLeads();
+}
+
+// Update fil-cr select dynamically after loading corretores
+function updateCorretorSelects() {
+  var equipe = getAllEquipe();
+  var selIds = ['fil-cr','fil-vd-corretor','parc-resp','perm-corretor','vd-captador','vd-agendador','vd-vendedor','tele-atendente','import-atendente','capt-corretor','f-corretor'];
+  selIds.forEach(function(id) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var existentes = Array.prototype.map.call(sel.options, function(o){return o.value||o.textContent;});
+    equipe.forEach(function(u) {
+      if (existentes.indexOf(u.nome) === -1) {
+        var opt = document.createElement('option');
+        opt.value = u.nome; opt.textContent = u.nome;
+        sel.appendChild(opt);
+      }
+    });
+  });
+  // Also update e-corretor in edit tab dynamically
+  var eCorr = document.getElementById('e-corretor');
+  if (eCorr) {
+    var existentes2 = Array.prototype.map.call(eCorr.options, function(o){return o.value||o.textContent;});
+    equipe.forEach(function(u){
+      if (existentes2.indexOf(u.nome)===-1){var opt=document.createElement('option');opt.value=u.nome;opt.textContent=u.nome;eCorr.appendChild(opt);}
+    });
+  }
+}
+
+// Run updateCorretorSelects after loading corretores
+var _origLoadCorretoresLogin2 = loadCorretoresLogin;
+loadCorretoresLogin = async function() {
+  await _origLoadCorretoresLogin2();
+  updateCorretorSelects();
+  renderCorretorChips();
 };
 
 </script>
