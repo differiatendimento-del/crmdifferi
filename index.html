@@ -1935,7 +1935,15 @@ function doLogin(){
 function doLogout(){if(!confirm('Sair?'))return;currentUser=null;selLoginUser=null;document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='flex';document.querySelectorAll('.user-opt').forEach(function(o){o.classList.remove('sel');});}
 
 async function initApp(){setLoading(true);await loadAll();setLoading(false);}
-async function loadAll(){await Promise.all([loadLeads(),loadAgs(),loadImoveis(),loadTele(),loadCaptacoes()]);renderDash();renderKanban();renderAg();renderImoveis();renderEquipe();renderAlertas();renderRel();renderIndicadores();}
+async function loadAll(){
+  var tasks = [loadLeads(),loadAgs(),loadImoveis(),loadTele(),loadCaptacoes()];
+  if (typeof loadCorretoresLogin === 'function') tasks.push(loadCorretoresLogin());
+  await Promise.all(tasks);
+  renderDash();renderKanban();renderAg();renderImoveis();renderEquipe();renderAlertas();renderRel();renderIndicadores();
+  // Update all corretor selects and chips after everything is loaded
+  if (typeof updateCorretorSelects === 'function') updateCorretorSelects();
+  if (typeof renderCorretorChips === 'function') renderCorretorChips();
+}
 
 // LEADS
 async function loadLeads(){
@@ -5170,6 +5178,11 @@ async function loadCorretoresLogin() {
     corretoresLogin = r.data || [];
   } catch(e) { corretoresLogin = []; }
   renderCorretoresLogin();
+  // Atualiza todas as áreas que dependem da lista de corretores
+  if (typeof renderEquipe === 'function') renderEquipe();
+  if (typeof renderIndicadores === 'function') renderIndicadores();
+  if (typeof updateCorretorSelects === 'function') updateCorretorSelects();
+  if (typeof renderCorretorChips === 'function') renderCorretorChips();
 }
 
 function renderCorretoresLogin() {
