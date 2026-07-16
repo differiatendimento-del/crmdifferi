@@ -5281,39 +5281,46 @@ function setCorretorChip(nome, el) {
   filterLeads();
 }
 
-// Update fil-cr select dynamically after loading corretores
+// Reconstrói os selects de corretor do zero com todos os corretores (admins + cadastrados)
 function updateCorretorSelects() {
   var equipe = getAllEquipe();
-  var selIds = ['fil-cr','fil-vd-corretor','parc-resp','perm-corretor','vd-captador','vd-agendador','vd-vendedor','tele-atendente','import-atendente','capt-corretor','f-corretor'];
-  selIds.forEach(function(id) {
+  var nomes = equipe.map(function(u){ return u.nome; });
+
+  // Selects com "Todos" como primeira opção
+  var selsComTodos = {
+    'fil-cr':        'Todos os corretores',
+    'fil-vd-corretor':'Todos os corretores'
+  };
+  Object.keys(selsComTodos).forEach(function(id) {
     var sel = document.getElementById(id);
     if (!sel) return;
-    var existentes = Array.prototype.map.call(sel.options, function(o){return o.value||o.textContent;});
-    equipe.forEach(function(u) {
-      if (existentes.indexOf(u.nome) === -1) {
-        var opt = document.createElement('option');
-        opt.value = u.nome; opt.textContent = u.nome;
-        sel.appendChild(opt);
-      }
-    });
+    var valorAtual = sel.value;
+    sel.innerHTML = '<option value="">' + selsComTodos[id] + '</option>'
+      + nomes.map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('');
+    if (valorAtual) sel.value = valorAtual;
   });
-  // Also update e-corretor in edit tab dynamically
+
+  // Selects simples (sem "Todos")
+  var selsSemTodos = ['parc-resp','perm-corretor','vd-captador','vd-agendador','vd-vendedor',
+                      'tele-atendente','import-atendente','capt-corretor','f-corretor','pp-corretor'];
+  selsSemTodos.forEach(function(id) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    var valorAtual = sel.value;
+    sel.innerHTML = nomes.map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('');
+    if (valorAtual && nomes.indexOf(valorAtual) !== -1) sel.value = valorAtual;
+  });
+
+  // e-corretor no modal de edição de lead (pode ter valor selecionado)
   var eCorr = document.getElementById('e-corretor');
   if (eCorr) {
-    var existentes2 = Array.prototype.map.call(eCorr.options, function(o){return o.value||o.textContent;});
-    equipe.forEach(function(u){
-      if (existentes2.indexOf(u.nome)===-1){var opt=document.createElement('option');opt.value=u.nome;opt.textContent=u.nome;eCorr.appendChild(opt);}
-    });
+    var valorAtual = eCorr.value;
+    eCorr.innerHTML = nomes.map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('');
+    if (valorAtual && nomes.indexOf(valorAtual) !== -1) eCorr.value = valorAtual;
   }
-}
 
-// Run updateCorretorSelects after loading corretores
-var _origLoadCorretoresLogin2 = loadCorretoresLogin;
-loadCorretoresLogin = async function() {
-  await _origLoadCorretoresLogin2();
-  updateCorretorSelects();
   renderCorretorChips();
-};
+}
 
 </script>
 </body>
