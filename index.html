@@ -1800,6 +1800,24 @@ var USERS = {
   'Renata':   {nome:'Renata',   role:'Corretora',            av:'RT', cor:'#e74c3c', tipo:'admin'}
 };
 
+// Junta os 4 usuários fixos (USERS) com os corretores cadastrados dinamicamente
+// (tabela corretores_login, via "Novo corretor" no painel Equipe & Metas).
+// Usada por todos os selects/filtros de corretor do sistema.
+var CORES_EQUIPE_DINAMICA = ['#e67e22','#16a085','#8e44ad','#2c3e50','#c0392b','#27ae60','#f39c12','#d35400'];
+function getAllEquipe() {
+  var lista = Object.values(USERS).slice();
+  var nomesExistentes = lista.map(function(u){ return u.nome; });
+  (typeof corretoresLogin !== 'undefined' ? corretoresLogin : []).forEach(function(c, idx) {
+    if (!c.nome) return;
+    if (c.ativo === false) return; // corretor desativado não aparece nos filtros
+    if (nomesExistentes.indexOf(c.nome) !== -1) return; // já está em USERS, evita duplicar
+    var iniciais = c.nome.trim().split(/\s+/).slice(0, 2).map(function(p){ return p[0].toUpperCase(); }).join('');
+    lista.push({nome: c.nome, role: 'Corretor(a)', av: iniciais || '??', cor: CORES_EQUIPE_DINAMICA[idx % CORES_EQUIPE_DINAMICA.length], tipo: 'corretor'});
+    nomesExistentes.push(c.nome);
+  });
+  return lista;
+}
+
 var TIPO_CFG = {
   env: {icon:'ti-send',        label:'Mensagem enviada',   bg:'#EBF5FB', color:'#1e6fa3', dot:'#2980b9'},
   lig: {icon:'ti-phone',       label:'Ligação feita',      bg:'#F5EEF8', color:'#7d3c98', dot:'#9b59b6'},
@@ -2500,7 +2518,7 @@ function renderRel(){
 // EQUIPE
 function renderEquipe(){
   document.getElementById('equipe-cards').innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'
-    +Object.values(USERS).map(function(u){
+    +getAllEquipe().map(function(u){
       var meus=leads.filter(function(l){return l.corretor===u.nome;});
       var q=meus.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
       var sr=meus.filter(function(l){return getTmp(l).days>3;}).length;
