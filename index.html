@@ -2017,6 +2017,20 @@ var filterSRActive=false;
 function toggleSR(el){filterSRActive=!filterSRActive;el.classList.toggle('on',filterSRActive);filterLeads();}
 
 function filterLeads(){
+  // Rebuild fil-cr from all known corretors (leads + equipe)
+  var selCr = document.getElementById('fil-cr');
+  if (selCr) {
+    var valorAtual = selCr.value;
+    // Collect from leads
+    var nomesLeads = {};
+    leads.forEach(function(l){ if(l.corretor) nomesLeads[l.corretor]=true; });
+    // Collect from equipe
+    getAllEquipe().forEach(function(u){ nomesLeads[u.nome]=true; });
+    var nomes = Object.keys(nomesLeads).sort();
+    selCr.innerHTML = '<option value="">Todos os corretores</option>'
+      + nomes.map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('');
+    if (valorAtual) selCr.value = valorAtual;
+  }
   var q=(document.getElementById('search-input').value||'').toLowerCase();
   var sg=document.getElementById('fil-sg').value;
   var et=document.getElementById('fil-et').value;
