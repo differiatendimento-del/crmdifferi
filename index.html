@@ -1850,6 +1850,16 @@ var PERFIS      = ['FLAT PLANTA','FLAT PRONTO','APTO PLANTA','APTO PRONTO','MCMV
 var ANUNCIOS    = ['HOGAR 120','MAVIE','FLOREZZA','FLAT CB','GRAN GARDEM','BREEZE','SETAI MIRAJ','BLANC','NAUT','Mio Formosa','ARTEFACTO','Bliss Navegante'];
 var STATUS_GERAL= ['ATENDIMENTO ATIVO','MAILING','DESISTIU','PERDIDO','VENDIDO','JÁ COMPROU','FINALIZADO'];
 
+// Status "encerrados" que não devem contar como pendência de atendimento nos Leads
+// (viram tarefa do Telemarketing em vez de ficarem vermelhos aqui)
+var STATUS_ENCERRADOS_SG = ['MAILING','DESISTIU','PERDIDO'];
+var ETIQUETAS_ENCERRADAS = ['FANTASMA','DESISTIU','PERDIDO'];
+function isEncerrado(l) {
+  var sg=(l.status_geral||'').toUpperCase();
+  var et=(l.status||'').toUpperCase();
+  return STATUS_ENCERRADOS_SG.indexOf(sg)!==-1 || ETIQUETAS_ENCERRADAS.indexOf(et)!==-1;
+}
+
 // HELPERS
 function getPillClass(s) {
   var m = {'ENTRADA':'pill-entrada','EM ATENDIMENTO':'pill-atendimento','QUENTE':'pill-quente','REPESCAGEM':'pill-repescagem','FANTASMA':'pill-fantasma','CONTATO FUTURO':'pill-futuro','LISTA':'pill-lista','DESISTIU':'pill-desistiu','PERDIDO':'pill-perdido-et','VENDIDO':'pill-vendido-et','JÁ COMPROU':'pill-jacomprou','FINALIZADO':'pill-finalizado'};
@@ -1893,8 +1903,9 @@ function openWA(tel,nome,empr) {
 function getLastHist(l) { var h=l.historico||[]; return h.length?h[h.length-1]:null; }
 
 function getTmp(l) {
+  if (isEncerrado(l)) return {score:100,cls:'cold',days:0,semRet:false,encerrado:true};
   var last=getLastHist(l);
-  if(!last) return {score:0,cls:'cold',days:999,semRet:false};
+  if(!last) return {score:0,cls:'cold',days:999,semRet:false,encerrado:false};
   var semRet=last.tipo==='ret'||last.tipo==='sem';
   var days=0;
   try {
@@ -1906,11 +1917,12 @@ function getTmp(l) {
   if((l.status||'').toUpperCase()==='QUENTE')score+=20;
   score=Math.max(0,Math.min(100,score));
   var cls=score>=70?'hot':score>=40?'warm':'cold';
-  return {score:score,cls:cls,days:days,semRet:semRet};
+  return {score:score,cls:cls,days:days,semRet:semRet,encerrado:false};
 }
 
 function timerHtml(l) {
   var t=getTmp(l);
+  if (t.encerrado) return '<span class="follow-timer" style="background:rgba(100,116,139,.12);color:#64748b"><i class="ti ti-archive-off" style="font-size:10px"></i>Encerrado</span>';
   if(t.days===0) return '<span class="follow-timer ok"><i class="ti ti-check" style="font-size:10px"></i>Hoje</span>';
   if(t.days<=3)  return '<span class="follow-timer ok"><i class="ti ti-clock" style="font-size:10px"></i>'+t.days+'d</span>';
   if(t.days<=7)  return '<span class="follow-timer warn"><i class="ti ti-alert-triangle" style="font-size:10px"></i>'+t.days+'d</span>';
@@ -3166,17 +3178,28 @@ renderAg = function() {
   }
 };
 
-// ═══ AUTO TELEMARKETING quando lead vai para REPESCAGEM ═══
+// ═══ AUTO TELEMARKETING quando lead vai para REPESCAGEM, MAILING, DESISTIU, PERDIDO ou FANTASMA ═══
 var _origSaveEdit = saveEdit;
 saveEdit = async function(id) {
   var novoStatus = document.getElementById('e-status') ? document.getElementById('e-status').value : '';
+  var novoSG = document.getElementById('e-sg') ? document.getElementById('e-sg').value : '';
   var l = leads.find(function(x){return String(x.id)===String(id);});
   var statusAnterior = l ? l.status : '';
+  var sgAnterior = l ? l.status_geral : '';
 
   await _origSaveEdit(id);
 
-  // Se mudou para REPESCAGEM, adicionar no telemarketing automaticamente
-  if (novoStatus === 'REPESCAGEM' && statusAnterior !== 'REPESCAGEM' && l) {
+  var motivoEnvio = null;
+  if (novoStatus === 'REPESCAGEM' && statusAnterior !== 'REPESCAGEM') motivoEnvio = 'Repescagem';
+  else if (novoStatus === 'FANTASMA' && statusAnterior !== 'FANTASMA') motivoEnvio = 'Fantasma';
+  else if (novoSG === 'MAILING' && sgAnterior !== 'MAILING') motivoEnvio = 'Mailing';
+  else if (novoStatus === 'DESISTIU' && statusAnterior !== 'DESISTIU') motivoEnvio = 'Desistiu';
+  else if (novoSG === 'DESISTIU' && sgAnterior !== 'DESISTIU') motivoEnvio = 'Desistiu';
+  else if (novoStatus === 'PERDIDO' && statusAnterior !== 'PERDIDO') motivoEnvio = 'Perdido';
+  else if (novoSG === 'PERDIDO' && sgAnterior !== 'PERDIDO') motivoEnvio = 'Perdido';
+
+  // Se mudou para um desses status, adicionar no telemarketing automaticamente
+  if (motivoEnvio && l) {
     var jaExiste = await sb.from('telemarketing').select('id').eq('telefone', l.telefone).single();
     if (!jaExiste.data) {
       await sb.from('telemarketing').insert([{
@@ -3185,9 +3208,9 @@ saveEdit = async function(id) {
         interesse: l.interesse || '',
         status: 'Aguardando',
         atendente: l.corretor || currentUser.nome,
-        observacoes: 'Adicionado automaticamente via Repescagem do CRM'
+        observacoes: 'Adicionado automaticamente via ' + motivoEnvio + ' do CRM'
       }]);
-      toast('📞 Lead adicionado ao Telemarketing automaticamente!');
+      toast('📞 Lead adicionado ao Telemarketing automaticamente (' + motivoEnvio + ')!');
       await loadTele();
     }
   }
@@ -5357,5 +5380,3 @@ function updateCorretorSelects() {
 </script>
 </body>
 </html>
-
-Corrige filtro e painel de corretores
