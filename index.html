@@ -87,6 +87,7 @@ tbody tr:last-child td{border-bottom:none}
 tbody tr:hover td{background:#f9fafb;cursor:pointer}
 .pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap}
 .pill-entrada{background:rgba(41,128,185,.1);color:#1e6fa3}
+.pill-leadsnovos{background:rgba(39,174,96,.12);color:#1e8449}
 .pill-atendimento{background:rgba(243,156,18,.1);color:#b7770d}
 .pill-quente{background:rgba(231,76,60,.1);color:#c0392b}
 .pill-repescagem{background:rgba(142,68,173,.1);color:#7d3c98}
@@ -238,7 +239,7 @@ textarea.fc{resize:vertical;min-height:60px}
       <span style="font-size:11px;color:var(--muted)">ou</span>
       <div style="flex:1;height:1px;background:var(--border)"></div>
     </div>
-    <button type="button" class="btn" id="btn-toggle-corretor-login" style="width:100%;justify-content:center;padding:9px" onclick="toggleCorretorLogin()"><i class="ti ti-id-badge-2"></i>Sou corretor — entrar com CPF</button>
+    <button type="button" class="btn" id="btn-toggle-corretor-login" style="width:100%;justify-content:center;padding:9px" onclick="toggleCorretorLogin()"><i class="ti ti-id-badge-2"></i>Sou corretor ou telemarketing — entrar com CPF</button>
 
     <div id="corretor-login-box" style="display:none;margin-top:14px">
       <div class="fld"><label class="lbl">CPF</label><input class="fc" id="corr-login-cpf" placeholder="000.000.000-00" maxlength="14" oninput="formatCPFInput(this)"></div>
@@ -259,6 +260,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="nav-item" onclick="showPanel('leads',this)"><i class="ti ti-users"></i>Leads<span class="nav-badge" id="badge-leads">0</span></div>
     <div class="nav-item" onclick="showPanel('clientes',this)"><i class="ti ti-trophy" style="color:#f39c12"></i>Clientes Vendidos</div>
     <div class="nav-item" onclick="showPanel('telemarketing',this)"><i class="ti ti-phone-call"></i>Telemarketing</div>
+    <div class="nav-item" onclick="showPanel('recontato',this)"><i class="ti ti-phone-outgoing"></i>Programação de Recontato</div>
     <div class="nav-item" onclick="showPanel('captacoes',this)"><i class="ti ti-home-search"></i>Captações</div>
     <div class="nav-item" onclick="showPanel('parcerias',this)"><i class="ti ti-users-group"></i>Parcerias</div>
     <div class="nav-item" onclick="showPanel('permutas',this)"><i class="ti ti-arrows-exchange"></i>Permutas</div>
@@ -328,7 +330,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="panel" id="panel-leads">
       <div class="filters-bar">
         <select class="filter-sel" id="fil-sg" onchange="filterLeads()"><option value="">Todos os status</option><option>ATENDIMENTO ATIVO</option><option>MAILING</option><option>DESISTIU</option><option>PERDIDO</option><option>VENDIDO</option><option>JÁ COMPROU</option><option>FINALIZADO</option></select>
-        <select class="filter-sel" id="fil-et" onchange="filterLeads()"><option value="">Todas as etiquetas</option><option>ENTRADA</option><option>EM ATENDIMENTO</option><option>QUENTE</option><option>REPESCAGEM</option><option>FANTASMA</option><option>CONTATO FUTURO</option><option>LISTA</option><option>DESISTIU</option><option>PERDIDO</option></select>
+        <select class="filter-sel" id="fil-et" onchange="filterLeads()"><option value="">Todas as etiquetas</option><option>ENTRADA</option><option>LEADS NOVOS</option><option>EM ATENDIMENTO</option><option>QUENTE</option><option>REPESCAGEM</option><option>FANTASMA</option><option>CONTATO FUTURO</option><option>LISTA</option><option>DESISTIU</option><option>PERDIDO</option></select>
         <select class="filter-sel" id="fil-cr" onchange="filterLeads()"><option value="">Todos os corretores</option><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
         <select class="filter-sel" id="fil-or" onchange="filterLeads()"><option value="">Todas as origens</option><option>ANUNCIO</option><option>DISPARO</option><option>INTERNET</option><option>pessoalmente</option><option>LOJA</option><option>INDICAÇÃO</option><option>WASELLER</option></select>
         <div class="chip" id="chip-sr" onclick="toggleSR(this)">⏰ +3 dias</div>
@@ -378,6 +380,19 @@ textarea.fc{resize:vertical;min-height:60px}
       <div class="card" style="margin-top:14px"><div class="sec-hdr"><div class="sec-title">Follow-ups — +3 dias sem contato</div></div><div id="followups-list"></div></div>
     </div>
 
+    <!-- PROGRAMAÇÃO DE RECONTATO -->
+    <div class="panel" id="panel-recontato">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;gap:7px">
+          <div class="chip on" onclick="setRecontatoF('todos',this)">Todos</div>
+          <div class="chip" onclick="setRecontatoF('REPESCAGEM',this)">Repescagem</div>
+          <div class="chip" onclick="setRecontatoF('CONTATO FUTURO',this)">Contato Futuro</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Leads prontos para recontato, do mais parado pro mais recente</div>
+      </div>
+      <div class="card"><div id="recontato-list"></div></div>
+    </div>
+
     <!-- RELATÓRIOS -->
     <div class="panel" id="panel-relatorios">
       <div class="three-col" id="conv-cards"></div>
@@ -406,6 +421,15 @@ textarea.fc{resize:vertical;min-height:60px}
         </div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Corretores com login individual têm acesso apenas aos próprios Leads e Clientes Vendidos, além de acesso completo a Captações, Agenda, Script e Catálogo.</div>
         <div id="corretores-login-list"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="sec-hdr">
+          <div class="sec-title"><i class="ti ti-headset" style="margin-right:6px;color:var(--accent)"></i>Login do Telemarketing / SDR (CPF / Senha)</div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('new-telemkt')"><i class="ti ti-plus"></i>Novo Telemarketing/SDR</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Quem tem login de Telemarketing/SDR tem o mesmo acesso restrito dos corretores (Leads, Captações, Agenda, Script, Catálogo), além da aba de Telemarketing.</div>
+        <div id="telemkt-login-list"></div>
       </div>
     </div>
 
@@ -1117,7 +1141,7 @@ textarea.fc{resize:vertical;min-height:60px}
       </div>
       <div class="form-row">
         <div><label class="lbl">Etiqueta <span style="color:var(--danger)">*</span></label>
-          <select class="fc" id="f-status"><option value="">Selecione...</option><option>ENTRADA</option><option>EM ATENDIMENTO</option><option>QUENTE</option><option>REPESCAGEM</option><option>FANTASMA</option><option>CONTATO FUTURO</option><option>LISTA</option><option>DESISTIU</option><option>PERDIDO</option><option>VENDIDO</option><option>JÁ COMPROU</option><option>FINALIZADO</option></select>
+          <select class="fc" id="f-status"><option value="">Selecione...</option><option>ENTRADA</option><option>LEADS NOVOS</option><option>EM ATENDIMENTO</option><option>QUENTE</option><option>REPESCAGEM</option><option>FANTASMA</option><option>CONTATO FUTURO</option><option>LISTA</option><option>DESISTIU</option><option>PERDIDO</option><option>VENDIDO</option><option>JÁ COMPROU</option><option>FINALIZADO</option></select>
         </div>
         <div><label class="lbl">Status geral</label>
           <select class="fc" id="f-sg"><option>ATENDIMENTO ATIVO</option><option>MAILING</option><option>DESISTIU</option><option>PERDIDO</option><option>VENDIDO</option><option>JÁ COMPROU</option><option>FINALIZADO</option></select>
@@ -1780,6 +1804,23 @@ textarea.fc{resize:vertical;min-height:60px}
   </div>
 </div>
 
+<!-- MODAL NOVO TELEMARKETING/SDR (LOGIN) -->
+<div class="modal-overlay" id="modal-new-telemkt" style="display:none" onclick="if(event.target===this)closeModal('new-telemkt')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hdr"><div class="modal-title">Novo Telemarketing/SDR — Login</div><button class="modal-close" onclick="closeModal('new-telemkt')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div class="fld"><label class="lbl">Nome completo</label><input class="fc" id="nt-nome" placeholder="Nome do(a) SDR"></div>
+      <div class="fld"><label class="lbl">CPF</label><input class="fc" id="nt-cpf" placeholder="000.000.000-00" maxlength="14" oninput="formatCPFInput(this)"></div>
+      <div class="fld"><label class="lbl">Senha de acesso</label><input class="fc" id="nt-senha" type="text" placeholder="Defina uma senha"></div>
+      <div style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 11px">Ela usará este CPF e senha para entrar no CRM clicando em "Sou corretor — entrar com CPF" na tela de login. O acesso terá as mesmas telas dos corretores, mais a aba de Telemarketing.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('new-telemkt')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTelemktLogin()"><i class="ti ti-check"></i>Cadastrar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1812,7 +1853,8 @@ function getAllEquipe() {
     if (c.ativo === false) return; // corretor desativado não aparece nos filtros
     if (nomesExistentes.indexOf(c.nome) !== -1) return; // já está em USERS, evita duplicar
     var iniciais = c.nome.trim().split(/\s+/).slice(0, 2).map(function(p){ return p[0].toUpperCase(); }).join('');
-    lista.push({nome: c.nome, role: 'Corretor(a)', av: iniciais || '??', cor: CORES_EQUIPE_DINAMICA[idx % CORES_EQUIPE_DINAMICA.length], tipo: 'corretor'});
+    var ehTelemkt = c.tipo === 'telemarketing';
+    lista.push({nome: c.nome, role: ehTelemkt ? 'Telemarketing/SDR' : 'Corretor(a)', av: iniciais || '??', cor: CORES_EQUIPE_DINAMICA[idx % CORES_EQUIPE_DINAMICA.length], tipo: ehTelemkt ? 'telemarketing' : 'corretor'});
     nomesExistentes.push(c.nome);
   });
   return lista;
@@ -1830,6 +1872,7 @@ var TIPO_CFG = {
 
 var ROTEIROS = {
   'ENTRADA':        ['Ligar em até 2h após o contato','Identificar perfil e necessidade','Enviar material inicial','Qualificar faixa de valor'],
+  'LEADS NOVOS':    ['Ligar em até 2h após o contato','Identificar perfil e necessidade','Enviar material inicial','Qualificar faixa de valor'],
   'EM ATENDIMENTO': ['Confirmar recebimento do material','Tirar dúvidas','Apresentar simulação financeira','Convidar para visita'],
   'QUENTE':         ['Ligar imediatamente','Enviar tabela e plantas','Propor visita','Confirmar próximo passo'],
   'REPESCAGEM':     ['Enviar mensagem de recontato','Tentar ligação 2x','Verificar interesse','Registrar retorno'],
@@ -1844,7 +1887,7 @@ var ROTEIROS = {
   'FINALIZADO':['Arquivar processo','Solicitar feedback','Registrar no controle de vendas']
 };
 
-var ETIQUETAS   = ['ENTRADA','EM ATENDIMENTO','QUENTE','REPESCAGEM','FANTASMA','CONTATO FUTURO','LISTA','DESISTIU','PERDIDO','VENDIDO','JÁ COMPROU','FINALIZADO'];
+var ETIQUETAS   = ['ENTRADA','LEADS NOVOS','EM ATENDIMENTO','QUENTE','REPESCAGEM','FANTASMA','CONTATO FUTURO','LISTA','DESISTIU','PERDIDO','VENDIDO','JÁ COMPROU','FINALIZADO'];
 var FAIXAS      = ['Até R$ 300 mil','R$ 300 mil - R$ 400 mil','R$ 400 mil - R$ 500 mil','R$ 500 mil - R$ 600 mil','R$ 600 mil - R$ 700 mil','R$ 700 mil - R$ 800 mil','R$ 800 mil - R$ 900 mil','R$ 900 mil - R$ 1 milhão','R$ 1 milhão - R$ 2 milhões','R$ 2 milhões - R$ 3 milhões','R$ 3 milhões - R$ 4 milhões','R$ 4 milhões - R$ 5 milhões','Acima de R$ 5 milhões'];
 var PERFIS      = ['FLAT PLANTA','FLAT PRONTO','APTO PLANTA','APTO PRONTO','MCMV','ALTO PADRÃO','ALUGUEL','CASA CONDOMÍNIO'];
 var ANUNCIOS    = ['HOGAR 120','MAVIE','FLOREZZA','FLAT CB','GRAN GARDEM','BREEZE','SETAI MIRAJ','BLANC','NAUT','Mio Formosa','ARTEFACTO','Bliss Navegante'];
@@ -1862,7 +1905,7 @@ function isEncerrado(l) {
 
 // HELPERS
 function getPillClass(s) {
-  var m = {'ENTRADA':'pill-entrada','EM ATENDIMENTO':'pill-atendimento','QUENTE':'pill-quente','REPESCAGEM':'pill-repescagem','FANTASMA':'pill-fantasma','CONTATO FUTURO':'pill-futuro','LISTA':'pill-lista','DESISTIU':'pill-desistiu','PERDIDO':'pill-perdido-et','VENDIDO':'pill-vendido-et','JÁ COMPROU':'pill-jacomprou','FINALIZADO':'pill-finalizado'};
+  var m = {'ENTRADA':'pill-entrada','LEADS NOVOS':'pill-leadsnovos','EM ATENDIMENTO':'pill-atendimento','QUENTE':'pill-quente','REPESCAGEM':'pill-repescagem','FANTASMA':'pill-fantasma','CONTATO FUTURO':'pill-futuro','LISTA':'pill-lista','DESISTIU':'pill-desistiu','PERDIDO':'pill-perdido-et','VENDIDO':'pill-vendido-et','JÁ COMPROU':'pill-jacomprou','FINALIZADO':'pill-finalizado'};
   return m[(s||'').toUpperCase()] || 'pill-default';
 }
 function getSGClass(s) {
@@ -1870,7 +1913,7 @@ function getSGClass(s) {
   return m[(s||'').toUpperCase()] || 'pill-default';
 }
 function getStatusColor(s) {
-  var m = {'QUENTE':'#e74c3c','EM ATENDIMENTO':'#f39c12','ENTRADA':'#3498db','REPESCAGEM':'#9b59b6','FANTASMA':'#95a5a6','CONTATO FUTURO':'#1a6b4a','LISTA':'#2c3e50'};
+  var m = {'QUENTE':'#e74c3c','EM ATENDIMENTO':'#f39c12','ENTRADA':'#3498db','LEADS NOVOS':'#27ae60','REPESCAGEM':'#9b59b6','FANTASMA':'#95a5a6','CONTATO FUTURO':'#1a6b4a','LISTA':'#2c3e50'};
   return m[(s||'').toUpperCase()] || '#e5e7eb';
 }
 function ini(n) { return (n||'?').trim().split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase(); }
@@ -1969,7 +2012,7 @@ async function loadAll(){
   var tasks = [loadLeads(),loadAgs(),loadImoveis(),loadTele(),loadCaptacoes()];
   if (typeof loadCorretoresLogin === 'function') tasks.push(loadCorretoresLogin());
   await Promise.all(tasks);
-  renderDash();renderKanban();renderAg();renderImoveis();renderEquipe();renderAlertas();renderRel();renderIndicadores();
+  renderDash();renderKanban();renderAg();renderImoveis();renderEquipe();renderAlertas();renderRel();renderIndicadores();renderRecontato();
   // Update all corretor selects and chips after everything is loaded
   if (typeof updateCorretorSelects === 'function') updateCorretorSelects();
   if (typeof renderCorretorChips === 'function') renderCorretorChips();
@@ -2022,7 +2065,7 @@ async function saveLead(andWA){
   document.getElementById('f-empr').value='';
   document.querySelectorAll('#empr-env-wrap input').forEach(function(cb){cb.checked=false;});
   document.getElementById('dup-alert').style.display='none';
-  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();
+  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();
   if(andWA&&tel)openWA(tel,nome,document.getElementById('f-empr').value);
 }
 
@@ -2030,7 +2073,7 @@ async function deleteLead(id){
   if(!confirm('Remover este lead?'))return;
   await sb.from('leads').delete().eq('id',id);
   toast('Removido');closeModal('detail');
-  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();
+  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();
 }
 
 function addNovoAnuncio(fid){
@@ -2115,7 +2158,7 @@ function showPanel(id,el){
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   document.getElementById('panel-'+id).classList.add('active');
   if(el)el.classList.add('active');
-  var titles={dashboard:'Dashboard',leads:'Leads',kanban:'Funil Kanban',agenda:'Agenda',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
+  var titles={dashboard:'Dashboard',leads:'Leads',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
   document.getElementById('page-title').textContent=titles[id]||id;
   closeMobile();
 }
@@ -2339,7 +2382,7 @@ async function addHist(id){
   if(r.error){toast('Erro: '+r.error.message);return;}
   selectedCod=''; selectedTipo='env';
   toast('✅ Atendimento registrado!');
-  await loadLeads();renderDash();renderKanban();renderAlertas();
+  await loadLeads();renderDash();renderKanban();renderAlertas();renderRecontato();
   var updated=leads.find(function(x){return String(x.id)===String(id);});
   if(updated)renderTab(updated,'hist');
 }
@@ -2365,7 +2408,7 @@ async function saveEdit(id){
   var r=await sb.from('leads').update(upd).eq('id',id);
   if(r.error){toast('Erro: '+r.error.message);return;}
   toast('Atualizado!');
-  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();
+  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();
   var updated=leads.find(function(x){return String(x.id)===String(id);});
   if(updated){document.getElementById('d-nome').textContent=updated.nome;renderTab(updated,'dados');document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});document.querySelectorAll('.tab-btn')[0].classList.add('active');}
 }
@@ -2397,7 +2440,7 @@ var K_STAGES=[
 function getKIdx(l){
   var sg=(l.status_geral||'').toUpperCase();
   if(sg==='VENDIDO')return 6; if(sg==='PERDIDO')return 7;
-  var m={'ENTRADA':0,'REPESCAGEM':1,'EM ATENDIMENTO':2,'QUENTE':3,'CONTATO FUTURO':1,'FANTASMA':7,'LISTA':1};
+  var m={'ENTRADA':0,'LEADS NOVOS':0,'REPESCAGEM':1,'EM ATENDIMENTO':2,'QUENTE':3,'CONTATO FUTURO':1,'FANTASMA':7,'LISTA':1};
   return m[(l.status||'').toUpperCase()]||0;
 }
 function renderKanban(){
@@ -2648,6 +2691,37 @@ function renderAg(){
   }).join(''):'<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum follow-up pendente. ✅</div>';
 }
 
+// ═══ PROGRAMAÇÃO DE RECONTATO ═══
+var recontatoFiltro = 'todos';
+function setRecontatoF(f, el) {
+  recontatoFiltro = f;
+  document.querySelectorAll('#panel-recontato .chip').forEach(function(c){ c.classList.remove('on'); });
+  if (el) el.classList.add('on');
+  renderRecontato();
+}
+function renderRecontato() {
+  var el = document.getElementById('recontato-list');
+  if (!el) return;
+  var isAdmin = !currentUser || (currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing');
+  var lista = leads.filter(function(l) {
+    var et = (l.status||'').toUpperCase();
+    if (et !== 'REPESCAGEM' && et !== 'CONTATO FUTURO') return false;
+    if (recontatoFiltro !== 'todos' && et !== recontatoFiltro) return false;
+    return true;
+  });
+  lista.sort(function(a,b){ return getTmp(b).days - getTmp(a).days; });
+  el.innerHTML = lista.length ? lista.map(function(l) {
+    return '<div class="agenda-item" style="cursor:pointer" onclick="openDetail('+JSON.stringify(l.id)+')">'
+      + '<div class="avatar av-sm">'+ini(l.nome)+'</div>'
+      + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+l.nome+'</div>'
+      + '<div style="font-size:11px;color:var(--muted)">'+(l.empreendimento||'—')+' · '+(l.telefone||'—')+(isAdmin?' · '+(l.corretor||'—'):'')+'</div></div>'
+      + '<span class="pill '+getPillClass(l.status)+'" style="margin-right:7px">'+(l.status||'—')+'</span>'
+      + timerHtml(l)
+      + '<button class="btn btn-wa btn-xs" style="margin-left:7px" onclick="event.stopPropagation();openWA('+JSON.stringify(l.telefone)+','+JSON.stringify(l.nome)+','+JSON.stringify(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
+      + '</div>';
+  }).join('') : '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum lead para recontato no momento. ✅</div>';
+}
+
 // IMÓVEIS
 async function loadImoveis(){var r=await sb.from('imoveis').select('*').order('nome');imoveis=r.data||[];renderImoveis();}
 async function saveImovel(){
@@ -2747,15 +2821,22 @@ function openTele(id) {
   var t = teleContatos.find(function(x){return x.id===id;});
   if (!t) return;
   document.getElementById('atender-nome-title').textContent = t.nome || 'Contato';
+  var opcoesAtendente = getAllEquipe().map(function(u){
+    return '<option value="'+u.nome+'"'+((t.atendente||'')===u.nome?' selected':'')+'>'+u.nome+'</option>';
+  }).join('');
   document.getElementById('atender-info').innerHTML =
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    '<div class="fld" style="margin-bottom:8px"><label class="lbl">Nome do cliente</label><input class="fc" id="atender-nome-edit" value="'+(t.nome||'').replace(/"/g,'&quot;')+'"></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
     + '<div><span class="lbl">Telefone</span><div>' + (t.telefone||'—') + '</div></div>'
     + '<div><span class="lbl">Interesse</span><div>' + (t.interesse||'—') + '</div></div>'
     + '<div><span class="lbl">Tentativas anteriores</span><div>' + (t.tentativas||0) + 'x</div></div>'
-    + '<div><span class="lbl">Atendente</span><div>' + (t.atendente||'—') + '</div></div>'
+    + '<div><label class="lbl">Quem ligou (atendente)</label><select class="fc" id="atender-atendente-edit">'+opcoesAtendente+'</select></div>'
     + '</div>'
     + (t.observacoes ? '<div style="margin-top:8px;font-size:12px;color:var(--muted)"><strong>Obs:</strong> ' + t.observacoes + '</div>' : '');
-  document.getElementById('atender-wa-btn').onclick = function() { openWA(t.telefone, t.nome, t.interesse); };
+  document.getElementById('atender-wa-btn').onclick = function() {
+    var nomeAtual = document.getElementById('atender-nome-edit').value.trim() || t.nome;
+    openWA(t.telefone, nomeAtual, t.interesse);
+  };
   document.getElementById('atender-resultado').value = 'Não atendeu';
   document.getElementById('atender-obs').value = '';
   openModal('atender-tele');
@@ -2766,7 +2847,11 @@ async function registrarAtendimento() {
   var obs = document.getElementById('atender-obs').value.trim();
   var t = teleContatos.find(function(x){return x.id===currentTeleId;});
   if (!t) return;
+  var nomeEditado = document.getElementById('atender-nome-edit') ? document.getElementById('atender-nome-edit').value.trim() : t.nome;
+  var atendenteEditado = document.getElementById('atender-atendente-edit') ? document.getElementById('atender-atendente-edit').value : t.atendente;
   var upd = {
+    nome: nomeEditado || t.nome,
+    atendente: atendenteEditado || t.atendente,
     status: resultado === 'Convertido — virou lead' ? 'Convertido' :
              resultado === 'Interessado — agendar' ? 'Em contato' :
              resultado === 'Sem interesse' ? 'Sem interesse' :
@@ -2780,9 +2865,9 @@ async function registrarAtendimento() {
   // Se convertido, criar lead automaticamente
   if (resultado === 'Convertido — virou lead') {
     var novoLead = {
-      nome: t.nome, telefone: t.telefone, interesse: t.interesse,
+      nome: upd.nome, telefone: t.telefone, interesse: t.interesse,
       origem: 'TELEMARKETING', status: 'ENTRADA', status_geral: 'ATENDIMENTO ATIVO',
-      corretor: t.atendente || currentUser.nome,
+      corretor: upd.atendente || currentUser.nome,
       historico: JSON.stringify([{tipo:'lig', texto:'Convertido do Telemarketing. ' + (obs||''), data:nowStr(), autor:currentUser.nome}]),
       criado_por: currentUser.nome, propostas: '[]'
     };
@@ -5067,7 +5152,8 @@ showPanel = function(id, el) {
    — Bloco 100% adicional. Nenhuma função/elemento existente foi
    removido ou alterado em seu comportamento original. ════════════ */
 
-var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos'];
+var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato'];
+var ALLOWED_PANELS_TELEMARKETING = ALLOWED_PANELS_CORRETOR.concat(['telemarketing']);
 
 function formatCPFInput(el) {
   var v = el.value.replace(/\D/g,'').slice(0,11);
@@ -5113,10 +5199,11 @@ async function doLoginCorretor() {
       return;
     }
     var corretor = r.data;
+    var ehTelemkt = corretor.tipo === 'telemarketing';
     currentUser = {
       nome: corretor.nome,
-      role: 'Corretor',
-      tipo: 'corretor',
+      role: ehTelemkt ? 'Telemarketing / SDR' : 'Corretor',
+      tipo: ehTelemkt ? 'telemarketing' : 'corretor',
       av: ini(corretor.nome),
       cor: '#16697A',
       cpf: corretor.cpf
@@ -5144,14 +5231,15 @@ async function doLoginCorretor() {
 // Aplica restrições de menu conforme o perfil do usuário logado (admin x corretor)
 function applyRolePermissions() {
   if (!currentUser) return;
-  var isAdmin = currentUser.tipo !== 'corretor';
+  var isAdmin = currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing';
+  var allowed = currentUser.tipo === 'telemarketing' ? ALLOWED_PANELS_TELEMARKETING : ALLOWED_PANELS_CORRETOR;
   var navItems = document.querySelectorAll('.nav-item');
   navItems.forEach(function(item) {
     if (isAdmin) { item.style.display = ''; return; }
     var onclick = item.getAttribute('onclick') || '';
     var m = onclick.match(/showPanel\('([^']+)'/);
     var panelId = m ? m[1] : null;
-    item.style.display = (panelId && ALLOWED_PANELS_CORRETOR.indexOf(panelId) !== -1) ? '' : 'none';
+    item.style.display = (panelId && allowed.indexOf(panelId) !== -1) ? '' : 'none';
   });
   // Esconde rótulos de grupo (nav-lbl) que ficaram sem nenhum item visível
   var groups = document.querySelectorAll('.nav-lbl');
@@ -5205,7 +5293,7 @@ doLogout = function() {
 var _origLoadLeadsPerm = loadLeads;
 loadLeads = async function() {
   await _origLoadLeadsPerm();
-  if (currentUser && currentUser.tipo === 'corretor') {
+  if (currentUser && (currentUser.tipo === 'corretor' || currentUser.tipo === 'telemarketing')) {
     leads = leads.filter(function(l){ return l.corretor === currentUser.nome; });
     filteredLeads = leads.slice();
     filterLeads();
@@ -5218,7 +5306,7 @@ loadLeads = async function() {
 var _origRenderTabPerm = renderTab;
 renderTab = function(l, tab) {
   _origRenderTabPerm(l, tab);
-  if (currentUser && currentUser.tipo === 'corretor' && tab === 'edit') {
+  if (currentUser && (currentUser.tipo === 'corretor' || currentUser.tipo === 'telemarketing') && tab === 'edit') {
     var eCorretor = document.getElementById('e-corretor');
     if (eCorretor) { garantirOpcaoCorretor('e-corretor', currentUser.nome); eCorretor.disabled = true; }
   }
@@ -5233,6 +5321,7 @@ async function loadCorretoresLogin() {
     corretoresLogin = r.data || [];
   } catch(e) { corretoresLogin = []; }
   renderCorretoresLogin();
+  renderTelemktLogin();
   // Atualiza todas as áreas que dependem da lista de corretores
   if (typeof renderEquipe === 'function') renderEquipe();
   if (typeof renderIndicadores === 'function') renderIndicadores();
@@ -5243,12 +5332,35 @@ async function loadCorretoresLogin() {
 function renderCorretoresLogin() {
   var el = document.getElementById('corretores-login-list');
   if (!el) return;
-  if (!corretoresLogin.length) {
+  var lista = corretoresLogin.filter(function(c){ return c.tipo !== 'telemarketing'; });
+  if (!lista.length) {
     el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum corretor cadastrado ainda.</div>';
     return;
   }
   el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>CPF</th><th>Status</th><th>Ação</th></tr></thead><tbody>'
-    + corretoresLogin.map(function(c) {
+    + lista.map(function(c) {
+        var ativo = c.ativo !== false;
+        return '<tr><td><strong>' + (c.nome||'—') + '</strong></td>'
+          + '<td style="font-size:12px;color:var(--muted)">' + (c.cpf||'—') + '</td>'
+          + '<td><span class="pill ' + (ativo?'pill-ativo':'pill-perdido') + '">' + (ativo?'Ativo':'Inativo') + '</span></td>'
+          + '<td style="white-space:nowrap">'
+          + '<button class="btn btn-xs" onclick="toggleCorretorAtivo(' + c.id + ',' + (!ativo) + ')">' + (ativo?'<i class="ti ti-lock"></i>Desativar':'<i class="ti ti-lock-open"></i>Ativar') + '</button>'
+          + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteCorretorLogin(' + c.id + ')"><i class="ti ti-trash"></i></button>'
+          + '</td></tr>';
+      }).join('')
+    + '</tbody></table></div>';
+}
+
+function renderTelemktLogin() {
+  var el = document.getElementById('telemkt-login-list');
+  if (!el) return;
+  var lista = corretoresLogin.filter(function(c){ return c.tipo === 'telemarketing'; });
+  if (!lista.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum Telemarketing/SDR cadastrado ainda.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>CPF</th><th>Status</th><th>Ação</th></tr></thead><tbody>'
+    + lista.map(function(c) {
         var ativo = c.ativo !== false;
         return '<tr><td><strong>' + (c.nome||'—') + '</strong></td>'
           + '<td style="font-size:12px;color:var(--muted)">' + (c.cpf||'—') + '</td>'
@@ -5267,10 +5379,26 @@ async function saveCorretorLogin() {
   var senha = document.getElementById('nc-senha').value.trim();
   if (!nome || !cpf || !senha) { toast('Preencha nome, CPF e senha'); return; }
   try {
-    await sb.from('corretores_login').insert([{nome:nome, cpf:cpf, senha:senha, ativo:true}]);
+    await sb.from('corretores_login').insert([{nome:nome, cpf:cpf, senha:senha, ativo:true, tipo:'corretor'}]);
     toast('✅ Corretor cadastrado!');
     closeModal('new-corretor');
     ['nc-nome','nc-cpf','nc-senha'].forEach(function(id){ document.getElementById(id).value=''; });
+    await loadCorretoresLogin();
+  } catch(e) {
+    toast('❌ Erro: ' + (e.message||'CPF já pode estar cadastrado'));
+  }
+}
+
+async function saveTelemktLogin() {
+  var nome = document.getElementById('nt-nome').value.trim();
+  var cpf = document.getElementById('nt-cpf').value.trim();
+  var senha = document.getElementById('nt-senha').value.trim();
+  if (!nome || !cpf || !senha) { toast('Preencha nome, CPF e senha'); return; }
+  try {
+    await sb.from('corretores_login').insert([{nome:nome, cpf:cpf, senha:senha, ativo:true, tipo:'telemarketing'}]);
+    toast('✅ Telemarketing/SDR cadastrado!');
+    closeModal('new-telemkt');
+    ['nt-nome','nt-cpf','nt-senha'].forEach(function(id){ document.getElementById(id).value=''; });
     await loadCorretoresLogin();
   } catch(e) {
     toast('❌ Erro: ' + (e.message||'CPF já pode estar cadastrado'));
