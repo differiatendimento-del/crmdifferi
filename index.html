@@ -941,16 +941,11 @@ textarea.fc{resize:vertical;min-height:60px}
     <!-- CLIENTES VENDIDOS -->
     <div class="panel" id="panel-clientes">
       <!-- MÉTRICAS -->
-      <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+      <div class="metrics-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px">
         <div class="metric-card" style="border-left:4px solid var(--accent)">
           <div class="metric-label">Total vendas 🏆</div>
           <div class="metric-val" style="color:var(--accent)" id="vd-m-total">—</div>
           <div class="metric-sub">leads convertidos</div>
-        </div>
-        <div class="metric-card" style="border-left:4px solid var(--success)">
-          <div class="metric-label">Já Comprou</div>
-          <div class="metric-val" style="color:var(--success)" id="vd-m-parceiro">—</div>
-          <div class="metric-sub">confirmados</div>
         </div>
         <div class="metric-card" style="border-left:4px solid var(--info)">
           <div class="metric-label">Finalizados</div>
@@ -963,7 +958,6 @@ textarea.fc{resize:vertical;min-height:60px}
       <div class="filters-bar" style="margin-bottom:13px">
         <div class="chip on" onclick="setClienteFilter('todos',this)">Todos</div>
         <div class="chip" onclick="setClienteFilter('VENDIDO',this)">✅ Vendido</div>
-        <div class="chip" onclick="setClienteFilter('JÁ COMPROU',this)">🏆 Já Comprou</div>
         <div class="chip" onclick="setClienteFilter('FINALIZADO',this)">📁 Finalizado</div>
         <select class="filter-sel" id="fil-vd-corretor" onchange="renderClientesVendidos()" style="margin-left:auto">
           <option value="">Todos os corretores</option>
@@ -1148,10 +1142,11 @@ textarea.fc{resize:vertical;min-height:60px}
       <div id="dup-alert" style="display:none;background:rgba(243,156,18,.1);border:1px solid rgba(243,156,18,.3);border-radius:var(--radius);padding:8px 11px;font-size:12px;color:#b7770d;margin-bottom:10px"><i class="ti ti-alert-triangle"></i> <strong>Atenção:</strong> Número já cadastrado: <span id="dup-nome"></span></div>
       <div class="form-row">
         <div><label class="lbl">Perfil <span style="color:var(--danger)">*</span></label>
-          <select class="fc" id="f-interesse"><option value="">Selecione...</option><option>FLAT PLANTA</option><option>FLAT PRONTO</option><option>APTO PLANTA</option><option>APTO PRONTO</option><option>MCMV</option><option>ALTO PADRÃO</option><option>ALUGUEL</option><option>CASA CONDOMÍNIO</option></select>
+          <select class="fc" id="f-interesse"><option value="">Selecione...</option><option>FLAT PLANTA</option><option>FLAT PRONTO</option><option>APTO PLANTA</option><option>APTO PRONTO</option><option>MCMV</option><option>ALTO PADRÃO</option><option>ALUGUEL</option><option>CASA CONDOMÍNIO</option><option>SALA COMERCIAL COMPRA</option><option>SALA COMERCIAL ALUGUEL</option></select>
         </div>
         <div><label class="lbl">Faixa de valor <span style="color:var(--danger)">*</span></label>
-          <select class="fc" id="f-valor"><option value="">Selecione...</option><option>Até R$ 300 mil</option><option>R$ 300 mil - R$ 400 mil</option><option>R$ 400 mil - R$ 500 mil</option><option>R$ 500 mil - R$ 600 mil</option><option>R$ 600 mil - R$ 700 mil</option><option>R$ 700 mil - R$ 800 mil</option><option>R$ 800 mil - R$ 900 mil</option><option>R$ 900 mil - R$ 1 milhão</option><option>R$ 1 milhão - R$ 2 milhões</option><option>R$ 2 milhões - R$ 3 milhões</option><option>R$ 3 milhões - R$ 4 milhões</option><option>R$ 4 milhões - R$ 5 milhões</option><option>Acima de R$ 5 milhões</option></select>
+          <input class="fc" id="f-valor" list="f-valor-list" placeholder="Selecione ou digite (ex: R$ 1.500/mês)" autocomplete="off">
+          <datalist id="f-valor-list"><option>R$ 0 - R$ 100 mil</option><option>R$ 100 mil - R$ 200 mil</option><option>R$ 200 mil - R$ 300 mil</option><option>Até R$ 300 mil</option><option>R$ 300 mil - R$ 400 mil</option><option>R$ 400 mil - R$ 500 mil</option><option>R$ 500 mil - R$ 600 mil</option><option>R$ 600 mil - R$ 700 mil</option><option>R$ 700 mil - R$ 800 mil</option><option>R$ 800 mil - R$ 900 mil</option><option>R$ 900 mil - R$ 1 milhão</option><option>R$ 1 milhão - R$ 2 milhões</option><option>R$ 2 milhões - R$ 3 milhões</option><option>R$ 3 milhões - R$ 4 milhões</option><option>R$ 4 milhões - R$ 5 milhões</option><option>Acima de R$ 5 milhões</option></datalist>
         </div>
       </div>
       <div class="form-row">
@@ -1910,7 +1905,7 @@ var STATUS_GERAL= ['ATENDIMENTO ATIVO','MAILING','DESISTIU','PERDIDO','VENDIDO',
 
 // Status "encerrados" que não devem contar como pendência de atendimento nos Leads
 // (viram tarefa do Telemarketing em vez de ficarem vermelhos aqui)
-var STATUS_ENCERRADOS_SG = ['MAILING','DESISTIU','PERDIDO'];
+var STATUS_ENCERRADOS_SG = ['MAILING','DESISTIU','PERDIDO','JÁ COMPROU'];
 var ETIQUETAS_ENCERRADAS = ['FANTASMA','DESISTIU','PERDIDO'];
 function isEncerrado(l) {
   var sg=(l.status_geral||'').toUpperCase();
@@ -2352,7 +2347,7 @@ function renderTab(l,tab){
       +'<div><label class="lbl">Canal de contato</label><input class="fc" id="e-canal" list="lista-canais" value="'+(l.canal||'')+'"></div></div>'
       +'<div><label class="lbl">Data contato inicial</label><input class="fc" id="e-data-contato" type="date" value="'+(l.data_contato||'')+'"></div></div>'
       +'<div class="form-row"><div><label class="lbl">Anúncio</label><div style="display:flex;gap:6px"><select class="fc" id="e-empr" style="flex:1">'+ANUNCIOS.map(function(a){return '<option'+(l.empreendimento===a?' selected':'')+'>'+a+'</option>';}).join('')+'</select><button type="button" class="btn btn-sm" onclick="addNovoAnuncio(\'e-empr\')"><i class="ti ti-plus"></i></button></div></div>'
-      +'<div><label class="lbl">Corretor</label><select class="fc" id="e-corretor">'+['Sandryne','Diogo','Fernanda','Renata'].map(function(o){return '<option'+(l.corretor===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div></div>'
+      +'<div><label class="lbl">Corretor</label><select class="fc" id="e-corretor">'+getAllEquipe().map(function(u){return '<option'+(l.corretor===u.nome?' selected':'')+'>'+u.nome+'</option>';}).join('')+'</select></div></div>'
       +'<div class="form-row"><div><label class="lbl">Data da venda</label><input class="fc" id="e-data-venda" type="date" value="'+(l.data_venda||'')+'"></div></div>'
       +'<div class="fld"><label class="lbl">Observações</label><textarea class="fc" id="e-obs">'+escHtml(l.observacoes||'')+'</textarea></div>'
       +'<div style="display:flex;justify-content:flex-end;gap:7px;margin-top:4px">'
@@ -3311,6 +3306,7 @@ function motivoParaTelemarketing(statusNovo, statusAntigo, sgNovo, sgAntigo) {
   if (sgNovo === 'DESISTIU' && sgAntigo !== 'DESISTIU') return 'Desistiu';
   if (statusNovo === 'PERDIDO' && statusAntigo !== 'PERDIDO') return 'Perdido';
   if (sgNovo === 'PERDIDO' && sgAntigo !== 'PERDIDO') return 'Perdido';
+  if (sgNovo === 'JÁ COMPROU' && sgAntigo !== 'JÁ COMPROU') return 'Já Comprou (outro imóvel)';
   return null;
 }
 
@@ -4948,7 +4944,7 @@ function renderClientesVendidos() {
   var clienteCorretor = document.getElementById('fil-vd-corretor') ? document.getElementById('fil-vd-corretor').value : '';
   var vendidos = leads.filter(function(l){
     var sg = (l.status_geral||'').toUpperCase();
-    var isVendido = sg==='VENDIDO'||sg==='JÁ COMPROU'||sg==='FINALIZADO';
+    var isVendido = sg==='VENDIDO'||sg==='FINALIZADO';
     if (!isVendido) return false;
     if (clienteFilter !== 'todos' && sg !== clienteFilter) return false;
     if (clienteCorretor && l.corretor !== clienteCorretor) return false;
@@ -4960,10 +4956,8 @@ function renderClientesVendidos() {
   }
   // Metrics
   var totalVendidos = vendidos.length;
-  var comParceiro = vendidos.filter(function(l){return (l.status_geral||'').toUpperCase()==='JÁ COMPROU';}).length;
   var finalizados = vendidos.filter(function(l){return (l.status_geral||'').toUpperCase()==='FINALIZADO';}).length;
   var elM1=document.getElementById('vd-m-total'); if(elM1) elM1.textContent=totalVendidos;
-  var elM2=document.getElementById('vd-m-parceiro'); if(elM2) elM2.textContent=comParceiro;
   var elM3=document.getElementById('vd-m-final'); if(elM3) elM3.textContent=finalizados;
 
   el.innerHTML = '<div class="tbl-wrap"><table><thead><tr>'
