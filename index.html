@@ -514,26 +514,36 @@ textarea.fc{resize:vertical;min-height:60px}
 
     <!-- CATÁLOGO -->
     <div class="panel" id="panel-catalogo">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div style="display:flex;gap:7px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
           <div class="chip on" onclick="setCatalogFilter('todos',this)">Todos</div>
           <div class="chip" onclick="setCatalogFilter('Flat',this)">🏨 Flats</div>
           <div class="chip" onclick="setCatalogFilter('Apto',this)">🏢 Aptos</div>
           <div class="chip" onclick="setCatalogFilter('Casa',this)">🏡 Casas</div>
           <div class="chip" onclick="setCatalogFilter('Pronto',this)">✅ Prontos</div>
           <div class="chip" onclick="setCatalogFilter('Lançamento',this)">🚀 Lançamentos</div>
+          <div class="chip" onclick="setCatalogFilter('semleads',this)">🆕 Sem leads ainda</div>
         </div>
         <div style="display:flex;gap:7px">
+          <button class="btn btn-sm" id="btn-cat-view" onclick="toggleCatalogoView()"><i class="ti ti-layout-grid"></i>Ver em cards</button>
           <button class="btn btn-sm" onclick="openModal('import-catalogo')"><i class="ti ti-upload"></i>Importar lista</button>
           <button class="btn btn-primary btn-sm" onclick="openModal('new-catalogo')"><i class="ti ti-plus"></i>Novo imóvel</button>
         </div>
       </div>
-      <div class="tbl-wrap">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--muted);white-space:nowrap">Faixa de valor:</span>
+        <input class="fc" id="cat-filtro-min" placeholder="Valor mínimo (ex: 300000)" style="max-width:180px" oninput="renderCatalogo()">
+        <span style="font-size:12px;color:var(--muted)">até</span>
+        <input class="fc" id="cat-filtro-max" placeholder="Valor máximo" style="max-width:180px" oninput="renderCatalogo()">
+        <button class="btn btn-xs" onclick="document.getElementById('cat-filtro-min').value='';document.getElementById('cat-filtro-max').value='';renderCatalogo()">Limpar</button>
+      </div>
+      <div class="tbl-wrap" id="catalogo-view-tabela">
         <table>
           <thead><tr><th>Empreendimento</th><th>Bairro</th><th>Valor mínimo</th><th>Tipo</th><th>Status</th><th>Prev. Entrega</th><th>Lista disparo</th><th>Leads</th><th>Ação</th></tr></thead>
           <tbody id="catalogo-body"></tbody>
         </table>
       </div>
+      <div id="catalogo-view-cards" style="display:none"></div>
     </div>
 
     <!-- FLUXO DE PAGAMENTO -->
@@ -592,6 +602,11 @@ textarea.fc{resize:vertical;min-height:60px}
           <button class="btn btn-sm" onclick="openModal('import-script')"><i class="ti ti-upload"></i>Importar lista</button>
           <button class="btn btn-primary btn-sm" onclick="openModal('new-script')"><i class="ti ti-plus"></i>Novo script</button>
         </div>
+      </div>
+      <!-- BUSCA -->
+      <div class="search-wrap" style="max-width:100%;margin-bottom:14px">
+        <i class="ti ti-search"></i>
+        <input type="text" placeholder="Buscar por pergunta, dica ou observação..." id="script-search" oninput="renderScript()" style="width:100%;padding:8px 11px 8px 33px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
       </div>
       <div id="script-list"></div>
     </div>
@@ -1940,7 +1955,7 @@ function openWA(tel,nome,empr) {
   if (!n) { toast('⚠️ Número inválido'); return; }
   var f = n.startsWith('55') ? n : '55'+n;
   var msg = 'Olá ' + (nome||'') + '! Sou ' + currentUser.nome + ' da Differi Imóveis. Você se interessou em ' + (empr||'nossos imóveis') + '. Posso enviar mais informações?';
-  window.open('https://wa.me/' + f + '?text=' + encodeURIComponent(msg), '_blank');
+  window.open('https://web.whatsapp.com/send?phone=' + f + '&text=' + encodeURIComponent(msg), '_blank');
 }
 
 function getLastHist(l) { var h=l.historico||[]; return h.length?h[h.length-1]:null; }
@@ -2066,6 +2081,10 @@ async function saveLead(andWA){
   document.querySelectorAll('#empr-env-wrap input').forEach(function(cb){cb.checked=false;});
   document.getElementById('dup-alert').style.display='none';
   await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();
+  var motivoEnvioNovo = (typeof motivoParaTelemarketing === 'function') ? motivoParaTelemarketing(etiq, '', document.getElementById('f-sg').value, '') : null;
+  if (motivoEnvioNovo && typeof autoEnviarTelemarketing === 'function') {
+    await autoEnviarTelemarketing(nome, tel, perfil, document.getElementById('f-corretor').value, motivoEnvioNovo);
+  }
   if(andWA&&tel)openWA(tel,nome,document.getElementById('f-empr').value);
 }
 
@@ -3264,6 +3283,37 @@ renderAg = function() {
 };
 
 // ═══ AUTO TELEMARKETING quando lead vai para REPESCAGEM, MAILING, DESISTIU, PERDIDO ou FANTASMA ═══
+async function autoEnviarTelemarketing(nome, telefone, interesse, atendente, motivo) {
+  if (!telefone) return;
+  try {
+    var jaExiste = await sb.from('telemarketing').select('id').eq('telefone', telefone).limit(1);
+    if (jaExiste.data && jaExiste.data.length) return; // já está na fila, não duplica
+    var ins = await sb.from('telemarketing').insert([{
+      nome: nome,
+      telefone: telefone,
+      interesse: interesse || '',
+      status: 'Aguardando',
+      atendente: atendente || (currentUser ? currentUser.nome : ''),
+      observacoes: 'Adicionado automaticamente via ' + motivo + ' do CRM'
+    }]);
+    if (ins.error) { console.error('Erro ao inserir no telemarketing:', ins.error); return; }
+    toast('📞 Lead adicionado ao Telemarketing automaticamente (' + motivo + ')!');
+    if (typeof loadTele === 'function') await loadTele();
+  } catch (e) {
+    console.error('Erro ao enviar automaticamente para o telemarketing:', e);
+  }
+}
+function motivoParaTelemarketing(statusNovo, statusAntigo, sgNovo, sgAntigo) {
+  if (statusNovo === 'REPESCAGEM' && statusAntigo !== 'REPESCAGEM') return 'Repescagem';
+  if (statusNovo === 'FANTASMA' && statusAntigo !== 'FANTASMA') return 'Fantasma';
+  if (sgNovo === 'MAILING' && sgAntigo !== 'MAILING') return 'Mailing';
+  if (statusNovo === 'DESISTIU' && statusAntigo !== 'DESISTIU') return 'Desistiu';
+  if (sgNovo === 'DESISTIU' && sgAntigo !== 'DESISTIU') return 'Desistiu';
+  if (statusNovo === 'PERDIDO' && statusAntigo !== 'PERDIDO') return 'Perdido';
+  if (sgNovo === 'PERDIDO' && sgAntigo !== 'PERDIDO') return 'Perdido';
+  return null;
+}
+
 var _origSaveEdit = saveEdit;
 saveEdit = async function(id) {
   var novoStatus = document.getElementById('e-status') ? document.getElementById('e-status').value : '';
@@ -3271,33 +3321,16 @@ saveEdit = async function(id) {
   var l = leads.find(function(x){return String(x.id)===String(id);});
   var statusAnterior = l ? l.status : '';
   var sgAnterior = l ? l.status_geral : '';
+  var nomeAntes = l ? l.nome : '';
+  var telAntes = l ? l.telefone : '';
+  var interesseAntes = l ? l.interesse : '';
+  var corretorAntes = l ? l.corretor : '';
 
   await _origSaveEdit(id);
 
-  var motivoEnvio = null;
-  if (novoStatus === 'REPESCAGEM' && statusAnterior !== 'REPESCAGEM') motivoEnvio = 'Repescagem';
-  else if (novoStatus === 'FANTASMA' && statusAnterior !== 'FANTASMA') motivoEnvio = 'Fantasma';
-  else if (novoSG === 'MAILING' && sgAnterior !== 'MAILING') motivoEnvio = 'Mailing';
-  else if (novoStatus === 'DESISTIU' && statusAnterior !== 'DESISTIU') motivoEnvio = 'Desistiu';
-  else if (novoSG === 'DESISTIU' && sgAnterior !== 'DESISTIU') motivoEnvio = 'Desistiu';
-  else if (novoStatus === 'PERDIDO' && statusAnterior !== 'PERDIDO') motivoEnvio = 'Perdido';
-  else if (novoSG === 'PERDIDO' && sgAnterior !== 'PERDIDO') motivoEnvio = 'Perdido';
-
-  // Se mudou para um desses status, adicionar no telemarketing automaticamente
-  if (motivoEnvio && l) {
-    var jaExiste = await sb.from('telemarketing').select('id').eq('telefone', l.telefone).single();
-    if (!jaExiste.data) {
-      await sb.from('telemarketing').insert([{
-        nome: l.nome,
-        telefone: l.telefone,
-        interesse: l.interesse || '',
-        status: 'Aguardando',
-        atendente: l.corretor || currentUser.nome,
-        observacoes: 'Adicionado automaticamente via ' + motivoEnvio + ' do CRM'
-      }]);
-      toast('📞 Lead adicionado ao Telemarketing automaticamente (' + motivoEnvio + ')!');
-      await loadTele();
-    }
+  var motivoEnvio = motivoParaTelemarketing(novoStatus, statusAnterior, novoSG, sgAnterior);
+  if (motivoEnvio) {
+    await autoEnviarTelemarketing(nomeAntes, telAntes, interesseAntes, corretorAntes, motivoEnvio);
   }
 };
 
@@ -3436,6 +3469,7 @@ function saveDisparoReal() {
 // ═══ CATÁLOGO ═══
 var catalogoItems = JSON.parse(localStorage.getItem('crm_catalogo') || JSON.stringify(CATALOGO_INICIAL));
 var catalogoFilter = 'todos';
+var catalogoView = 'tabela'; // 'tabela' | 'cards'
 var editCatId = null;
 
 function setCatalogFilter(f, el) {
@@ -3445,21 +3479,67 @@ function setCatalogFilter(f, el) {
   renderCatalogo();
 }
 
+function toggleCatalogoView() {
+  catalogoView = catalogoView === 'tabela' ? 'cards' : 'tabela';
+  var btn = document.getElementById('btn-cat-view');
+  if (btn) btn.innerHTML = catalogoView === 'tabela' ? '<i class="ti ti-layout-grid"></i>Ver em cards' : '<i class="ti ti-table"></i>Ver em tabela';
+  var elTbl = document.getElementById('catalogo-view-tabela');
+  var elCards = document.getElementById('catalogo-view-cards');
+  if (elTbl) elTbl.style.display = catalogoView === 'tabela' ? '' : 'none';
+  if (elCards) elCards.style.display = catalogoView === 'cards' ? '' : 'none';
+  renderCatalogo();
+}
+
+function parseValorCatalogo(v) {
+  if (!v) return null;
+  var digits = String(v).replace(/\D/g, '');
+  if (!digits) return null;
+  return parseInt(digits, 10);
+}
+
+function leadsCountCatalogo(item) {
+  return leads.filter(function(l){ return (l.empreendimento||'').toLowerCase().includes((item.nome||'').toLowerCase()); }).length;
+}
+
 function renderCatalogo() {
   var tbody = document.getElementById('catalogo-body');
+  var cardsEl = document.getElementById('catalogo-view-cards');
   if (!tbody) return;
-  var lista = catalogoFilter === 'todos' ? catalogoItems : catalogoItems.filter(function(c){
+
+  var lista = catalogoItems.filter(function(c) {
     if (catalogoFilter === 'Flat') return (c.tipo||'').toLowerCase().includes('flat') || (c.tipo||'').toLowerCase().includes('studio');
     if (catalogoFilter === 'Apto') return (c.tipo||'').toLowerCase().includes('apto') && !(c.tipo||'').toLowerCase().includes('flat');
     if (catalogoFilter === 'Casa') return (c.tipo||'').toLowerCase().includes('casa');
     if (catalogoFilter === 'Pronto') return (c.status||'').includes('Pronto');
     if (catalogoFilter === 'Lançamento') return (c.status||'').includes('Lançamento');
+    if (catalogoFilter === 'semleads') return leadsCountCatalogo(c) === 0;
     return true;
   });
-  if (!lista.length) { tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted)">Nenhum item encontrado</td></tr>'; return; }
-  tbody.innerHTML = lista.map(function(item, i) {
+
+  var vmin = parseValorCatalogo(document.getElementById('cat-filtro-min') ? document.getElementById('cat-filtro-min').value : '');
+  var vmax = parseValorCatalogo(document.getElementById('cat-filtro-max') ? document.getElementById('cat-filtro-max').value : '');
+  if (vmin !== null || vmax !== null) {
+    lista = lista.filter(function(c) {
+      var v = parseValorCatalogo(c.valor);
+      if (v === null) return false;
+      if (vmin !== null && v < vmin) return false;
+      if (vmax !== null && v > vmax) return false;
+      return true;
+    });
+  }
+
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted)">Nenhum item encontrado</td></tr>';
+    if (cardsEl) cardsEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Nenhum item encontrado</div>';
+    return;
+  }
+
+  tbody.innerHTML = lista.map(function(item) {
     var realIdx = catalogoItems.indexOf(item);
-    var leadsCount = leads.filter(function(l){return (l.empreendimento||'').toLowerCase().includes((item.nome||'').toLowerCase());}).length;
+    var leadsCount = leadsCountCatalogo(item);
+    var leadsBadge = leadsCount === 0
+      ? '<span class="pill" style="background:rgba(231,76,60,.12);color:#c0392b">0 leads</span>'
+      : '<span style="font-weight:600;color:var(--accent)">' + leadsCount + '</span>';
     return '<tr><td><strong>' + (item.nome||'—') + '</strong></td>'
       + '<td style="font-size:12px">' + (item.bairro||'—') + '</td>'
       + '<td style="font-size:12px;color:var(--accent);font-weight:600">' + (item.valor||'—') + '</td>'
@@ -3467,12 +3547,44 @@ function renderCatalogo() {
       + '<td style="font-size:12px">' + (item.status||'—') + '</td>'
       + '<td style="font-size:12px">' + (item.entrega||'—') + '</td>'
       + '<td style="font-size:11px;color:var(--muted)">' + (item.lista||'—') + '</td>'
-      + '<td style="text-align:center"><span style="font-weight:600;color:var(--accent)">' + leadsCount + '</span></td>'
+      + '<td style="text-align:center">' + leadsBadge + '</td>'
       + '<td style="white-space:nowrap">'
-      + '<button class="btn btn-xs" onclick="editCatalogo(' + realIdx + ')"><i class="ti ti-edit"></i></button>'
+      + '<button class="btn btn-wa btn-xs" onclick="enviarCatalogoWA(' + realIdx + ')" title="Enviar no WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>'
+      + '<button class="btn btn-xs" style="margin-left:4px" onclick="editCatalogo(' + realIdx + ')"><i class="ti ti-edit"></i></button>'
       + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteCatalogo(' + realIdx + ')"><i class="ti ti-trash"></i></button>'
       + '</td></tr>';
   }).join('');
+
+  if (cardsEl) {
+    cardsEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px">' + lista.map(function(item) {
+      var realIdx = catalogoItems.indexOf(item);
+      var leadsCount = leadsCountCatalogo(item);
+      var leadsBadge = leadsCount === 0
+        ? '<span class="pill" style="background:rgba(231,76,60,.12);color:#c0392b">0 leads</span>'
+        : '<span class="pill" style="background:rgba(26,107,74,.12);color:var(--accent)">' + leadsCount + ' leads</span>';
+      return '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;box-shadow:var(--shadow)">'
+        + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">'
+        + '<strong style="font-size:14px">' + (item.nome||'—') + '</strong>' + leadsBadge
+        + '</div>'
+        + '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">' + (item.bairro||'—') + ' · ' + (item.tipo||'—') + '</div>'
+        + '<div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:4px">' + (item.valor||'—') + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">' + (item.status||'—') + (item.entrega ? ' · ' + item.entrega : '') + '</div>'
+        + '<div style="display:flex;gap:6px">'
+        + '<button class="btn btn-wa btn-xs" style="flex:1" onclick="enviarCatalogoWA(' + realIdx + ')"><i class="ti ti-brand-whatsapp"></i>Enviar</button>'
+        + '<button class="btn btn-xs" onclick="editCatalogo(' + realIdx + ')"><i class="ti ti-edit"></i></button>'
+        + '<button class="btn btn-xs" style="color:var(--danger)" onclick="deleteCatalogo(' + realIdx + ')"><i class="ti ti-trash"></i></button>'
+        + '</div></div>';
+    }).join('') + '</div>';
+  }
+}
+
+function enviarCatalogoWA(idx) {
+  var item = catalogoItems[idx];
+  if (!item) return;
+  var textoMatch = (typeof textosImoveis !== 'undefined') ? textosImoveis.find(function(t){ return (t.empr||'').trim().toLowerCase() === (item.nome||'').trim().toLowerCase(); }) : null;
+  var msg = (textoMatch && textoMatch.texto) ? textoMatch.texto
+    : ('🏙️ *' + (item.nome||'') + '*\n📍 ' + (item.bairro||'') + '\nA partir de ' + (item.valor||'—') + '\n' + (item.tipo||'') + (item.status ? ' — ' + item.status : '') + (item.entrega ? '\nEntrega: ' + item.entrega : ''));
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
 
 function editCatalogo(idx) {
@@ -3551,8 +3663,15 @@ function setScriptFilter(f, el) {
 function renderScript() {
   var el = document.getElementById('script-list');
   if (!el) return;
-  var lista = scriptFilter === 'todos' ? scriptItems : scriptItems.filter(function(s){return s.cat === scriptFilter;});
-  if (!lista.length) { el.innerHTML='<div style="color:var(--muted);padding:20px;text-align:center">Nenhum script encontrado</div>'; return; }
+  var q = (document.getElementById('script-search') ? document.getElementById('script-search').value : '').toLowerCase();
+  var lista = scriptFilter === 'todos' ? scriptItems.slice() : scriptItems.filter(function(s){return s.cat === scriptFilter;});
+  if (q) {
+    lista = lista.filter(function(s) {
+      var hay = [s.pergunta, s.info, s.obs, s.cat].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  if (!lista.length) { el.innerHTML='<div style="color:var(--muted);text-align:center;padding:40px;font-size:13px">Nenhum script encontrado.<br><button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="openModal(\'new-script\')"><i class="ti ti-plus"></i>Adicionar primeiro script</button></div>'; return; }
   el.innerHTML = lista.map(function(s, i) {
     var realIdx = scriptItems.indexOf(s);
     var catColor = s.cat==='Qualificação'?'var(--accent)':s.cat==='Objeção'?'var(--warn)':s.cat==='Fechamento'?'var(--success)':'var(--info)';
