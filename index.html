@@ -1043,6 +1043,11 @@ textarea.fc{resize:vertical;min-height:60px}
           <button class="btn btn-primary btn-sm" onclick="openModal('new-tele')"><i class="ti ti-plus"></i>Novo contato</button>
         </div>
       </div>
+      <!-- BUSCA -->
+      <div class="search-wrap" style="max-width:340px;margin-bottom:14px">
+        <i class="ti ti-search"></i>
+        <input type="text" placeholder="Buscar por nome ou telefone..." id="tele-search" oninput="renderTele()" style="width:100%;padding:8px 11px 8px 33px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+      </div>
       <!-- MÉTRICAS TELE -->
       <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
         <div class="metric-card"><div class="metric-label">Na fila</div><div class="metric-val" id="tele-m-total">—</div><div class="metric-sub">aguardando contato</div></div>
@@ -1172,17 +1177,15 @@ textarea.fc{resize:vertical;min-height:60px}
       </div>
       <div class="form-row">
         <div><label class="lbl">Anúncio</label>
-          <div style="display:flex;gap:6px">
-            <select class="fc" id="f-empr" style="flex:1"><option value="">Selecione...</option><option>HOGAR 120</option><option>MAVIE</option><option>FLOREZZA</option><option>FLAT CB</option><option>GRAN GARDEM</option><option>BREEZE</option><option>SETAI MIRAJ</option><option>BLANC</option><option>NAUT</option><option>Mio Formosa</option><option>ARTEFACTO</option><option>Bliss Navegante</option></select>
-            <button type="button" class="btn btn-sm" onclick="addNovoAnuncio(\'f-empr\')" title="Novo"><i class="ti ti-plus"></i></button>
-          </div>
+          <input class="fc" id="f-empr" list="f-empr-list" placeholder="De qual anúncio ele veio?" autocomplete="off">
+          <datalist id="f-empr-list"><option>HOGAR 120</option><option>MAVIE</option><option>FLOREZZA</option><option>FLAT CB</option><option>GRAN GARDEM</option><option>BREEZE</option><option>SETAI MIRAJ</option><option>BLANC</option><option>NAUT</option><option>Mio Formosa</option><option>ARTEFACTO</option><option>Bliss Navegante</option></datalist>
         </div>
         <div><label class="lbl">Corretor responsável</label>
           <select class="fc" id="f-corretor"><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
         </div>
       </div>
       <div class="fld">
-        <label class="lbl">Empreendimentos enviados</label>
+        <label class="lbl" style="display:flex;align-items:center;gap:6px">Empreendimentos enviados<button type="button" class="btn btn-xs" onclick="addNovoAnuncioEnviado()" title="Adicionar outro empreendimento à lista"><i class="ti ti-plus"></i></button></label>
         <div id="empr-env-wrap" style="display:flex;flex-wrap:wrap;gap:8px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">
           <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="HOGAR 120" style="accent-color:var(--accent)"> HOGAR 120</label>
           <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="MAVIE" style="accent-color:var(--accent)"> MAVIE</label>
@@ -2093,10 +2096,14 @@ async function deleteLead(id){
 function addNovoAnuncio(fid){
   var nome=prompt('Nome do novo anúncio:');if(!nome||!nome.trim())return;
   var sel=document.getElementById(fid||'f-empr');
-  if(sel){var opt=document.createElement('option');opt.value=nome.trim();opt.textContent=nome.trim();opt.selected=true;sel.appendChild(opt);}
+  if(sel && sel.tagName==='SELECT'){var opt=document.createElement('option');opt.value=nome.trim();opt.textContent=nome.trim();opt.selected=true;sel.appendChild(opt);}
+  toast('Anúncio adicionado!');
+}
+function addNovoAnuncioEnviado(){
+  var nome=prompt('Nome do empreendimento:');if(!nome||!nome.trim())return;
   var wrap=document.getElementById('empr-env-wrap');
   if(wrap){var lbl=document.createElement('label');lbl.style.cssText='display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer';lbl.innerHTML='<input type="checkbox" value="'+nome.trim()+'" style="accent-color:var(--accent)" checked> '+nome.trim();wrap.appendChild(lbl);}
-  toast('Anúncio adicionado!');
+  toast('Empreendimento adicionado!');
 }
 
 // FILTROS
@@ -2810,7 +2817,17 @@ function setTeleFilter(f, el) {
 function renderTele() {
   var tbody = document.getElementById('tele-body');
   if (!tbody) return;
-  var lista = teleFilter === 'todos' ? teleContatos : teleContatos.filter(function(t){return t.status===teleFilter;});
+  var lista = teleFilter === 'todos' ? teleContatos.slice() : teleContatos.filter(function(t){return t.status===teleFilter;});
+  var q = (document.getElementById('tele-search') ? document.getElementById('tele-search').value : '').trim();
+  if (q) {
+    var qDigits = q.replace(/\D/g, '');
+    var qLower = q.toLowerCase();
+    lista = lista.filter(function(t) {
+      var nomeMatch = (t.nome||'').toLowerCase().includes(qLower);
+      var telMatch = qDigits && (t.telefone||'').replace(/\D/g,'').includes(qDigits);
+      return nomeMatch || telMatch;
+    });
+  }
   if (!lista.length) { tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">Nenhum contato encontrado</td></tr>'; return; }
   var statusColors = {'Aguardando':'#f39c12','Em contato':'#2980b9','Não atendeu':'#e74c3c','Convertido':'#27ae60','Sem interesse':'#95a5a6'};
   tbody.innerHTML = lista.map(function(t) {
@@ -2842,14 +2859,15 @@ function openTele(id) {
     '<div class="fld" style="margin-bottom:8px"><label class="lbl">Nome do cliente</label><input class="fc" id="atender-nome-edit" value="'+(t.nome||'').replace(/"/g,'&quot;')+'"></div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
     + '<div><span class="lbl">Telefone</span><div>' + (t.telefone||'—') + '</div></div>'
-    + '<div><span class="lbl">Interesse</span><div>' + (t.interesse||'—') + '</div></div>'
+    + '<div><label class="lbl">Interesse</label><input class="fc" id="atender-interesse-edit" value="'+(t.interesse||'').replace(/"/g,'&quot;')+'" placeholder="O que o cliente quer?"></div>'
     + '<div><span class="lbl">Tentativas anteriores</span><div>' + (t.tentativas||0) + 'x</div></div>'
     + '<div><label class="lbl">Quem ligou (atendente)</label><select class="fc" id="atender-atendente-edit">'+opcoesAtendente+'</select></div>'
     + '</div>'
     + (t.observacoes ? '<div style="margin-top:8px;font-size:12px;color:var(--muted)"><strong>Obs:</strong> ' + t.observacoes + '</div>' : '');
   document.getElementById('atender-wa-btn').onclick = function() {
     var nomeAtual = document.getElementById('atender-nome-edit').value.trim() || t.nome;
-    openWA(t.telefone, nomeAtual, t.interesse);
+    var interesseAtual = document.getElementById('atender-interesse-edit').value.trim() || t.interesse;
+    openWA(t.telefone, nomeAtual, interesseAtual);
   };
   document.getElementById('atender-resultado').value = 'Não atendeu';
   document.getElementById('atender-obs').value = '';
@@ -2862,9 +2880,11 @@ async function registrarAtendimento() {
   var t = teleContatos.find(function(x){return x.id===currentTeleId;});
   if (!t) return;
   var nomeEditado = document.getElementById('atender-nome-edit') ? document.getElementById('atender-nome-edit').value.trim() : t.nome;
+  var interesseEditado = document.getElementById('atender-interesse-edit') ? document.getElementById('atender-interesse-edit').value.trim() : t.interesse;
   var atendenteEditado = document.getElementById('atender-atendente-edit') ? document.getElementById('atender-atendente-edit').value : t.atendente;
   var upd = {
     nome: nomeEditado || t.nome,
+    interesse: interesseEditado || t.interesse,
     atendente: atendenteEditado || t.atendente,
     status: resultado === 'Convertido — virou lead' ? 'Convertido' :
              resultado === 'Interessado — agendar' ? 'Em contato' :
@@ -2879,7 +2899,7 @@ async function registrarAtendimento() {
   // Se convertido, criar lead automaticamente
   if (resultado === 'Convertido — virou lead') {
     var novoLead = {
-      nome: upd.nome, telefone: t.telefone, interesse: t.interesse,
+      nome: upd.nome, telefone: t.telefone, interesse: upd.interesse,
       origem: 'TELEMARKETING', status: 'ENTRADA', status_geral: 'ATENDIMENTO ATIVO',
       corretor: upd.atendente || currentUser.nome,
       historico: JSON.stringify([{tipo:'lig', texto:'Convertido do Telemarketing. ' + (obs||''), data:nowStr(), autor:currentUser.nome}]),
