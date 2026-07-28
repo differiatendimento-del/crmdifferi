@@ -1044,9 +1044,15 @@ textarea.fc{resize:vertical;min-height:60px}
         </div>
       </div>
       <!-- BUSCA -->
-      <div class="search-wrap" style="max-width:340px;margin-bottom:14px">
-        <i class="ti ti-search"></i>
-        <input type="text" placeholder="Buscar por nome ou telefone..." id="tele-search" oninput="renderTele()" style="width:100%;padding:8px 11px 8px 33px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="search-wrap" style="max-width:340px;flex:1">
+          <i class="ti ti-search"></i>
+          <input type="text" placeholder="Buscar por nome ou telefone..." id="tele-search" oninput="renderTele()" style="width:100%;padding:8px 11px 8px 33px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        </div>
+        <select class="filter-sel" id="tele-filtro-interesse" onchange="renderTele()">
+          <option value="">Todos os interesses</option>
+          <option>FLAT PLANTA</option><option>FLAT PRONTO</option><option>APTO PLANTA</option><option>APTO PRONTO</option><option>MCMV</option><option>ALTO PADRÃO</option><option>ALUGUEL</option><option>CASA CONDOMÍNIO</option><option>SALA COMERCIAL COMPRA</option><option>SALA COMERCIAL ALUGUEL</option>
+        </select>
       </div>
       <!-- MÉTRICAS TELE -->
       <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
@@ -1057,7 +1063,14 @@ textarea.fc{resize:vertical;min-height:60px}
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>Nome</th><th>Telefone</th><th>Interesse</th><th>Status</th><th>Tentativas</th><th>Último contato</th><th>Atendente</th><th>Ação</th></tr></thead>
+          <thead><tr>
+            <th style="cursor:pointer" onclick="setTeleSort('nome')">Nome <span id="tele-sort-nome"></span></th>
+            <th style="cursor:pointer" onclick="setTeleSort('telefone')">Telefone <span id="tele-sort-telefone"></span></th>
+            <th style="cursor:pointer" onclick="setTeleSort('interesse')">Interesse <span id="tele-sort-interesse"></span></th>
+            <th>Status</th>
+            <th style="cursor:pointer" onclick="setTeleSort('tentativas')">Tentativas <span id="tele-sort-tentativas"></span></th>
+            <th style="cursor:pointer" onclick="setTeleSort('ultimo_contato')">Último contato <span id="tele-sort-ultimo_contato"></span></th>
+            <th>Atendente</th><th>Ação</th></tr></thead>
           <tbody id="tele-body"><tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">Carregando...</td></tr></tbody>
         </table>
       </div>
@@ -2814,6 +2827,17 @@ function setTeleFilter(f, el) {
   renderTele();
 }
 
+var teleSort = {col: null, dir: 'asc'};
+function setTeleSort(col) {
+  if (teleSort.col === col) { teleSort.dir = teleSort.dir === 'asc' ? 'desc' : 'asc'; }
+  else { teleSort.col = col; teleSort.dir = 'asc'; }
+  ['nome','telefone','interesse','tentativas','ultimo_contato'].forEach(function(c){
+    var el = document.getElementById('tele-sort-'+c);
+    if (el) el.textContent = (c === teleSort.col) ? (teleSort.dir === 'asc' ? '▲' : '▼') : '';
+  });
+  renderTele();
+}
+
 function renderTele() {
   var tbody = document.getElementById('tele-body');
   if (!tbody) return;
@@ -2826,6 +2850,24 @@ function renderTele() {
       var nomeMatch = (t.nome||'').toLowerCase().includes(qLower);
       var telMatch = qDigits && (t.telefone||'').replace(/\D/g,'').includes(qDigits);
       return nomeMatch || telMatch;
+    });
+  }
+  var interesseF = document.getElementById('tele-filtro-interesse') ? document.getElementById('tele-filtro-interesse').value : '';
+  if (interesseF) {
+    lista = lista.filter(function(t){ return (t.interesse||'') === interesseF; });
+  }
+  if (teleSort.col) {
+    var col = teleSort.col, dir = teleSort.dir === 'asc' ? 1 : -1;
+    lista.sort(function(a, b) {
+      var va = a[col], vb = b[col];
+      if (col === 'tentativas') { va = va||0; vb = vb||0; return (va - vb) * dir; }
+      if (col === 'ultimo_contato') {
+        va = va ? new Date(va.split(' ')[0].split('/').reverse().join('-') + ' ' + (va.split(' ')[1]||'00:00')) : new Date(0);
+        vb = vb ? new Date(vb.split(' ')[0].split('/').reverse().join('-') + ' ' + (vb.split(' ')[1]||'00:00')) : new Date(0);
+        return (va - vb) * dir;
+      }
+      va = (va||'').toString().toLowerCase(); vb = (vb||'').toString().toLowerCase();
+      return va.localeCompare(vb) * dir;
     });
   }
   if (!lista.length) { tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">Nenhum contato encontrado</td></tr>'; return; }
