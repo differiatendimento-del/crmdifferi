@@ -1043,16 +1043,14 @@ textarea.fc{resize:vertical;min-height:60px}
           <button class="btn btn-primary btn-sm" onclick="openModal('new-tele')"><i class="ti ti-plus"></i>Novo contato</button>
         </div>
       </div>
+      <!-- ABAS DE INTERESSE (geradas automaticamente a partir dos dados importados) -->
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px" id="tele-interesse-tabs"></div>
       <!-- BUSCA -->
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
         <div class="search-wrap" style="max-width:340px;flex:1">
           <i class="ti ti-search"></i>
           <input type="text" placeholder="Buscar por nome ou telefone..." id="tele-search" oninput="renderTele()" style="width:100%;padding:8px 11px 8px 33px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
         </div>
-        <select class="filter-sel" id="tele-filtro-interesse" onchange="renderTele()">
-          <option value="">Todos os interesses</option>
-          <option>FLAT PLANTA</option><option>FLAT PRONTO</option><option>APTO PLANTA</option><option>APTO PRONTO</option><option>MCMV</option><option>ALTO PADRÃO</option><option>ALUGUEL</option><option>CASA CONDOMÍNIO</option><option>SALA COMERCIAL COMPRA</option><option>SALA COMERCIAL ALUGUEL</option>
-        </select>
       </div>
       <!-- MÉTRICAS TELE -->
       <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
@@ -1643,11 +1641,9 @@ textarea.fc{resize:vertical;min-height:60px}
         <div><label class="lbl">Telefone</label><input class="fc" id="tele-tel" placeholder="83 9XXXX-XXXX"></div>
       </div>
       <div class="form-row">
-        <div><label class="lbl">Interesse</label>
-          <select class="fc" id="tele-interesse">
-            <option>FLAT PLANTA</option><option>FLAT PRONTO</option><option>APTO PLANTA</option>
-            <option>APTO PRONTO</option><option>MCMV</option><option>ALTO PADRÃO</option><option>ALUGUEL</option>
-          </select>
+        <div><label class="lbl">Interesse / Etiqueta</label>
+          <input class="fc" id="tele-interesse" list="tele-interesse-list" placeholder="Ex: #500k PLANTA, REPASSE BLANC..." autocomplete="off">
+          <datalist id="tele-interesse-list"><option>FLAT PLANTA</option><option>FLAT PRONTO</option><option>APTO PLANTA</option><option>APTO PRONTO</option><option>MCMV</option><option>ALTO PADRÃO</option><option>ALUGUEL</option></datalist>
         </div>
         <div><label class="lbl">Atendente</label>
           <select class="fc" id="tele-atendente"><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
@@ -2828,6 +2824,11 @@ function setTeleFilter(f, el) {
 }
 
 var teleSort = {col: null, dir: 'asc'};
+var teleInteresseFilter = '';
+function setTeleInteresse(v) {
+  teleInteresseFilter = v;
+  renderTele();
+}
 function setTeleSort(col) {
   if (teleSort.col === col) { teleSort.dir = teleSort.dir === 'asc' ? 'desc' : 'asc'; }
   else { teleSort.col = col; teleSort.dir = 'asc'; }
@@ -2838,9 +2839,39 @@ function setTeleSort(col) {
   renderTele();
 }
 
+function renderTeleInteresseTabs() {
+  var tabsWrap = document.getElementById('tele-interesse-tabs');
+  if (!tabsWrap) return;
+  var contagem = {};
+  teleContatos.forEach(function(t) {
+    var v = (t.interesse || '').trim();
+    if (!v) return;
+    contagem[v] = (contagem[v] || 0) + 1;
+  });
+  var nomes = Object.keys(contagem).sort(function(a, b) { return contagem[b] - contagem[a]; });
+  var datalist = document.getElementById('tele-interesse-list');
+  if (datalist && nomes.length) {
+    var existentes = Array.from(datalist.options).map(function(o){return o.value;});
+    nomes.forEach(function(nome) {
+      if (existentes.indexOf(nome) === -1) {
+        var opt = document.createElement('option');
+        opt.value = nome;
+        datalist.appendChild(opt);
+      }
+    });
+  }
+  var html = '<div class="chip' + (teleInteresseFilter === '' ? ' on' : '') + '" onclick="setTeleInteresse(\'\',this)">Todos (' + teleContatos.length + ')</div>';
+  html += nomes.map(function(nome) {
+    var ativo = teleInteresseFilter === nome ? ' on' : '';
+    return '<div class="chip' + ativo + '" onclick="setTeleInteresse(' + JSON.stringify(nome) + ',this)">' + nome + ' (' + contagem[nome] + ')</div>';
+  }).join('');
+  tabsWrap.innerHTML = html;
+}
+
 function renderTele() {
   var tbody = document.getElementById('tele-body');
   if (!tbody) return;
+  renderTeleInteresseTabs();
   var lista = teleFilter === 'todos' ? teleContatos.slice() : teleContatos.filter(function(t){return t.status===teleFilter;});
   var q = (document.getElementById('tele-search') ? document.getElementById('tele-search').value : '').trim();
   if (q) {
@@ -2852,7 +2883,7 @@ function renderTele() {
       return nomeMatch || telMatch;
     });
   }
-  var interesseF = document.getElementById('tele-filtro-interesse') ? document.getElementById('tele-filtro-interesse').value : '';
+  var interesseF = teleInteresseFilter;
   if (interesseF) {
     lista = lista.filter(function(t){ return (t.interesse||'') === interesseF; });
   }
