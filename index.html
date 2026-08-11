@@ -1059,9 +1059,18 @@ textarea.fc{resize:vertical;min-height:60px}
         <div class="metric-card"><div class="metric-label">Não atendeu</div><div class="metric-val" style="color:var(--warn)" id="tele-m-naoatend">—</div><div class="metric-sub">tentar novamente</div></div>
         <div class="metric-card"><div class="metric-label">Convertidos</div><div class="metric-val" style="color:var(--success)" id="tele-m-conv">—</div><div class="metric-sub">virou lead no CRM</div></div>
       </div>
+      <!-- BARRA DE LIBERAÇÃO EM MASSA (admin) -->
+      <div id="tele-liberar-bar" style="display:none;align-items:center;gap:10px;background:rgba(26,107,74,.08);border:1px solid rgba(26,107,74,.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px">
+        <span style="font-size:13px;font-weight:600" id="tele-selecionados-count">0 selecionados</span>
+        <span style="font-size:12px;color:var(--muted)">Liberar para:</span>
+        <select class="fc" id="tele-liberar-corretor" style="max-width:220px"></select>
+        <button class="btn btn-primary btn-sm" onclick="liberarSelecionadosParaCorretor()"><i class="ti ti-send"></i>Liberar para recontato</button>
+        <button class="btn btn-sm" onclick="limparSelecaoTele()" style="margin-left:auto">Cancelar seleção</button>
+      </div>
       <div class="tbl-wrap">
         <table>
           <thead><tr>
+            <th id="tele-th-check" style="display:none"><input type="checkbox" id="tele-check-all" onchange="toggleSelecionarTodosTele(this)"></th>
             <th style="cursor:pointer" onclick="setTeleSort('nome')">Nome <span id="tele-sort-nome"></span></th>
             <th style="cursor:pointer" onclick="setTeleSort('telefone')">Telefone <span id="tele-sort-telefone"></span></th>
             <th style="cursor:pointer" onclick="setTeleSort('interesse')">Interesse <span id="tele-sort-interesse"></span></th>
@@ -1743,6 +1752,12 @@ textarea.fc{resize:vertical;min-height:60px}
           <strong>Formato:</strong> <span style="font-family:monospace;color:var(--accent)">nome,telefone,interesse</span> — uma linha por contato
         </div>
         <textarea class="fc" id="import-csv" rows="8" placeholder="nome,telefone,interesse&#10;João Silva,83 99999-1234,FLAT PLANTA&#10;Maria Costa,83 98888-5678,APTO PRONTO"></textarea>
+      </div>
+
+      <div class="fld" style="margin-top:14px"><label class="lbl">Importar para a aba (interesse)</label>
+        <input class="fc" id="import-interesse-destino" list="import-interesse-destino-list" placeholder="Ex: REPASSE BLANC, #500k PLANTA... (deixe em branco pra usar a coluna do arquivo)" autocomplete="off">
+        <datalist id="import-interesse-destino-list"></datalist>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Se preencher, todos os contatos importados vão pra essa aba — independente do que estiver na planilha.</div>
       </div>
 
       <div class="fld" style="margin-top:14px"><label class="lbl">Atendente responsável</label>
@@ -2802,6 +2817,9 @@ var teleContatos = [], teleFilter = 'todos', currentTeleId = null;
 async function loadTele() {
   var r = await sb.from('telemarketing').select('*').order('created_at', {ascending:false});
   teleContatos = r.data || [];
+  if (currentUser && currentUser.tipo === 'corretor') {
+    teleContatos = teleContatos.filter(function(t){ return t.atendente === currentUser.nome; });
+  }
   renderTele();
   // metrics
   var total = teleContatos.length;
@@ -2839,9 +2857,31 @@ function setTeleSort(col) {
   renderTele();
 }
 
+var teleMostrarNaoClassificados = false;
+function pareceLixo(nome) {
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(nome)) return true; // data
+  if (/^\d+$/.test(nome)) return true; // número puro (ex: DDD sozinho)
+  if (/^data\b/i.test(nome)) return true; // "DATA DA LIGAÇÃO" etc, sobra de cabeçalho
+  return false;
+}
+function toggleNaoClassificadosTele() {
+  teleMostrarNaoClassificados = !teleMostrarNaoClassificados;
+  renderTeleInteresseTabs();
+}
+async function renomearAbaInteresse(nomeAntigo) {
+  var novoNome = prompt('Renomear/mesclar a aba "' + nomeAntigo + '" para (move todos os contatos dela pro nome novo):', pareceLixo(nomeAntigo) ? '' : nomeAntigo);
+  if (!novoNome || !novoNome.trim() || novoNome.trim() === nomeAntigo) return;
+  novoNome = novoNome.trim();
+  if (!confirm('Mover todos os contatos de "' + nomeAntigo + '" para "' + novoNome + '"? Isso não pode ser desfeito automaticamente.')) return;
+  await sb.from('telemarketing').update({interesse: novoNome}).eq('interesse', nomeAntigo);
+  toast('✅ Aba atualizada!');
+  if (teleInteresseFilter === nomeAntigo) teleInteresseFilter = novoNome;
+  await loadTele();
+}
 function renderTeleInteresseTabs() {
   var tabsWrap = document.getElementById('tele-interesse-tabs');
   if (!tabsWrap) return;
+  var isAdminTele = currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing';
   var contagem = {};
   teleContatos.forEach(function(t) {
     var v = (t.interesse || '').trim();
@@ -2849,6 +2889,8 @@ function renderTeleInteresseTabs() {
     contagem[v] = (contagem[v] || 0) + 1;
   });
   var nomes = Object.keys(contagem).sort(function(a, b) { return contagem[b] - contagem[a]; });
+  var boas = nomes.filter(function(n){ return !pareceLixo(n); });
+  var lixo = nomes.filter(pareceLixo);
   var datalist = document.getElementById('tele-interesse-list');
   if (datalist && nomes.length) {
     var existentes = Array.from(datalist.options).map(function(o){return o.value;});
@@ -2860,11 +2902,20 @@ function renderTeleInteresseTabs() {
       }
     });
   }
-  var html = '<div class="chip' + (teleInteresseFilter === '' ? ' on' : '') + '" onclick="setTeleInteresse(\'\',this)">Todos (' + teleContatos.length + ')</div>';
-  html += nomes.map(function(nome) {
+  function chipHtml(nome) {
     var ativo = teleInteresseFilter === nome ? ' on' : '';
-    return '<div class="chip' + ativo + '" onclick="setTeleInteresse(' + JSON.stringify(nome) + ',this)">' + nome + ' (' + contagem[nome] + ')</div>';
-  }).join('');
+    var editBtn = isAdminTele ? '<i class="ti ti-pencil" style="margin-left:5px;opacity:.6" onclick="event.stopPropagation();renomearAbaInteresse(' + JSON.stringify(nome) + ')" title="Renomear/mesclar esta aba"></i>' : '';
+    return '<div class="chip' + ativo + '" style="display:flex;align-items:center" onclick="setTeleInteresse(' + JSON.stringify(nome) + ',this)">' + nome + ' (' + contagem[nome] + ')' + editBtn + '</div>';
+  }
+  var html = '<div class="chip' + (teleInteresseFilter === '' ? ' on' : '') + '" onclick="setTeleInteresse(\'\',this)">Todos (' + teleContatos.length + ')</div>';
+  html += boas.map(chipHtml).join('');
+  if (lixo.length) {
+    html += '<div class="chip" style="background:var(--surface);color:var(--muted);border:1px dashed var(--border)" onclick="toggleNaoClassificadosTele()">'
+      + (teleMostrarNaoClassificados ? '▾' : '▸') + ' Não identificados (' + lixo.length + ' abas)</div>';
+    if (teleMostrarNaoClassificados) {
+      html += lixo.map(chipHtml).join('');
+    }
+  }
   tabsWrap.innerHTML = html;
 }
 
@@ -2901,11 +2952,30 @@ function renderTele() {
       return va.localeCompare(vb) * dir;
     });
   }
+  var isAdminTele = currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing';
+  var thCheck = document.getElementById('tele-th-check');
+  if (thCheck) thCheck.style.display = isAdminTele ? '' : 'none';
+  if (!isAdminTele) {
+    var bar = document.getElementById('tele-liberar-bar');
+    if (bar) bar.style.display = 'none';
+  }
+  if (isAdminTele) {
+    var selCorretor = document.getElementById('tele-liberar-corretor');
+    if (selCorretor && !selCorretor.dataset.filled) {
+      selCorretor.innerHTML = getAllEquipe().filter(function(u){ return u.tipo === 'corretor'; })
+        .map(function(u){ return '<option value="'+u.nome+'">'+u.nome+'</option>'; }).join('');
+      selCorretor.dataset.filled = '1';
+    }
+  }
   if (!lista.length) { tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">Nenhum contato encontrado</td></tr>'; return; }
   var statusColors = {'Aguardando':'#f39c12','Em contato':'#2980b9','Não atendeu':'#e74c3c','Convertido':'#27ae60','Sem interesse':'#95a5a6'};
   tbody.innerHTML = lista.map(function(t) {
     var cor = statusColors[t.status] || '#95a5a6';
+    var checkTd = isAdminTele
+      ? '<td onclick="event.stopPropagation()"><input type="checkbox" class="tele-check-row" value="'+t.id+'" '+(teleSelecionados.indexOf(t.id)!==-1?'checked':'')+' onchange="toggleSelecionarTele('+JSON.stringify(t.id)+',this)"></td>'
+      : '';
     return '<tr onclick="openTele(' + JSON.stringify(t.id) + ')" style="cursor:pointer">'
+      + checkTd
       + '<td><strong>' + (t.nome||'—') + '</strong></td>'
       + '<td style="font-size:12px;color:var(--muted)">' + (t.telefone||'—') + '</td>'
       + '<td style="font-size:12px">' + (t.interesse||'—') + '</td>'
@@ -2918,6 +2988,42 @@ function renderTele() {
       + '<button class="btn btn-primary btn-xs" style="margin-left:4px" onclick="openTele(' + JSON.stringify(t.id) + ')"><i class="ti ti-phone"></i>Ligar</button>'
       + '</td></tr>';
   }).join('');
+}
+
+var teleSelecionados = [];
+function toggleSelecionarTele(id, el) {
+  var idx = teleSelecionados.indexOf(id);
+  if (el.checked && idx === -1) teleSelecionados.push(id);
+  else if (!el.checked && idx !== -1) teleSelecionados.splice(idx, 1);
+  atualizarBarraLiberar();
+}
+function toggleSelecionarTodosTele(el) {
+  var checks = document.querySelectorAll('.tele-check-row');
+  teleSelecionados = [];
+  checks.forEach(function(c) { c.checked = el.checked; if (el.checked) teleSelecionados.push(c.value); });
+  atualizarBarraLiberar();
+}
+function limparSelecaoTele() {
+  teleSelecionados = [];
+  document.querySelectorAll('.tele-check-row').forEach(function(c){ c.checked = false; });
+  var checkAll = document.getElementById('tele-check-all'); if (checkAll) checkAll.checked = false;
+  atualizarBarraLiberar();
+}
+function atualizarBarraLiberar() {
+  var bar = document.getElementById('tele-liberar-bar');
+  if (!bar) return;
+  bar.style.display = teleSelecionados.length ? 'flex' : 'none';
+  var count = document.getElementById('tele-selecionados-count');
+  if (count) count.textContent = teleSelecionados.length + ' selecionado' + (teleSelecionados.length===1?'':'s');
+}
+async function liberarSelecionadosParaCorretor() {
+  var corretor = document.getElementById('tele-liberar-corretor').value;
+  if (!corretor) { toast('Selecione um corretor'); return; }
+  if (!teleSelecionados.length) { toast('Selecione ao menos um contato'); return; }
+  await sb.from('telemarketing').update({atendente: corretor}).in('id', teleSelecionados);
+  toast('✅ ' + teleSelecionados.length + ' contato(s) liberado(s) para ' + corretor + '!');
+  limparSelecaoTele();
+  await loadTele();
 }
 
 function openTele(id) {
@@ -4500,12 +4606,13 @@ function clearFileImport() {
 var _origImportarCSV = importarCSV;
 importarCSV = async function() {
   var atendente = document.getElementById('import-atendente').value;
+  var destino = document.getElementById('import-interesse-destino') ? document.getElementById('import-interesse-destino').value.trim() : '';
   var contatos = [];
 
   if (importMethod === 'file') {
     if (!parsedContatos.length) { toast('⚠️ Selecione um arquivo primeiro'); return; }
     contatos = parsedContatos.map(function(ct) {
-      return {nome:ct.nome, telefone:ct.telefone, interesse:ct.interesse||'FLAT PLANTA', atendente:atendente, status:'Aguardando'};
+      return {nome:ct.nome, telefone:ct.telefone, interesse: destino || ct.interesse || 'FLAT PLANTA', atendente:atendente, status:'Aguardando'};
     });
   } else {
     var csv = document.getElementById('import-csv').value.trim();
@@ -4514,7 +4621,7 @@ importarCSV = async function() {
     lines.forEach(function(line) {
       var p = line.split(/[,;]/).map(function(x){return x.trim();});
       if (p[0] && p[0].toLowerCase() !== 'nome') {
-        contatos.push({nome:p[0], telefone:p[1]||'', interesse:p[2]||'FLAT PLANTA', atendente:atendente, status:'Aguardando'});
+        contatos.push({nome:p[0], telefone:p[1]||'', interesse: destino || p[2] || 'FLAT PLANTA', atendente:atendente, status:'Aguardando'});
       }
     });
     if (!contatos.length) { toast('Nenhum contato válido encontrado'); return; }
@@ -4540,6 +4647,17 @@ openModal = function(id) {
   if (id === 'importar-tele') {
     setImportMethod('file', document.getElementById('imp-method-file'));
     clearFileImport();
+    var destinoInput = document.getElementById('import-interesse-destino');
+    if (destinoInput) destinoInput.value = teleInteresseFilter || '';
+    var destinoList = document.getElementById('import-interesse-destino-list');
+    if (destinoList) {
+      var vistos = {};
+      destinoList.innerHTML = '';
+      (teleContatos||[]).forEach(function(t) {
+        var v = (t.interesse||'').trim();
+        if (v && !vistos[v]) { vistos[v]=true; var opt=document.createElement('option'); opt.value=v; destinoList.appendChild(opt); }
+      });
+    }
   }
 };
 
@@ -5358,8 +5476,8 @@ showPanel = function(id, el) {
    — Bloco 100% adicional. Nenhuma função/elemento existente foi
    removido ou alterado em seu comportamento original. ════════════ */
 
-var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato'];
-var ALLOWED_PANELS_TELEMARKETING = ALLOWED_PANELS_CORRETOR.concat(['telemarketing']);
+var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing'];
+var ALLOWED_PANELS_TELEMARKETING = ALLOWED_PANELS_CORRETOR;
 
 function formatCPFInput(el) {
   var v = el.value.replace(/\D/g,'').slice(0,11);
