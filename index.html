@@ -1701,6 +1701,7 @@ textarea.fc{resize:vertical;min-height:60px}
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('atender-tele')">Cancelar</button>
+      <button class="btn" id="atender-transferir-btn" style="display:none" onclick="transferirParaCorretor()"><i class="ti ti-user-share"></i>Transferir p/ corretor</button>
       <button class="btn btn-wa" id="atender-wa-btn"><i class="ti ti-brand-whatsapp"></i>WhatsApp</button>
       <button class="btn btn-primary" onclick="registrarAtendimento()"><i class="ti ti-check"></i>Registrar</button>
     </div>
@@ -3055,7 +3056,22 @@ function openTele(id) {
   };
   document.getElementById('atender-resultado').value = 'Não atendeu';
   document.getElementById('atender-obs').value = '';
+  var isAdminTeleModal = currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing';
+  var transferBtn = document.getElementById('atender-transferir-btn');
+  if (transferBtn) transferBtn.style.display = isAdminTeleModal ? '' : 'none';
   openModal('atender-tele');
+}
+
+async function transferirParaCorretor() {
+  var t = teleContatos.find(function(x){return x.id===currentTeleId;});
+  if (!t) return;
+  var corretor = document.getElementById('atender-atendente-edit').value;
+  if (!corretor) { toast('Selecione o corretor'); return; }
+  if (!confirm('Transferir "' + (t.nome||'este contato') + '" para ' + corretor + '? A partir de agora ele aparece no CRM de ' + corretor + ' pra fazer o recontato (sem contar como uma ligação registrada).')) return;
+  await sb.from('telemarketing').update({atendente: corretor}).eq('id', currentTeleId);
+  toast('✅ Transferido para ' + corretor + '!');
+  closeModal('atender-tele');
+  await loadTele();
 }
 
 async function registrarAtendimento() {
