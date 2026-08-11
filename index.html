@@ -1871,6 +1871,11 @@ var currentLeadId = null, currentTab = 'dados', selectedTipo = 'env';
 var agFilter = 'todos', editAgId = null, filterSR = false;
 var metas = JSON.parse(localStorage.getItem('crm_metas') || '{}');
 
+// Empacota um valor como literal JS entre aspas simples, seguro para uso dentro de atributos
+// HTML delimitados por aspas duplas (onclick="..."). JSON.stringify sozinho quebra esses atributos
+// porque também usa aspas duplas.
+function qa(s) { return "'" + String(s == null ? '' : s).replace(/\\/g,'\\\\').replace(/'/g,"\\'") + "'"; }
+
 var USERS = {
   'Sandryne': {nome:'Sandryne', role:'Assistente Comercial', av:'SN', cor:'#9b59b6', tipo:'admin'},
   'Diogo':    {nome:'Diogo',    role:'Corretor',             av:'DG', cor:'#2980b9', tipo:'admin'},
@@ -2190,9 +2195,9 @@ function renderTable(){
       +'<td style="font-size:12px;color:var(--muted);white-space:nowrap">'+dEntry+'</td>'
       +'<td><div style="display:flex;align-items:center;gap:5px"><div class="avatar av-xs" style="flex-shrink:0">'+ini(l.corretor)+'</div><span style="font-size:12px">'+(l.corretor||'—')+'</span></div></td>'
       +'<td onclick="event.stopPropagation()" style="white-space:nowrap">'
-      +'<button class="btn btn-wa btn-xs" onclick="openWA('+JSON.stringify(l.telefone)+','+JSON.stringify(l.nome)+','+JSON.stringify(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
+      +'<button class="btn btn-wa btn-xs" onclick="openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
       +'<button class="btn btn-xs" style="margin-left:4px" onclick="openDetail('+JSON.stringify(l.id)+',\'hist\')"><i class="ti ti-plus"></i></button>'
-      +'<button class="btn btn-xs" style="margin-left:4px;color:var(--danger);border-color:var(--danger)" onclick="confirmarDelete('+JSON.stringify(l.id)+','+JSON.stringify(l.nome)+')"><i class="ti ti-trash"></i></button>'
+      +'<button class="btn btn-xs" style="margin-left:4px;color:var(--danger);border-color:var(--danger)" onclick="confirmarDelete('+JSON.stringify(l.id)+','+qa(l.nome)+')"><i class="ti ti-trash"></i></button>'
       +'</td></tr>';
   }).join('');
 }
@@ -2570,7 +2575,7 @@ function renderDash(){
       +'<div style="font-size:11px;color:var(--muted)">'+(l.empreendimento||'—')+' · '+l.telefone+'</div>'
       +(cfg?'<div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;margin-top:2px"><i class="ti '+cfg.icon+'" style="font-size:11px"></i>'+(last.texto||'').substring(0,50)+'</div>':'')
       +'</div>'+(l.valor?'<span style="font-size:12px;font-weight:600;color:var(--accent);flex-shrink:0">'+l.valor+'</span>':'')
-      +'<button class="btn btn-wa btn-xs" onclick="openWA('+JSON.stringify(l.telefone)+','+JSON.stringify(l.nome)+','+JSON.stringify(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i>Contatar</button></div>';
+      +'<button class="btn btn-wa btn-xs" onclick="openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i>Contatar</button></div>';
   }).join(''):'<div style="color:var(--muted);font-size:13px;padding:12px 0">Nenhum lead quente no momento.</div>';
 }
 
@@ -2720,7 +2725,7 @@ function renderAg(){
             +'<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px;margin-bottom:2px"><strong>'+a.cliente+'</strong>'+(a.confirmado?'<span style="font-size:10px;font-weight:700;color:#1e8449;background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.2);border-radius:99px;padding:1px 7px">✓</span>':'')+'</div>'
             +'<div style="font-size:12px;color:var(--accent);font-weight:600">'+(a.imovel||'—')+'</div>'+(a.obs?'<div style="font-size:11px;color:var(--muted)">'+a.obs+'</div>':'')+'</div>'
             +'<div style="display:flex;gap:5px;flex-shrink:0">'
-            +(a.telefone?'<button class="btn btn-wa btn-xs" onclick="openWA('+JSON.stringify(a.telefone)+','+JSON.stringify(a.cliente)+','+JSON.stringify(a.imovel)+')"><i class="ti ti-brand-whatsapp"></i></button>':'')
+            +(a.telefone?'<button class="btn btn-wa btn-xs" onclick="openWA('+qa(a.telefone)+','+qa(a.cliente)+','+qa(a.imovel)+')"><i class="ti ti-brand-whatsapp"></i></button>':'')
             +'<button class="btn btn-xs '+(a.confirmado?'':'btn-primary')+'" onclick="confirmarAg('+a.id+')"><i class="ti ti-'+(a.confirmado?'x':'check')+'"></i></button>'
             +'<button class="btn btn-xs" onclick="openAgModal('+a.id+')"><i class="ti ti-edit"></i></button>'
             +'<button class="btn btn-xs" onclick="deleteAg('+a.id+')" style="color:var(--danger)"><i class="ti ti-trash"></i></button>'
@@ -2732,7 +2737,7 @@ function renderAg(){
   document.getElementById('followups-list').innerHTML=fu.length?fu.map(function(l){
     return '<div class="agenda-item"><div class="avatar av-sm">'+ini(l.nome)+'</div>'
       +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+l.nome+'</div><div style="font-size:11px;color:var(--muted)">'+(l.empreendimento||'—')+' · '+l.telefone+'</div></div>'
-      +timerHtml(l)+'<button class="btn btn-wa btn-xs" style="margin-left:7px" onclick="openWA('+JSON.stringify(l.telefone)+','+JSON.stringify(l.nome)+','+JSON.stringify(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button></div>';
+      +timerHtml(l)+'<button class="btn btn-wa btn-xs" style="margin-left:7px" onclick="openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button></div>';
   }).join(''):'<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum follow-up pendente. ✅</div>';
 }
 
@@ -2762,7 +2767,7 @@ function renderRecontato() {
       + '<div style="font-size:11px;color:var(--muted)">'+(l.empreendimento||'—')+' · '+(l.telefone||'—')+(isAdmin?' · '+(l.corretor||'—'):'')+'</div></div>'
       + '<span class="pill '+getPillClass(l.status)+'" style="margin-right:7px">'+(l.status||'—')+'</span>'
       + timerHtml(l)
-      + '<button class="btn btn-wa btn-xs" style="margin-left:7px" onclick="event.stopPropagation();openWA('+JSON.stringify(l.telefone)+','+JSON.stringify(l.nome)+','+JSON.stringify(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
+      + '<button class="btn btn-wa btn-xs" style="margin-left:7px" onclick="event.stopPropagation();openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
       + '</div>';
   }).join('') : '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum lead para recontato no momento. ✅</div>';
 }
@@ -2786,7 +2791,7 @@ function renderImoveis(){
       +'<div style="flex:1"><div style="font-size:14px;font-weight:500">'+im.nome+'</div><div style="font-size:11px;color:var(--muted)">'+(im.tipo||'—')+' · '+(im.bairro||'—')+(im.valor_partir?' · a partir de '+im.valor_partir:'')+'</div></div>'
       +'<span style="font-size:11px;font-weight:600;color:'+(sc[im.status_imovel]||'var(--muted)')+';border-radius:99px;padding:2px 9px;border:1px solid currentColor;margin-right:8px">'+(im.status_imovel||'—')+'</span>'
       +'<div style="font-size:12px;color:var(--muted);margin-right:10px"><span style="color:var(--accent);font-weight:600"><i class="ti ti-users" style="vertical-align:-2px"></i> '+cnt+'</span>'+(hot?' · <span style="color:var(--danger)">🔥 '+hot+'</span>':'')+'</div>'
-      +'<button class="btn btn-xs" onclick="filterByEmpr('+JSON.stringify(im.nome)+')"><i class="ti ti-eye"></i>Ver</button></div>';
+      +'<button class="btn btn-xs" onclick="filterByEmpr('+qa(im.nome)+')"><i class="ti ti-eye"></i>Ver</button></div>';
   }).join('')+'</div>';
 }
 function filterByEmpr(nome){document.getElementById('search-input').value=nome;filterLeads();showPanel('leads',document.querySelectorAll('.nav-item')[1]);}
@@ -2904,8 +2909,8 @@ function renderTeleInteresseTabs() {
   }
   function chipHtml(nome) {
     var ativo = teleInteresseFilter === nome ? ' on' : '';
-    var editBtn = isAdminTele ? '<i class="ti ti-pencil" style="margin-left:5px;opacity:.6" onclick="event.stopPropagation();renomearAbaInteresse(' + JSON.stringify(nome) + ')" title="Renomear/mesclar esta aba"></i>' : '';
-    return '<div class="chip' + ativo + '" style="display:flex;align-items:center" onclick="setTeleInteresse(' + JSON.stringify(nome) + ',this)">' + nome + ' (' + contagem[nome] + ')' + editBtn + '</div>';
+    var editBtn = isAdminTele ? '<i class="ti ti-pencil" style="margin-left:5px;opacity:.6" onclick="event.stopPropagation();renomearAbaInteresse(' + qa(nome) + ')" title="Renomear/mesclar esta aba"></i>' : '';
+    return '<div class="chip' + ativo + '" style="display:flex;align-items:center" onclick="setTeleInteresse(' + qa(nome) + ',this)">' + nome + ' (' + contagem[nome] + ')' + editBtn + '</div>';
   }
   var html = '<div class="chip' + (teleInteresseFilter === '' ? ' on' : '') + '" onclick="setTeleInteresse(\'\',this)">Todos (' + teleContatos.length + ')</div>';
   html += boas.map(chipHtml).join('');
@@ -2936,7 +2941,7 @@ function renderTele() {
   }
   var interesseF = teleInteresseFilter;
   if (interesseF) {
-    lista = lista.filter(function(t){ return (t.interesse||'') === interesseF; });
+    lista = lista.filter(function(t){ return (t.interesse||'').trim() === interesseF; });
   }
   if (teleSort.col) {
     var col = teleSort.col, dir = teleSort.dir === 'asc' ? 1 : -1;
@@ -2984,7 +2989,7 @@ function renderTele() {
       + '<td style="font-size:12px;color:var(--muted)">' + (t.ultimo_contato||'—') + '</td>'
       + '<td style="font-size:12px">' + (t.atendente||'—') + '</td>'
       + '<td onclick="event.stopPropagation()" style="white-space:nowrap">'
-      + '<button class="btn btn-wa btn-xs" onclick="openWA(' + JSON.stringify(t.telefone) + ',' + JSON.stringify(t.nome) + ',\'\')"><i class="ti ti-brand-whatsapp"></i></button>'
+      + '<button class="btn btn-wa btn-xs" onclick="openWA(' + qa(t.telefone) + ',' + qa(t.nome) + ',\'\')"><i class="ti ti-brand-whatsapp"></i></button>'
       + '<button class="btn btn-primary btn-xs" style="margin-left:4px" onclick="openTele(' + JSON.stringify(t.id) + ')"><i class="ti ti-phone"></i>Ligar</button>'
       + '</td></tr>';
   }).join('');
@@ -3176,7 +3181,7 @@ function renderCaptacoes() {
       + '<td><span class="pill" style="background:' + cor + '22;color:' + cor + '">' + (cp.status||'—') + '</span></td>'
       + '<td style="font-size:12px">' + (cp.corretor||'—') + '</td>'
       + '<td onclick="event.stopPropagation()" style="white-space:nowrap">'
-      + (cp.telefone ? '<button class="btn btn-wa btn-xs" onclick="openWA(' + JSON.stringify(cp.telefone) + ',' + JSON.stringify(cp.proprietario) + ',\'\')"><i class="ti ti-brand-whatsapp"></i></button>' : '')
+      + (cp.telefone ? '<button class="btn btn-wa btn-xs" onclick="openWA(' + qa(cp.telefone) + ',' + qa(cp.proprietario) + ',\'\')"><i class="ti ti-brand-whatsapp"></i></button>' : '')
       + '<button class="btn btn-xs" style="margin-left:4px" onclick="editCapt(' + JSON.stringify(cp.id) + ')"><i class="ti ti-edit"></i></button>'
       + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteCapt(' + JSON.stringify(cp.id) + ')"><i class="ti ti-trash"></i></button>'
       + '</td></tr>';
@@ -3469,7 +3474,7 @@ renderAg = function() {
       return '<div class="agenda-item"><div class="avatar av-sm">'+ini(l.nome)+'</div>'
         +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+l.nome+'</div>'
         +'<div style="font-size:11px;color:var(--muted)">'+(l.empreendimento||'—')+' · '+l.telefone+'</div></div>'
-        +timerHtml(l)+'<button class="btn btn-wa btn-xs" style="margin-left:7px" onclick="openWA('+JSON.stringify(l.telefone)+','+JSON.stringify(l.nome)+','+JSON.stringify(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button></div>';
+        +timerHtml(l)+'<button class="btn btn-wa btn-xs" style="margin-left:7px" onclick="openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button></div>';
     }).join('') : '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum follow-up pendente. ✅</div>';
   } else {
     _origRenderAg();
@@ -5189,7 +5194,7 @@ function renderClientesVendidos() {
           +'<td style="font-size:12px;font-weight:600;color:var(--accent)">'+dataVenda+'</td>'
           +'<td style="font-size:12px">'+(l.corretor||'—')+'</td>'
           +'<td onclick="event.stopPropagation()" style="white-space:nowrap">'
-          +'<button class="btn btn-wa btn-xs" onclick="openWA('+JSON.stringify(l.telefone)+','+JSON.stringify(l.nome)+','+JSON.stringify(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
+          +'<button class="btn btn-wa btn-xs" onclick="openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
           +'<button class="btn btn-xs" style="margin-left:4px" onclick="openDetail('+JSON.stringify(l.id)+')"><i class="ti ti-eye"></i></button>'
           +'</td></tr>';
       }).join('')
@@ -5264,7 +5269,7 @@ function renderParcerias() {
       +'<td><span class="pill" style="background:'+cor+'22;color:'+cor+'">'+(p.status||'—')+'</span></td>'
       +'<td style="font-size:12px">'+(p.corretor_responsavel||'—')+'</td>'
       +'<td onclick="event.stopPropagation()" style="white-space:nowrap">'
-      +(p.telefone?'<button class="btn btn-wa btn-xs" onclick="openWA('+JSON.stringify(p.telefone)+','+JSON.stringify(p.nome_corretor)+','+JSON.stringify(p.imovel||'')+')" ><i class="ti ti-brand-whatsapp"></i></button>':'')
+      +(p.telefone?'<button class="btn btn-wa btn-xs" onclick="openWA('+qa(p.telefone)+','+qa(p.nome_corretor)+','+qa(p.imovel||'')+')" ><i class="ti ti-brand-whatsapp"></i></button>':'')
       +'<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteParceria('+JSON.stringify(p.id)+')"><i class="ti ti-trash"></i></button>'
       +'</td></tr>';
   }).join('');
@@ -5387,7 +5392,7 @@ function renderPermutas() {
       +'<td><span class="pill" style="background:'+cor+'22;color:'+cor+'">'+(p.status||'—')+'</span></td>'
       +'<td style="font-size:12px">'+(p.corretor||'—')+'</td>'
       +'<td onclick="event.stopPropagation()" style="white-space:nowrap">'
-      +(p.telefone?'<button class="btn btn-wa btn-xs" onclick="openWA('+JSON.stringify(p.telefone)+','+JSON.stringify(p.nome_proprietario)+','+JSON.stringify(p.imovel_ofertado||'')+')" ><i class="ti ti-brand-whatsapp"></i></button>':'')
+      +(p.telefone?'<button class="btn btn-wa btn-xs" onclick="openWA('+qa(p.telefone)+','+qa(p.nome_proprietario)+','+qa(p.imovel_ofertado||'')+')" ><i class="ti ti-brand-whatsapp"></i></button>':'')
       +'<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deletePermuta('+JSON.stringify(p.id)+')"><i class="ti ti-trash"></i></button>'
       +'</td></tr>';
   }).join('');
@@ -5768,7 +5773,7 @@ function renderCorretorChips() {
   var equipe = getAllEquipe();
   wrap.innerHTML = equipe.map(function(u) {
     var isOn = corretorChipAtivo === u.nome;
-    return '<div class="chip' + (isOn?' on':'') + '" onclick="setCorretorChip(' + JSON.stringify(u.nome) + ',this)">'
+    return '<div class="chip' + (isOn?' on':'') + '" onclick="setCorretorChip(' + qa(u.nome) + ',this)">'
       + '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+u.cor+';margin-right:4px"></span>'
       + u.nome + '</div>';
   }).join('');
