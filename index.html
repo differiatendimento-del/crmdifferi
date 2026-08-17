@@ -281,6 +281,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="nav-item" onclick="showPanel('indicadores',this)"><i class="ti ti-chart-dots"></i>Indicadores</div>
     <div class="nav-item" onclick="showPanel('vendas',this)"><i class="ti ti-trophy"></i>Controle de Vendas</div>
     <div class="nav-item" onclick="showPanel('equipe',this)"><i class="ti ti-users-group"></i>Equipe & Metas</div>
+    <div class="nav-item" onclick="showPanel('documentacao',this)"><i class="ti ti-file-check"></i>Documentação</div>
   </nav>
   <div class="user-box">
     <div style="display:flex;align-items:center;gap:9px;cursor:pointer" onclick="doLogout()">
@@ -431,6 +432,19 @@ textarea.fc{resize:vertical;min-height:60px}
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Quem tem login de Telemarketing/SDR tem o mesmo acesso restrito dos corretores (Leads, Captações, Agenda, Script, Catálogo), além da aba de Telemarketing.</div>
         <div id="telemkt-login-list"></div>
       </div>
+    </div>
+
+    <!-- DOCUMENTAÇÃO -->
+    <div class="panel" id="panel-documentacao">
+      <div class="sec-hdr" style="margin-bottom:14px">
+        <div class="sec-title" style="font-size:15px">Checklist de documentação</div>
+        <button class="btn btn-primary btn-sm" id="btn-novo-processo-doc" onclick="abrirNovoProcessoDoc()"><i class="ti ti-plus"></i>Novo processo</button>
+      </div>
+      <div id="doc-readonly-note" style="display:none;font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;margin-bottom:14px">Modo de visualização — só administradores podem editar o checklist.</div>
+      <div style="font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px">
+        <strong style="color:var(--text)">Como usar:</strong> Solicitado (pediu ao cliente) → Recebido (chegou) → Conferido (nome, CPF, legibilidade e compatibilidade com o cadastro batem) → Pendência (algo faltando ou divergente) → encaminhe pra análise jurídica quando estiver completo.
+      </div>
+      <div id="doc-processos-list"></div>
     </div>
 
     <!-- ALERTAS -->
@@ -1807,11 +1821,59 @@ textarea.fc{resize:vertical;min-height:60px}
         </div>
         <div><label class="lbl">Data de captação</label><input class="fc" id="capt-data" type="date"></div>
       </div>
+      <div class="fld"><label class="lbl">Link das fotos (Google Drive)</label><input class="fc" id="capt-drive" placeholder="Cole aqui o link da pasta do Drive com as fotos"></div>
       <div class="fld"><label class="lbl">Observações</label><textarea class="fc" id="capt-obs" placeholder="Características, condições, notas..."></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('new-capt')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveCaptacao()"><i class="ti ti-check"></i>Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO PROCESSO DE DOCUMENTAÇÃO -->
+<div class="modal-overlay" id="modal-novo-processo-doc" style="display:none" onclick="if(event.target===this)closeModal('novo-processo-doc')">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr"><div class="modal-title">Novo processo de documentação</div><button class="modal-close" onclick="closeModal('novo-processo-doc')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div class="fld"><label class="lbl">Lead / Cliente</label>
+        <input class="fc" id="doc-lead-busca" list="doc-lead-list" placeholder="Busque pelo nome do lead já cadastrado" autocomplete="off">
+        <datalist id="doc-lead-list"></datalist>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Digite o nome exatamente como aparece na lista de Leads.</div>
+      </div>
+      <div class="fld"><label class="lbl">Tipo de operação</label>
+        <select class="fc" id="doc-tipo-operacao">
+          <option value="Locação">Locação</option>
+          <option value="Venda — Imóvel de Proprietário">Venda — imóvel pronto (de proprietário captado)</option>
+          <option value="Venda — Direto da Construtora">Venda — direto da construtora</option>
+          <option value="Permuta">Permuta</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('novo-processo-doc')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarNovoProcessoDoc()"><i class="ti ti-check"></i>Criar checklist</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHE DO PROCESSO DE DOCUMENTAÇÃO -->
+<div class="modal-overlay" id="modal-detalhe-processo-doc" style="display:none" onclick="if(event.target===this)closeModal('detalhe-processo-doc')">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-hdr"><div class="modal-title" id="doc-detalhe-titulo">Checklist</div><button class="modal-close" onclick="closeModal('detalhe-processo-doc')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div id="doc-detalhe-progresso" style="margin-bottom:12px"></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Pessoa</th><th>Documento</th><th style="text-align:center">Solicitado</th><th style="text-align:center">Recebido</th><th style="text-align:center">Conferido</th><th style="text-align:center">Pendência</th><th>Observação</th><th></th></tr></thead>
+          <tbody id="doc-detalhe-itens"></tbody>
+        </table>
+      </div>
+      <button class="btn btn-sm" id="doc-add-item-btn" style="margin-top:10px" onclick="adicionarItemDoc()"><i class="ti ti-plus"></i>Adicionar documento</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="color:var(--danger)" id="doc-delete-processo-btn" onclick="excluirProcessoDoc()"><i class="ti ti-trash"></i>Excluir processo</button>
+      <button class="btn btn-primary" onclick="closeModal('detalhe-processo-doc')">Fechar</button>
     </div>
   </div>
 </div>
@@ -2054,6 +2116,7 @@ async function initApp(){setLoading(true);await loadAll();setLoading(false);}
 async function loadAll(){
   var tasks = [loadLeads(),loadAgs(),loadImoveis(),loadTele(),loadCaptacoes()];
   if (typeof loadCorretoresLogin === 'function') tasks.push(loadCorretoresLogin());
+  if (typeof loadDocumentacao === 'function') tasks.push(loadDocumentacao());
   await Promise.all(tasks);
   renderDash();renderKanban();renderAg();renderImoveis();renderEquipe();renderAlertas();renderRel();renderIndicadores();renderRecontato();
   // Update all corretor selects and chips after everything is loaded
@@ -3197,7 +3260,8 @@ function renderCaptacoes() {
       + '<td><span class="pill" style="background:' + cor + '22;color:' + cor + '">' + (cp.status||'—') + '</span></td>'
       + '<td style="font-size:12px">' + (cp.corretor||'—') + '</td>'
       + '<td onclick="event.stopPropagation()" style="white-space:nowrap">'
-      + (cp.telefone ? '<button class="btn btn-wa btn-xs" onclick="openWA(' + qa(cp.telefone) + ',' + qa(cp.proprietario) + ',\'\')"><i class="ti ti-brand-whatsapp"></i></button>' : '')
+      + (cp.link_drive ? '<button class="btn btn-xs" onclick="window.open(' + qa(cp.link_drive) + ',\'_blank\')" title="Abrir fotos no Drive"><i class="ti ti-brand-google-drive"></i></button>' : '')
+      + (cp.telefone ? '<button class="btn btn-wa btn-xs" style="margin-left:4px" onclick="openWA(' + qa(cp.telefone) + ',' + qa(cp.proprietario) + ',\'\')"><i class="ti ti-brand-whatsapp"></i></button>' : '')
       + '<button class="btn btn-xs" style="margin-left:4px" onclick="editCapt(' + JSON.stringify(cp.id) + ')"><i class="ti ti-edit"></i></button>'
       + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteCapt(' + JSON.stringify(cp.id) + ')"><i class="ti ti-trash"></i></button>'
       + '</td></tr>';
@@ -3218,6 +3282,7 @@ function editCapt(id) {
   document.getElementById('capt-tel').value = cp.telefone||'';
   document.getElementById('capt-corretor').value = cp.corretor||'Sandryne';
   document.getElementById('capt-data').value = cp.data_captacao||'';
+  document.getElementById('capt-drive').value = cp.link_drive||'';
   document.getElementById('capt-obs').value = cp.observacoes||'';
   openModal('new-capt');
 }
@@ -3235,6 +3300,7 @@ async function saveCaptacao() {
     telefone: document.getElementById('capt-tel').value.trim(),
     corretor: document.getElementById('capt-corretor').value,
     data_captacao: document.getElementById('capt-data').value||null,
+    link_drive: document.getElementById('capt-drive').value.trim(),
     observacoes: document.getElementById('capt-obs').value.trim()
   };
   if (editCaptId) {
@@ -5497,8 +5563,256 @@ showPanel = function(id, el) {
    — Bloco 100% adicional. Nenhuma função/elemento existente foi
    removido ou alterado em seu comportamento original. ════════════ */
 
-var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing'];
-var ALLOWED_PANELS_TELEMARKETING = ALLOWED_PANELS_CORRETOR;
+var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing','documentacao'];
+var ALLOWED_PANELS_TELEMARKETING = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing'];
+
+/* ════════════ CHECKLIST DE DOCUMENTAÇÃO (admin cria/edita, corretor só visualiza) ════════════ */
+var DOC_TEMPLATES = {
+  'Permuta': [
+    {pessoa:'Permutante 1', documento:'RG ou CNH'},
+    {pessoa:'Permutante 1', documento:'CPF/CNPJ'},
+    {pessoa:'Permutante 1', documento:'Certidão de estado civil'},
+    {pessoa:'Permutante 1', documento:'Documento do cônjuge (se aplicável)'},
+    {pessoa:'Permutante 1', documento:'Comprovante de endereço'},
+    {pessoa:'Permutante 1', documento:'Matrícula atualizada do imóvel ofertado'},
+    {pessoa:'Permutante 1', documento:'IPTU/documento municipal do imóvel ofertado'},
+    {pessoa:'Permutante 1', documento:'Documento/declaração de condomínio (se aplicável)'},
+    {pessoa:'Permutante 1', documento:'Laudo de avaliação do imóvel ofertado (para apurar diferença de valores)'},
+    {pessoa:'Permutante 1', documento:'Dados bancários (para eventual torna)'},
+    {pessoa:'Permutante 1', documento:'Comprovante de pagamento/recebimento da torna (se houver)'},
+    {pessoa:'Permutante 1', documento:'Documentos adicionais solicitados pelo responsável'},
+    {pessoa:'Permutante 2', documento:'RG ou CNH'},
+    {pessoa:'Permutante 2', documento:'CPF/CNPJ'},
+    {pessoa:'Permutante 2', documento:'Certidão de estado civil'},
+    {pessoa:'Permutante 2', documento:'Documento do cônjuge (se aplicável)'},
+    {pessoa:'Permutante 2', documento:'Comprovante de endereço'},
+    {pessoa:'Permutante 2', documento:'Matrícula atualizada do imóvel ofertado'},
+    {pessoa:'Permutante 2', documento:'IPTU/documento municipal do imóvel ofertado'},
+    {pessoa:'Permutante 2', documento:'Documento/declaração de condomínio (se aplicável)'},
+    {pessoa:'Permutante 2', documento:'Laudo de avaliação do imóvel ofertado (para apurar diferença de valores)'},
+    {pessoa:'Permutante 2', documento:'Dados bancários (para eventual torna)'},
+    {pessoa:'Permutante 2', documento:'Comprovante de pagamento/recebimento da torna (se houver)'},
+    {pessoa:'Permutante 2', documento:'Documentos adicionais solicitados pelo responsável'}
+  ],
+  'Venda — Imóvel de Proprietário': [
+    {pessoa:'Comprador', documento:'RG ou CNH'},
+    {pessoa:'Comprador', documento:'CPF'},
+    {pessoa:'Comprador', documento:'Certidão de estado civil'},
+    {pessoa:'Comprador', documento:'Documento do cônjuge (se aplicável)'},
+    {pessoa:'Comprador', documento:'Comprovante de endereço'},
+    {pessoa:'Comprador', documento:'Telefone e e-mail'},
+    {pessoa:'Comprador', documento:'Profissão'},
+    {pessoa:'Comprador', documento:'Comprovante de renda (se solicitado)'},
+    {pessoa:'Comprador', documento:'Documentos adicionais solicitados pelo responsável/banco'},
+    {pessoa:'Vendedor', documento:'RG ou CNH'},
+    {pessoa:'Vendedor', documento:'CPF/CNPJ'},
+    {pessoa:'Vendedor', documento:'Certidão de estado civil'},
+    {pessoa:'Vendedor', documento:'Documento do cônjuge (se aplicável)'},
+    {pessoa:'Vendedor', documento:'Comprovante de endereço'},
+    {pessoa:'Vendedor', documento:'Matrícula atualizada'},
+    {pessoa:'Vendedor', documento:'IPTU/documento municipal'},
+    {pessoa:'Vendedor', documento:'Documento/declaração de condomínio (se aplicável)'},
+    {pessoa:'Vendedor', documento:'Dados bancários'},
+    {pessoa:'Vendedor', documento:'Outros documentos solicitados pelo responsável'}
+  ],
+  'Venda — Direto da Construtora': [
+    {pessoa:'Comprador', documento:'RG ou CNH'},
+    {pessoa:'Comprador', documento:'CPF'},
+    {pessoa:'Comprador', documento:'Certidão de estado civil'},
+    {pessoa:'Comprador', documento:'Documento do cônjuge (se aplicável)'},
+    {pessoa:'Comprador', documento:'Comprovante de endereço'},
+    {pessoa:'Comprador', documento:'Comprovante de renda (se solicitado)'},
+    {pessoa:'Comprador', documento:'Documentos adicionais exigidos pela construtora/banco'}
+  ],
+  'Locação': [
+    {pessoa:'Proprietário', documento:'RG ou CNH'},
+    {pessoa:'Proprietário', documento:'CPF/CNPJ'},
+    {pessoa:'Proprietário', documento:'Certidão de estado civil'},
+    {pessoa:'Proprietário', documento:'Documento do cônjuge (se aplicável)'},
+    {pessoa:'Proprietário', documento:'Comprovante de endereço'},
+    {pessoa:'Proprietário', documento:'Matrícula/documentação do imóvel'},
+    {pessoa:'Proprietário', documento:'IPTU/documento municipal'},
+    {pessoa:'Proprietário', documento:'Dados do condomínio (se aplicável)'},
+    {pessoa:'Proprietário', documento:'Dados bancários para repasse'},
+    {pessoa:'Proprietário', documento:'Contrato de intermediação/administração'},
+    {pessoa:'Locatário', documento:'RG ou CNH'},
+    {pessoa:'Locatário', documento:'CPF'},
+    {pessoa:'Locatário', documento:'Certidão de estado civil'},
+    {pessoa:'Locatário', documento:'Documento do cônjuge (se aplicável)'},
+    {pessoa:'Locatário', documento:'Comprovante de endereço'},
+    {pessoa:'Locatário', documento:'Comprovante de renda'},
+    {pessoa:'Locatário', documento:'Dados profissionais'},
+    {pessoa:'Locatário', documento:'Documentos da garantia escolhida'},
+    {pessoa:'Garantidor/Fiador', documento:'RG ou CNH'},
+    {pessoa:'Garantidor/Fiador', documento:'CPF'},
+    {pessoa:'Garantidor/Fiador', documento:'Certidão de estado civil'},
+    {pessoa:'Garantidor/Fiador', documento:'Documento do cônjuge (se aplicável)'},
+    {pessoa:'Garantidor/Fiador', documento:'Comprovante de endereço'},
+    {pessoa:'Garantidor/Fiador', documento:'Comprovante de renda'},
+    {pessoa:'Garantidor/Fiador', documento:'Documentação do imóvel, quando exigida'}
+  ]
+};
+
+var docProcessos = [];
+var docProcessoAtualId = null;
+function isAdminDoc() { return currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing'; }
+
+async function loadDocumentacao() {
+  var r = await sb.from('documentacao_processos').select('*').order('created_at', {ascending:false});
+  docProcessos = r.data || [];
+  if (currentUser && currentUser.tipo === 'corretor') {
+    docProcessos = docProcessos.filter(function(p){ return p.corretor === currentUser.nome; });
+  }
+  renderDocumentacao();
+}
+
+function progressoProcesso(p) {
+  var itens = p.itens || [];
+  if (!itens.length) return {conferidos:0, total:0, pct:0};
+  var conferidos = itens.filter(function(i){return i.conferido;}).length;
+  return {conferidos: conferidos, total: itens.length, pct: Math.round((conferidos/itens.length)*100)};
+}
+
+function renderDocumentacao() {
+  var el = document.getElementById('doc-processos-list');
+  if (!el) return;
+  var admin = isAdminDoc();
+  var btn = document.getElementById('btn-novo-processo-doc');
+  if (btn) btn.style.display = admin ? '' : 'none';
+  var note = document.getElementById('doc-readonly-note');
+  if (note) note.style.display = admin ? 'none' : '';
+
+  if (!docProcessos.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-file-check" style="font-size:36px;display:block;margin-bottom:10px"></i>Nenhum processo de documentação ainda.</div>';
+    return;
+  }
+  el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' + docProcessos.map(function(p) {
+    var prog = progressoProcesso(p);
+    var corBadge = prog.pct === 100 ? 'var(--success)' : (prog.pct >= 50 ? '#f39c12' : '#e74c3c');
+    return '<div class="card" style="cursor:pointer" onclick="abrirDetalheProcessoDoc(' + JSON.stringify(p.id) + ')">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">'
+      + '<strong style="font-size:14px">' + (p.lead_nome||'—') + '</strong>'
+      + '<span class="pill" style="background:' + corBadge + '22;color:' + corBadge + '">' + prog.conferidos + '/' + prog.total + ' conferidos</span>'
+      + '</div>'
+      + '<div style="font-size:12px;color:var(--muted)">' + (p.tipo_operacao||'—') + (p.corretor ? ' · ' + p.corretor : '') + '</div>'
+      + '</div>';
+  }).join('') + '</div>';
+}
+
+function abrirNovoProcessoDoc() {
+  document.getElementById('doc-lead-busca').value = '';
+  document.getElementById('doc-tipo-operacao').value = 'Locação';
+  var datalist = document.getElementById('doc-lead-list');
+  if (datalist) {
+    datalist.innerHTML = leads.map(function(l){ return '<option value="' + (l.nome||'').replace(/"/g,'&quot;') + '">'; }).join('');
+  }
+  openModal('novo-processo-doc');
+}
+
+async function salvarNovoProcessoDoc() {
+  var nomeBusca = document.getElementById('doc-lead-busca').value.trim();
+  if (!nomeBusca) { toast('Busque e selecione um lead'); return; }
+  var lead = leads.find(function(l){ return (l.nome||'').trim().toLowerCase() === nomeBusca.toLowerCase(); });
+  if (!lead) { toast('Lead não encontrado — confira o nome exato na lista de Leads'); return; }
+  var tipoOp = document.getElementById('doc-tipo-operacao').value;
+  var itens = (DOC_TEMPLATES[tipoOp] || []).map(function(t) {
+    return {pessoa: t.pessoa, documento: t.documento, solicitado: false, recebido: false, conferido: false, pendente: false, observacao: ''};
+  });
+  var novo = {
+    lead_id: lead.id,
+    lead_nome: lead.nome,
+    tipo_operacao: tipoOp,
+    corretor: lead.corretor || '',
+    itens: itens
+  };
+  var ins = await sb.from('documentacao_processos').insert([novo]);
+  if (ins.error) { toast('❌ Erro ao criar: ' + ins.error.message); return; }
+  toast('✅ Checklist criado!');
+  closeModal('novo-processo-doc');
+  await loadDocumentacao();
+}
+
+function abrirDetalheProcessoDoc(id) {
+  docProcessoAtualId = id;
+  var p = docProcessos.find(function(x){ return x.id === id; });
+  if (!p) return;
+  renderDetalheProcessoDoc(p);
+  openModal('detalhe-processo-doc');
+}
+
+function renderDetalheProcessoDoc(p) {
+  var admin = isAdminDoc();
+  document.getElementById('doc-detalhe-titulo').textContent = (p.lead_nome||'Cliente') + ' — ' + (p.tipo_operacao||'');
+  var prog = progressoProcesso(p);
+  document.getElementById('doc-detalhe-progresso').innerHTML =
+    '<div style="background:var(--surface);border-radius:var(--radius);height:8px;overflow:hidden"><div style="height:100%;background:var(--accent);width:' + prog.pct + '%"></div></div>'
+    + '<div style="font-size:12px;color:var(--muted);margin-top:4px">' + prog.conferidos + ' de ' + prog.total + ' documentos conferidos (' + prog.pct + '%)</div>';
+  var itens = p.itens || [];
+  document.getElementById('doc-detalhe-itens').innerHTML = itens.map(function(item, idx) {
+    var dis = admin ? '' : 'disabled';
+    return '<tr>'
+      + '<td style="font-size:12px">' + (admin ? '<input class="fc" style="font-size:12px;padding:6px 8px" value="' + item.pessoa.replace(/"/g,'&quot;') + '" onchange="editarCampoItemDoc(' + idx + ',\'pessoa\',this.value)">' : item.pessoa) + '</td>'
+      + '<td style="font-size:12px">' + (admin ? '<input class="fc" style="font-size:12px;padding:6px 8px" value="' + item.documento.replace(/"/g,'&quot;') + '" onchange="editarCampoItemDoc(' + idx + ',\'documento\',this.value)">' : item.documento) + '</td>'
+      + '<td style="text-align:center"><input type="checkbox" ' + (item.solicitado?'checked':'') + ' ' + dis + ' onchange="toggleItemDoc(' + idx + ',\'solicitado\',this.checked)"></td>'
+      + '<td style="text-align:center"><input type="checkbox" ' + (item.recebido?'checked':'') + ' ' + dis + ' onchange="toggleItemDoc(' + idx + ',\'recebido\',this.checked)"></td>'
+      + '<td style="text-align:center"><input type="checkbox" ' + (item.conferido?'checked':'') + ' ' + dis + ' onchange="toggleItemDoc(' + idx + ',\'conferido\',this.checked)"></td>'
+      + '<td style="text-align:center"><input type="checkbox" ' + (item.pendente?'checked':'') + ' ' + dis + ' onchange="toggleItemDoc(' + idx + ',\'pendente\',this.checked)"></td>'
+      + '<td>' + (admin ? '<input class="fc" style="font-size:12px;padding:6px 8px" value="' + (item.observacao||'').replace(/"/g,'&quot;') + '" placeholder="Observação..." onchange="editarCampoItemDoc(' + idx + ',\'observacao\',this.value)">' : (item.observacao||'—')) + '</td>'
+      + '<td>' + (admin ? '<button class="btn btn-xs" style="color:var(--danger)" onclick="removerItemDoc(' + idx + ')"><i class="ti ti-trash"></i></button>' : '') + '</td>'
+      + '</tr>';
+  }).join('');
+  var addBtn = document.getElementById('doc-add-item-btn');
+  if (addBtn) addBtn.style.display = admin ? '' : 'none';
+  var delBtn = document.getElementById('doc-delete-processo-btn');
+  if (delBtn) delBtn.style.display = admin ? '' : 'none';
+}
+
+async function salvarItensProcessoDoc() {
+  var p = docProcessos.find(function(x){ return x.id === docProcessoAtualId; });
+  if (!p) return;
+  await sb.from('documentacao_processos').update({itens: p.itens}).eq('id', p.id);
+  renderDocumentacao();
+}
+
+function toggleItemDoc(idx, campo, valor) {
+  var p = docProcessos.find(function(x){ return x.id === docProcessoAtualId; });
+  if (!p || !p.itens[idx]) return;
+  p.itens[idx][campo] = valor;
+  salvarItensProcessoDoc();
+}
+
+function editarCampoItemDoc(idx, campo, valor) {
+  var p = docProcessos.find(function(x){ return x.id === docProcessoAtualId; });
+  if (!p || !p.itens[idx]) return;
+  p.itens[idx][campo] = valor;
+  salvarItensProcessoDoc();
+}
+
+function adicionarItemDoc() {
+  var p = docProcessos.find(function(x){ return x.id === docProcessoAtualId; });
+  if (!p) return;
+  p.itens.push({pessoa:'', documento:'', solicitado:false, recebido:false, conferido:false, pendente:false, observacao:''});
+  renderDetalheProcessoDoc(p);
+  salvarItensProcessoDoc();
+}
+
+function removerItemDoc(idx) {
+  var p = docProcessos.find(function(x){ return x.id === docProcessoAtualId; });
+  if (!p) return;
+  p.itens.splice(idx, 1);
+  renderDetalheProcessoDoc(p);
+  salvarItensProcessoDoc();
+}
+
+async function excluirProcessoDoc() {
+  if (!docProcessoAtualId) return;
+  if (!confirm('Excluir este processo de documentação inteiro?')) return;
+  await sb.from('documentacao_processos').delete().eq('id', docProcessoAtualId);
+  toast('🗑️ Processo excluído');
+  closeModal('detalhe-processo-doc');
+  await loadDocumentacao();
+}
+
 
 function formatCPFInput(el) {
   var v = el.value.replace(/\D/g,'').slice(0,11);
