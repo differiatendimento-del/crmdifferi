@@ -1107,7 +1107,10 @@ textarea.fc{resize:vertical;min-height:60px}
           <div class="chip" onclick="setCaptOpFilter('REPASSE',this)">🔄 Repasse</div>
           <div class="chip" onclick="setCaptOpFilter('PARCERIA',this)">🤝 Parceria</div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="openModal('new-capt')"><i class="ti ti-plus"></i>Nova captação</button>
+        <div style="display:flex;gap:7px">
+          <button class="btn btn-sm" id="btn-sync-catalogo" style="display:none" onclick="sincronizarTodasCaptacoesCatalogo()"><i class="ti ti-refresh"></i>Sincronizar com Catálogo</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirNovaCaptacao()"><i class="ti ti-plus"></i>Nova captação</button>
+        </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="display:flex;gap:7px">
@@ -2196,6 +2199,10 @@ async function saveLead(andWA){
 }
 
 async function deleteLead(id){
+  if (currentUser && (currentUser.tipo === 'corretor' || currentUser.tipo === 'telemarketing')) {
+    toast('⚠️ Só administradores podem excluir leads. Mude o status pra Perdido/Desistiu se quiser encerrar.');
+    return;
+  }
   if(!confirm('Remover este lead?'))return;
   await sb.from('leads').delete().eq('id',id);
   toast('Removido');closeModal('detail');
@@ -2277,7 +2284,7 @@ function renderTable(){
       +'<td onclick="event.stopPropagation()" style="white-space:nowrap">'
       +'<button class="btn btn-wa btn-xs" onclick="openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
       +'<button class="btn btn-xs" style="margin-left:4px" onclick="openDetail('+JSON.stringify(l.id)+',\'hist\')"><i class="ti ti-plus"></i></button>'
-      +'<button class="btn btn-xs" style="margin-left:4px;color:var(--danger);border-color:var(--danger)" onclick="confirmarDelete('+JSON.stringify(l.id)+','+qa(l.nome)+')"><i class="ti ti-trash"></i></button>'
+      +(isAdminDoc()?'<button class="btn btn-xs" style="margin-left:4px;color:var(--danger);border-color:var(--danger)" onclick="confirmarDelete('+JSON.stringify(l.id)+','+qa(l.nome)+')"><i class="ti ti-trash"></i></button>':'')
       +'</td></tr>';
   }).join('');
 }
@@ -2361,7 +2368,7 @@ function renderTab(l,tab){
       +'<button class="btn btn-sm" onclick="goTab(2)"><i class="ti ti-checklist"></i>Roteiro</button>'
       +'<button class="btn btn-sm" onclick="goTab(3)"><i class="ti ti-file-invoice"></i>Proposta</button>'
       +'<button class="btn btn-sm" onclick="goTab(4)"><i class="ti ti-edit"></i>Editar</button>'
-      +'<button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="deleteLead('+JSON.stringify(l.id)+')"><i class="ti ti-trash"></i>Remover</button>'
+      +(isAdminDoc()?'<button class="btn btn-sm" style="color:var(--danger);border-color:var(--danger)" onclick="deleteLead('+JSON.stringify(l.id)+')"><i class="ti ti-trash"></i>Remover</button>':'')
       +'</div>';
   }
 
@@ -3255,6 +3262,33 @@ async function loadCaptacoes() {
   var el3 = document.getElementById('capt-m-valor'); if(el3) el3.textContent = valorTotal > 0 ? 'R$ ' + Math.round(valorTotal/1000000*10)/10 + 'M' : '—';
   var el4 = document.getElementById('capt-m-taxa'); if(el4) el4.textContent = taxa + '%';
   var el5 = document.getElementById('ind-capt'); if(el5) el5.textContent = captado;
+  var btnSync = document.getElementById('btn-sync-catalogo');
+  if (btnSync) btnSync.style.display = (typeof isAdminDoc === 'function' && isAdminDoc()) ? '' : 'none';
+}
+
+// Sincronização retroativa: pega TODAS as captações já marcadas como "Captado"
+// (inclusive as antigas, de antes da conexão automática existir) e garante
+// que cada uma tenha o espelho correspondente no Catálogo.
+async function sincronizarTodasCaptacoesCatalogo() {
+  var captadas = captacoes.filter(function(c){ return c.status === 'Captado'; });
+  if (!captadas.length) { toast('Nenhuma captação com status "Captado" encontrada.'); return; }
+  if (!confirm('Sincronizar ' + captadas.length + ' captação(ões) já "Captada(s)" com o Catálogo agora?')) return;
+  var criados = 0, atualizados = 0;
+  for (var i = 0; i < captadas.length; i++) {
+    var cp = captadas[i];
+    var antesExistia = null;
+    try {
+      var existing = await sb.from('catalogo_imoveis').select('id').eq('origem_captacao_id', cp.id).limit(1);
+      antesExistia = existing.data && existing.data.length ? existing.data[0].id : null;
+    } catch(e) {}
+    await sincronizarCatalogoComCaptacao(cp.id, {
+      endereco: cp.endereco, bairro: cp.bairro, valor: cp.valor, tipo: cp.tipo,
+      tipo_operacao: cp.tipo_operacao, status: cp.status
+    });
+    if (antesExistia) atualizados++; else criados++;
+  }
+  toast('✅ Sincronizado! ' + criados + ' novo(s) no catálogo, ' + atualizados + ' já existiam e foram atualizados.');
+  if (typeof loadCatalogo === 'function') await loadCatalogo();
 }
 
 function setCaptFilter(f, el) {
@@ -3272,27 +3306,53 @@ function renderCaptacoes() {
   if (!lista.length) { tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)">Nenhuma captação encontrada</td></tr>'; return; }
   var statusColors = {'A captar':'#f39c12','Captado':'#27ae60','Perdido':'#e74c3c'};
   var opColors = {'VENDA':'#1a6b4a','ALUGUEL':'#2980b9','REPASSE':'#e67e22','PARCERIA':'#9b59b6'};
+  var isAdminCapt = currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing';
   tbody.innerHTML = lista.map(function(cp) {
     var cor = statusColors[cp.status] || '#95a5a6';
     var opCor = opColors[cp.tipo_operacao] || '#95a5a6';
     var val = cp.valor ? 'R$ ' + parseFloat(cp.valor).toLocaleString('pt-BR') : '—';
+    var podeVerContato = isAdminCapt || cp.corretor === (currentUser?currentUser.nome:null);
+    var propCel = podeVerContato ? (cp.proprietario||'—') : '<span style="color:var(--muted)"><i class="ti ti-lock" style="font-size:11px"></i> Restrito</span>';
+    var telCel = podeVerContato ? (cp.telefone||'—') : '<span style="color:var(--muted)">—</span>';
     return '<tr style="cursor:pointer" onclick="editCapt(' + JSON.stringify(cp.id) + ')">'
       + '<td><strong>' + (cp.endereco||'—') + '</strong></td>'
       + '<td><span class="pill" style="background:' + opCor + '22;color:' + opCor + '">' + (cp.tipo_operacao||'—') + '</span></td>'
       + '<td style="font-size:12px">' + (cp.tipo||'—') + '</td>'
       + '<td style="font-size:12px">' + (cp.bairro||'—') + '</td>'
       + '<td style="font-size:12px;color:var(--accent);font-weight:600">' + val + '</td>'
-      + '<td style="font-size:12px">' + (cp.proprietario||'—') + '</td>'
-      + '<td style="font-size:12px;color:var(--muted)">' + (cp.telefone||'—') + '</td>'
+      + '<td style="font-size:12px">' + propCel + '</td>'
+      + '<td style="font-size:12px;color:var(--muted)">' + telCel + '</td>'
       + '<td><span class="pill" style="background:' + cor + '22;color:' + cor + '">' + (cp.status||'—') + '</span></td>'
       + '<td style="font-size:12px">' + (cp.corretor||'—') + '</td>'
       + '<td onclick="event.stopPropagation()" style="white-space:nowrap">'
       + (cp.link_drive ? '<button class="btn btn-xs" onclick="window.open(' + qa(cp.link_drive) + ',\'_blank\')" title="Abrir fotos no Drive"><i class="ti ti-brand-google-drive"></i></button>' : '')
-      + (cp.telefone ? '<button class="btn btn-wa btn-xs" style="margin-left:4px" onclick="openWA(' + qa(cp.telefone) + ',' + qa(cp.proprietario) + ',\'\')"><i class="ti ti-brand-whatsapp"></i></button>' : '')
+      + (podeVerContato && cp.telefone ? '<button class="btn btn-wa btn-xs" style="margin-left:4px" onclick="openWA(' + qa(cp.telefone) + ',' + qa(cp.proprietario) + ',\'\')"><i class="ti ti-brand-whatsapp"></i></button>' : '')
       + '<button class="btn btn-xs" style="margin-left:4px" onclick="editCapt(' + JSON.stringify(cp.id) + ')"><i class="ti ti-edit"></i></button>'
-      + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteCapt(' + JSON.stringify(cp.id) + ')"><i class="ti ti-trash"></i></button>'
+      + (isAdminCapt ? '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteCapt(' + JSON.stringify(cp.id) + ')"><i class="ti ti-trash"></i></button>' : '')
       + '</td></tr>';
   }).join('');
+}
+
+function abrirNovaCaptacao() {
+  editCaptId = null;
+  document.getElementById('capt-modal-title').textContent = 'Nova captação';
+  ['capt-end','capt-bairro','capt-valor','capt-prop','capt-tel','capt-drive','capt-obs'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('capt-operacao').value = 'VENDA';
+  document.getElementById('capt-tipo').value = 'Apartamento';
+  document.getElementById('capt-status').value = 'A captar';
+  document.getElementById('capt-data').value = '';
+  var propEl = document.getElementById('capt-prop'), telEl = document.getElementById('capt-tel');
+  propEl.disabled = false; propEl.placeholder = 'Nome do proprietário';
+  telEl.disabled = false; telEl.placeholder = '83 9XXXX-XXXX';
+  var corrEl = document.getElementById('capt-corretor');
+  if (currentUser && (currentUser.tipo === 'corretor' || currentUser.tipo === 'telemarketing')) {
+    corrEl.value = currentUser.nome;
+  } else {
+    corrEl.value = 'Sandryne';
+  }
+  openModal('new-capt');
 }
 
 function editCapt(id) {
@@ -3306,8 +3366,16 @@ function editCapt(id) {
   document.getElementById('capt-bairro').value = cp.bairro||'';
   document.getElementById('capt-valor').value = cp.valor||'';
   document.getElementById('capt-status').value = cp.status||'A captar';
-  document.getElementById('capt-prop').value = cp.proprietario||'';
-  document.getElementById('capt-tel').value = cp.telefone||'';
+  var isAdminCapt = currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing';
+  var podeVerContato = isAdminCapt || cp.corretor === (currentUser?currentUser.nome:null);
+  var propEl = document.getElementById('capt-prop'), telEl = document.getElementById('capt-tel');
+  if (podeVerContato) {
+    propEl.value = cp.proprietario||''; propEl.disabled = false; propEl.placeholder = 'Nome do proprietário';
+    telEl.value = cp.telefone||''; telEl.disabled = false; telEl.placeholder = '83 9XXXX-XXXX';
+  } else {
+    propEl.value = ''; propEl.disabled = true; propEl.placeholder = '🔒 Só quem captou vê esse contato';
+    telEl.value = ''; telEl.disabled = true; telEl.placeholder = '🔒 Restrito';
+  }
   document.getElementById('capt-corretor').value = cp.corretor||'Sandryne';
   document.getElementById('capt-data').value = cp.data_captacao||'';
   document.getElementById('capt-drive').value = cp.link_drive||'';
@@ -3318,6 +3386,8 @@ function editCapt(id) {
 async function saveCaptacao() {
   var end = document.getElementById('capt-end').value.trim();
   if (!end) { toast('Informe o endereço'); return; }
+  var propEl = document.getElementById('capt-prop'), telEl = document.getElementById('capt-tel');
+  var contatoBloqueado = propEl.disabled || telEl.disabled;
   var data = {
     endereco: end,
     tipo_operacao: document.getElementById('capt-operacao').value,
@@ -3325,13 +3395,15 @@ async function saveCaptacao() {
     bairro: document.getElementById('capt-bairro').value.trim(),
     valor: parseFloat(document.getElementById('capt-valor').value.replace(/[^0-9.]/g,''))||null,
     status: document.getElementById('capt-status').value,
-    proprietario: document.getElementById('capt-prop').value.trim(),
-    telefone: document.getElementById('capt-tel').value.trim(),
     corretor: document.getElementById('capt-corretor').value,
     data_captacao: document.getElementById('capt-data').value||null,
     link_drive: document.getElementById('capt-drive').value.trim(),
     observacoes: document.getElementById('capt-obs').value.trim()
   };
+  if (!contatoBloqueado) {
+    data.proprietario = propEl.value.trim();
+    data.telefone = telEl.value.trim();
+  }
   var captId = editCaptId;
   if (editCaptId) {
     await sb.from('captacoes').update(data).eq('id', editCaptId);
@@ -3383,6 +3455,10 @@ async function sincronizarCatalogoComCaptacao(captId, data) {
 }
 
 async function deleteCapt(id) {
+  if (!isAdminDoc()) {
+    toast('⚠️ Só administradores podem excluir captações. Mude o status pra Perdido se quiser encerrar.');
+    return;
+  }
   if (!confirm('Remover esta captação? Se ela estiver no Catálogo, também será removida de lá.')) return;
   await sb.from('captacoes').delete().eq('id', id);
   await sb.from('catalogo_imoveis').delete().eq('origem_captacao_id', id);
@@ -5673,7 +5749,7 @@ showPanel = function(id, el) {
    removido ou alterado em seu comportamento original. ════════════ */
 
 var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing','documentacao'];
-var ALLOWED_PANELS_TELEMARKETING = ['leads','captacoes','agenda','script','catalogo','textos','recontato','telemarketing'];
+var ALLOWED_PANELS_TELEMARKETING = ['leads','agenda','script','catalogo','textos','recontato','telemarketing'];
 
 /* ════════════ CHECKLIST DE DOCUMENTAÇÃO (admin cria/edita, corretor só visualiza) ════════════ */
 var DOC_TEMPLATES = {
