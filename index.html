@@ -3273,21 +3273,22 @@ async function sincronizarTodasCaptacoesCatalogo() {
   var captadas = captacoes.filter(function(c){ return c.status === 'Captado'; });
   if (!captadas.length) { toast('Nenhuma captação com status "Captado" encontrada.'); return; }
   if (!confirm('Sincronizar ' + captadas.length + ' captação(ões) já "Captada(s)" com o Catálogo agora?')) return;
-  var criados = 0, atualizados = 0;
+  var criados = 0, atualizados = 0, erros = 0, primeiroErro = '';
   for (var i = 0; i < captadas.length; i++) {
     var cp = captadas[i];
-    var antesExistia = null;
-    try {
-      var existing = await sb.from('catalogo_imoveis').select('id').eq('origem_captacao_id', cp.id).limit(1);
-      antesExistia = existing.data && existing.data.length ? existing.data[0].id : null;
-    } catch(e) {}
-    await sincronizarCatalogoComCaptacao(cp.id, {
+    var r = await sincronizarCatalogoComCaptacao(cp.id, {
       endereco: cp.endereco, bairro: cp.bairro, valor: cp.valor, tipo: cp.tipo,
       tipo_operacao: cp.tipo_operacao, status: cp.status
     });
-    if (antesExistia) atualizados++; else criados++;
+    if (!r.ok) { erros++; if (!primeiroErro) primeiroErro = r.motivo; }
+    else if (r.acao === 'criado') criados++;
+    else if (r.acao === 'atualizado') atualizados++;
   }
-  toast('✅ Sincronizado! ' + criados + ' novo(s) no catálogo, ' + atualizados + ' já existiam e foram atualizados.');
+  if (erros) {
+    toast('❌ ' + erros + ' falharam. Erro: ' + primeiroErro);
+  } else {
+    toast('✅ Sincronizado! ' + criados + ' novo(s) no catálogo, ' + atualizados + ' já existiam e foram atualizados.');
+  }
   if (typeof loadCatalogo === 'function') await loadCatalogo();
 }
 
@@ -3416,42 +3417,48 @@ async function saveCaptacao() {
   editCaptId = null;
   document.getElementById('capt-modal-title').textContent = 'Nova captação';
   closeModal('new-capt');
-  await sincronizarCatalogoComCaptacao(captId, data);
+  var rSync = await sincronizarCatalogoComCaptacao(captId, data);
+  if (!rSync.ok) { toast('⚠️ Captação salva, mas não sincronizou com o Catálogo: ' + rSync.motivo); }
+  else if (typeof loadCatalogo === 'function') { await loadCatalogo(); }
   await loadCaptacoes();
 }
 
 // Mantém o Catálogo sempre espelhando as captações marcadas como "Captado".
 // Se sair do status Captado, remove do catálogo. Formato de valor: "R$ 1.234.567".
 async function sincronizarCatalogoComCaptacao(captId, data) {
-  if (!captId) return;
-  try {
-    var existing = await sb.from('catalogo_imoveis').select('id').eq('origem_captacao_id', captId).limit(1);
-    var jaExiste = existing.data && existing.data.length ? existing.data[0].id : null;
+  if (!captId) return {ok:false, motivo:'sem captId'};
+  var existing = await sb.from('catalogo_imoveis').select('id').eq('origem_captacao_id', captId).limit(1);
+  if (existing.error) { console.error('Erro ao consultar catálogo:', existing.error); return {ok:false, motivo:existing.error.message}; }
+  var jaExiste = existing.data && existing.data.length ? existing.data[0].id : null;
 
-    if (data.status !== 'Captado') {
-      if (jaExiste) await sb.from('catalogo_imoveis').delete().eq('id', jaExiste);
-      return;
-    }
-
-    var valorFmt = data.valor ? 'R$ ' + Number(data.valor).toLocaleString('pt-BR') : '—';
-    var item = {
-      nome: data.endereco,
-      bairro: data.bairro,
-      valor: valorFmt,
-      tipo: data.tipo,
-      status: '✅ Pronto',
-      entrega: 'Pronto',
-      lista: data.tipo_operacao || '',
-      tipo_operacao: data.tipo_operacao,
-      origem_captacao_id: captId
-    };
+  if (data.status !== 'Captado') {
     if (jaExiste) {
-      await sb.from('catalogo_imoveis').update(item).eq('id', jaExiste);
-    } else {
-      await sb.from('catalogo_imoveis').insert([item]);
+      var del = await sb.from('catalogo_imoveis').delete().eq('id', jaExiste);
+      if (del.error) { console.error('Erro ao remover do catálogo:', del.error); return {ok:false, motivo:del.error.message}; }
     }
-    if (typeof loadCatalogo === 'function') await loadCatalogo();
-  } catch (e) { console.error('Erro ao sincronizar catálogo:', e); }
+    return {ok:true, acao:'removido'};
+  }
+
+  var valorFmt = data.valor ? 'R$ ' + Number(data.valor).toLocaleString('pt-BR') : '—';
+  var item = {
+    nome: data.endereco,
+    bairro: data.bairro,
+    valor: valorFmt,
+    tipo: data.tipo,
+    status: '✅ Pronto',
+    entrega: 'Pronto',
+    lista: data.tipo_operacao || '',
+    tipo_operacao: data.tipo_operacao,
+    origem_captacao_id: captId
+  };
+  var res;
+  if (jaExiste) {
+    res = await sb.from('catalogo_imoveis').update(item).eq('id', jaExiste);
+  } else {
+    res = await sb.from('catalogo_imoveis').insert([item]);
+  }
+  if (res.error) { console.error('Erro ao gravar no catálogo:', res.error); return {ok:false, motivo:res.error.message}; }
+  return {ok:true, acao: jaExiste ? 'atualizado' : 'criado'};
 }
 
 async function deleteCapt(id) {
