@@ -553,7 +553,7 @@ textarea.fc{resize:vertical;min-height:60px}
       </div>
       <div class="tbl-wrap" id="catalogo-view-tabela">
         <table>
-          <thead><tr><th>Empreendimento</th><th>Bairro</th><th>Valor mínimo</th><th>Tipo</th><th>Status</th><th>Prev. Entrega</th><th>Lista disparo</th><th>Leads</th><th>Ação</th></tr></thead>
+          <thead><tr><th>Empreendimento</th><th>Operação</th><th>Bairro</th><th>Valor mínimo</th><th>Tipo</th><th>Status</th><th>Prev. Entrega</th><th>Lista disparo</th><th>Leads</th><th>Ação</th></tr></thead>
           <tbody id="catalogo-body"></tbody>
         </table>
       </div>
@@ -1099,6 +1099,16 @@ textarea.fc{resize:vertical;min-height:60px}
 
     <!-- CAPTAÇÕES -->
     <div class="panel" id="panel-captacoes">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;gap:7px">
+          <div class="chip on" onclick="setCaptOpFilter('todos',this)">Todos</div>
+          <div class="chip" onclick="setCaptOpFilter('VENDA',this)">🏠 Venda</div>
+          <div class="chip" onclick="setCaptOpFilter('ALUGUEL',this)">🔑 Aluguel</div>
+          <div class="chip" onclick="setCaptOpFilter('REPASSE',this)">🔄 Repasse</div>
+          <div class="chip" onclick="setCaptOpFilter('PARCERIA',this)">🤝 Parceria</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('new-capt')"><i class="ti ti-plus"></i>Nova captação</button>
+      </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="display:flex;gap:7px">
           <div class="chip on" onclick="setCaptFilter('todos',this)">Todos</div>
@@ -1106,7 +1116,6 @@ textarea.fc{resize:vertical;min-height:60px}
           <div class="chip" onclick="setCaptFilter('Captado',this)">✅ Captados</div>
           <div class="chip" onclick="setCaptFilter('Perdido',this)">❌ Perdidos</div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="openModal('new-capt')"><i class="ti ti-plus"></i>Nova captação</button>
       </div>
       <!-- MÉTRICAS CAPTAÇÃO -->
       <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
@@ -1117,8 +1126,8 @@ textarea.fc{resize:vertical;min-height:60px}
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>Endereço</th><th>Tipo</th><th>Bairro</th><th>Valor</th><th>Proprietário</th><th>Telefone</th><th>Status</th><th>Corretor</th><th>Ação</th></tr></thead>
-          <tbody id="capt-body"><tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted)">Carregando...</td></tr></tbody>
+          <thead><tr><th>Endereço</th><th>Operação</th><th>Tipo</th><th>Bairro</th><th>Valor</th><th>Proprietário</th><th>Telefone</th><th>Status</th><th>Corretor</th><th>Ação</th></tr></thead>
+          <tbody id="capt-body"><tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1798,28 +1807,33 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="modal-body">
       <div class="fld"><label class="lbl">Endereço do imóvel</label><input class="fc" id="capt-end" placeholder="Rua, número, bairro..."></div>
       <div class="form-row">
+        <div><label class="lbl">Operação</label>
+          <select class="fc" id="capt-operacao">
+            <option value="VENDA">Venda</option><option value="ALUGUEL">Aluguel</option><option value="REPASSE">Repasse</option><option value="PARCERIA">Parceria</option>
+          </select>
+        </div>
         <div><label class="lbl">Tipo</label>
           <select class="fc" id="capt-tipo">
             <option>Apartamento</option><option>Casa</option><option>Flat</option><option>Sala Comercial</option><option>Terreno</option><option>Cobertura</option>
           </select>
         </div>
-        <div><label class="lbl">Bairro</label><input class="fc" id="capt-bairro" placeholder="Ex: Miramar"></div>
       </div>
       <div class="form-row">
+        <div><label class="lbl">Bairro</label><input class="fc" id="capt-bairro" placeholder="Ex: Miramar"></div>
         <div><label class="lbl">Valor estimado</label><input class="fc" id="capt-valor" placeholder="R$ 500.000,00"></div>
+      </div>
+      <div class="form-row">
         <div><label class="lbl">Status</label>
           <select class="fc" id="capt-status"><option>A captar</option><option>Captado</option><option>Perdido</option></select>
         </div>
+        <div><label class="lbl">Data de captação</label><input class="fc" id="capt-data" type="date"></div>
       </div>
       <div class="form-row">
         <div><label class="lbl">Nome do proprietário</label><input class="fc" id="capt-prop" placeholder="Nome do proprietário"></div>
         <div><label class="lbl">Telefone</label><input class="fc" id="capt-tel" placeholder="83 9XXXX-XXXX"></div>
       </div>
-      <div class="form-row">
-        <div><label class="lbl">Corretor responsável</label>
-          <select class="fc" id="capt-corretor"><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
-        </div>
-        <div><label class="lbl">Data de captação</label><input class="fc" id="capt-data" type="date"></div>
+      <div class="fld"><label class="lbl">Corretor responsável</label>
+        <select class="fc" id="capt-corretor"><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
       </div>
       <div class="fld"><label class="lbl">Link das fotos (Google Drive)</label><input class="fc" id="capt-drive" placeholder="Cole aqui o link da pasta do Drive com as fotos"></div>
       <div class="fld"><label class="lbl">Observações</label><textarea class="fc" id="capt-obs" placeholder="Características, condições, notas..."></textarea></div>
@@ -2117,6 +2131,8 @@ async function loadAll(){
   var tasks = [loadLeads(),loadAgs(),loadImoveis(),loadTele(),loadCaptacoes()];
   if (typeof loadCorretoresLogin === 'function') tasks.push(loadCorretoresLogin());
   if (typeof loadDocumentacao === 'function') tasks.push(loadDocumentacao());
+  if (typeof loadDocsBiblioteca === 'function') tasks.push(loadDocsBiblioteca());
+  if (typeof loadVendas === 'function') tasks.push(loadVendas());
   await Promise.all(tasks);
   renderDash();renderKanban();renderAg();renderImoveis();renderEquipe();renderAlertas();renderRel();renderIndicadores();renderRecontato();
   // Update all corretor selects and chips after everything is loaded
@@ -3216,7 +3232,14 @@ async function importarCSV() {
 }
 
 // ═══ CAPTAÇÕES ═══
-var captacoes = [], captFilter = 'todos', editCaptId = null;
+var captacoes = [], captFilter = 'todos', captOpFilter = 'todos', editCaptId = null;
+
+function setCaptOpFilter(f, el) {
+  captOpFilter = f;
+  document.querySelectorAll('[onclick^="setCaptOpFilter"]').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on');
+  renderCaptacoes();
+}
 
 async function loadCaptacoes() {
   var r = await sb.from('captacoes').select('*').order('created_at', {ascending:false});
@@ -3244,14 +3267,18 @@ function setCaptFilter(f, el) {
 function renderCaptacoes() {
   var tbody = document.getElementById('capt-body');
   if (!tbody) return;
-  var lista = captFilter === 'todos' ? captacoes : captacoes.filter(function(c){return c.status===captFilter;});
-  if (!lista.length) { tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted)">Nenhuma captação encontrada</td></tr>'; return; }
+  var lista = captFilter === 'todos' ? captacoes.slice() : captacoes.filter(function(c){return c.status===captFilter;});
+  if (captOpFilter !== 'todos') lista = lista.filter(function(c){ return c.tipo_operacao === captOpFilter; });
+  if (!lista.length) { tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)">Nenhuma captação encontrada</td></tr>'; return; }
   var statusColors = {'A captar':'#f39c12','Captado':'#27ae60','Perdido':'#e74c3c'};
+  var opColors = {'VENDA':'#1a6b4a','ALUGUEL':'#2980b9','REPASSE':'#e67e22','PARCERIA':'#9b59b6'};
   tbody.innerHTML = lista.map(function(cp) {
     var cor = statusColors[cp.status] || '#95a5a6';
+    var opCor = opColors[cp.tipo_operacao] || '#95a5a6';
     var val = cp.valor ? 'R$ ' + parseFloat(cp.valor).toLocaleString('pt-BR') : '—';
     return '<tr style="cursor:pointer" onclick="editCapt(' + JSON.stringify(cp.id) + ')">'
       + '<td><strong>' + (cp.endereco||'—') + '</strong></td>'
+      + '<td><span class="pill" style="background:' + opCor + '22;color:' + opCor + '">' + (cp.tipo_operacao||'—') + '</span></td>'
       + '<td style="font-size:12px">' + (cp.tipo||'—') + '</td>'
       + '<td style="font-size:12px">' + (cp.bairro||'—') + '</td>'
       + '<td style="font-size:12px;color:var(--accent);font-weight:600">' + val + '</td>'
@@ -3274,6 +3301,7 @@ function editCapt(id) {
   if (!cp) return;
   document.getElementById('capt-modal-title').textContent = 'Editar captação';
   document.getElementById('capt-end').value = cp.endereco||'';
+  document.getElementById('capt-operacao').value = cp.tipo_operacao||'VENDA';
   document.getElementById('capt-tipo').value = cp.tipo||'Apartamento';
   document.getElementById('capt-bairro').value = cp.bairro||'';
   document.getElementById('capt-valor').value = cp.valor||'';
@@ -3292,6 +3320,7 @@ async function saveCaptacao() {
   if (!end) { toast('Informe o endereço'); return; }
   var data = {
     endereco: end,
+    tipo_operacao: document.getElementById('capt-operacao').value,
     tipo: document.getElementById('capt-tipo').value,
     bairro: document.getElementById('capt-bairro').value.trim(),
     valor: parseFloat(document.getElementById('capt-valor').value.replace(/[^0-9.]/g,''))||null,
@@ -3303,24 +3332,63 @@ async function saveCaptacao() {
     link_drive: document.getElementById('capt-drive').value.trim(),
     observacoes: document.getElementById('capt-obs').value.trim()
   };
+  var captId = editCaptId;
   if (editCaptId) {
     await sb.from('captacoes').update(data).eq('id', editCaptId);
     toast('✅ Captação atualizada!');
   } else {
-    await sb.from('captacoes').insert([data]);
+    var ins = await sb.from('captacoes').insert([data]).select();
+    captId = ins.data && ins.data[0] ? ins.data[0].id : null;
     toast('✅ Captação salva!');
   }
   editCaptId = null;
   document.getElementById('capt-modal-title').textContent = 'Nova captação';
   closeModal('new-capt');
+  await sincronizarCatalogoComCaptacao(captId, data);
   await loadCaptacoes();
 }
 
+// Mantém o Catálogo sempre espelhando as captações marcadas como "Captado".
+// Se sair do status Captado, remove do catálogo. Formato de valor: "R$ 1.234.567".
+async function sincronizarCatalogoComCaptacao(captId, data) {
+  if (!captId) return;
+  try {
+    var existing = await sb.from('catalogo_imoveis').select('id').eq('origem_captacao_id', captId).limit(1);
+    var jaExiste = existing.data && existing.data.length ? existing.data[0].id : null;
+
+    if (data.status !== 'Captado') {
+      if (jaExiste) await sb.from('catalogo_imoveis').delete().eq('id', jaExiste);
+      return;
+    }
+
+    var valorFmt = data.valor ? 'R$ ' + Number(data.valor).toLocaleString('pt-BR') : '—';
+    var item = {
+      nome: data.endereco,
+      bairro: data.bairro,
+      valor: valorFmt,
+      tipo: data.tipo,
+      status: '✅ Pronto',
+      entrega: 'Pronto',
+      lista: data.tipo_operacao || '',
+      tipo_operacao: data.tipo_operacao,
+      origem_captacao_id: captId
+    };
+    if (jaExiste) {
+      await sb.from('catalogo_imoveis').update(item).eq('id', jaExiste);
+    } else {
+      await sb.from('catalogo_imoveis').insert([item]);
+    }
+    if (typeof loadCatalogo === 'function') await loadCatalogo();
+  } catch (e) { console.error('Erro ao sincronizar catálogo:', e); }
+}
+
 async function deleteCapt(id) {
-  if (!confirm('Remover esta captação?')) return;
+  if (!confirm('Remover esta captação? Se ela estiver no Catálogo, também será removida de lá.')) return;
   await sb.from('captacoes').delete().eq('id', id);
+  await sb.from('catalogo_imoveis').delete().eq('origem_captacao_id', id);
   toast('🗑️ Removido');
   await loadCaptacoes();
+  if (typeof loadCatalogo === 'function') await loadCatalogo();
 }
 
 // ═══ INDICADORES ═══
@@ -3749,10 +3817,25 @@ function saveDisparoReal() {
 }
 
 // ═══ CATÁLOGO ═══
-var catalogoItems = JSON.parse(localStorage.getItem('crm_catalogo') || JSON.stringify(CATALOGO_INICIAL));
+var catalogoItems = [];
 var catalogoFilter = 'todos';
 var catalogoView = 'tabela'; // 'tabela' | 'cards'
 var editCatId = null;
+
+async function loadCatalogo() {
+  var r = await sb.from('catalogo_imoveis').select('*').order('created_at', {ascending:false});
+  if (r.data && r.data.length) {
+    catalogoItems = r.data;
+  } else if (r.data && !r.data.length) {
+    // Primeira vez: semeia com o catálogo inicial de lançamentos
+    await sb.from('catalogo_imoveis').insert(CATALOGO_INICIAL);
+    var r2 = await sb.from('catalogo_imoveis').select('*').order('created_at', {ascending:false});
+    catalogoItems = r2.data || [];
+  } else {
+    catalogoItems = CATALOGO_INICIAL.slice();
+  }
+  renderCatalogo();
+}
 
 function setCatalogFilter(f, el) {
   catalogoFilter = f;
@@ -3811,18 +3894,18 @@ function renderCatalogo() {
   }
 
   if (!lista.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted)">Nenhum item encontrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)">Nenhum item encontrado</td></tr>';
     if (cardsEl) cardsEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Nenhum item encontrado</div>';
     return;
   }
 
   tbody.innerHTML = lista.map(function(item) {
-    var realIdx = catalogoItems.indexOf(item);
     var leadsCount = leadsCountCatalogo(item);
     var leadsBadge = leadsCount === 0
       ? '<span class="pill" style="background:rgba(231,76,60,.12);color:#c0392b">0 leads</span>'
       : '<span style="font-weight:600;color:var(--accent)">' + leadsCount + '</span>';
     return '<tr><td><strong>' + (item.nome||'—') + '</strong></td>'
+      + '<td style="font-size:11px">' + (item.tipo_operacao ? '<span class="pill" style="background:rgba(26,107,74,.12);color:var(--accent)">'+item.tipo_operacao+'</span>' : '—') + '</td>'
       + '<td style="font-size:12px">' + (item.bairro||'—') + '</td>'
       + '<td style="font-size:12px;color:var(--accent);font-weight:600">' + (item.valor||'—') + '</td>'
       + '<td style="font-size:12px">' + (item.tipo||'—') + '</td>'
@@ -3831,15 +3914,14 @@ function renderCatalogo() {
       + '<td style="font-size:11px;color:var(--muted)">' + (item.lista||'—') + '</td>'
       + '<td style="text-align:center">' + leadsBadge + '</td>'
       + '<td style="white-space:nowrap">'
-      + '<button class="btn btn-wa btn-xs" onclick="enviarCatalogoWA(' + realIdx + ')" title="Enviar no WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>'
-      + '<button class="btn btn-xs" style="margin-left:4px" onclick="editCatalogo(' + realIdx + ')"><i class="ti ti-edit"></i></button>'
-      + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteCatalogo(' + realIdx + ')"><i class="ti ti-trash"></i></button>'
+      + '<button class="btn btn-wa btn-xs" onclick="enviarCatalogoWA(' + JSON.stringify(item.id) + ')" title="Enviar no WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>'
+      + '<button class="btn btn-xs" style="margin-left:4px" onclick="editCatalogo(' + JSON.stringify(item.id) + ')"><i class="ti ti-edit"></i></button>'
+      + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteCatalogo(' + JSON.stringify(item.id) + ')"><i class="ti ti-trash"></i></button>'
       + '</td></tr>';
   }).join('');
 
   if (cardsEl) {
     cardsEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px">' + lista.map(function(item) {
-      var realIdx = catalogoItems.indexOf(item);
       var leadsCount = leadsCountCatalogo(item);
       var leadsBadge = leadsCount === 0
         ? '<span class="pill" style="background:rgba(231,76,60,.12);color:#c0392b">0 leads</span>'
@@ -3848,20 +3930,20 @@ function renderCatalogo() {
         + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">'
         + '<strong style="font-size:14px">' + (item.nome||'—') + '</strong>' + leadsBadge
         + '</div>'
-        + '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">' + (item.bairro||'—') + ' · ' + (item.tipo||'—') + '</div>'
+        + '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">' + (item.bairro||'—') + ' · ' + (item.tipo||'—') + (item.tipo_operacao ? ' · ' + item.tipo_operacao : '') + '</div>'
         + '<div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:4px">' + (item.valor||'—') + '</div>'
         + '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">' + (item.status||'—') + (item.entrega ? ' · ' + item.entrega : '') + '</div>'
         + '<div style="display:flex;gap:6px">'
-        + '<button class="btn btn-wa btn-xs" style="flex:1" onclick="enviarCatalogoWA(' + realIdx + ')"><i class="ti ti-brand-whatsapp"></i>Enviar</button>'
-        + '<button class="btn btn-xs" onclick="editCatalogo(' + realIdx + ')"><i class="ti ti-edit"></i></button>'
-        + '<button class="btn btn-xs" style="color:var(--danger)" onclick="deleteCatalogo(' + realIdx + ')"><i class="ti ti-trash"></i></button>'
+        + '<button class="btn btn-wa btn-xs" style="flex:1" onclick="enviarCatalogoWA(' + JSON.stringify(item.id) + ')"><i class="ti ti-brand-whatsapp"></i>Enviar</button>'
+        + '<button class="btn btn-xs" onclick="editCatalogo(' + JSON.stringify(item.id) + ')"><i class="ti ti-edit"></i></button>'
+        + '<button class="btn btn-xs" style="color:var(--danger)" onclick="deleteCatalogo(' + JSON.stringify(item.id) + ')"><i class="ti ti-trash"></i></button>'
         + '</div></div>';
     }).join('') + '</div>';
   }
 }
 
-function enviarCatalogoWA(idx) {
-  var item = catalogoItems[idx];
+function enviarCatalogoWA(id) {
+  var item = catalogoItems.find(function(x){ return x.id === id; });
   if (!item) return;
   var textoMatch = (typeof textosImoveis !== 'undefined') ? textosImoveis.find(function(t){ return (t.empr||'').trim().toLowerCase() === (item.nome||'').trim().toLowerCase(); }) : null;
   var msg = (textoMatch && textoMatch.texto) ? textoMatch.texto
@@ -3869,9 +3951,10 @@ function enviarCatalogoWA(idx) {
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
 
-function editCatalogo(idx) {
-  editCatId = idx;
-  var item = catalogoItems[idx];
+function editCatalogo(id) {
+  editCatId = id;
+  var item = catalogoItems.find(function(x){ return x.id === id; });
+  if (!item) return;
   document.getElementById('cat-modal-title').textContent = 'Editar empreendimento';
   document.getElementById('cat-nome').value = item.nome||'';
   document.getElementById('cat-bairro').value = item.bairro||'';
@@ -3883,7 +3966,7 @@ function editCatalogo(idx) {
   openModal('new-catalogo');
 }
 
-function saveCatalogo() {
+async function saveCatalogo() {
   var item = {
     nome: document.getElementById('cat-nome').value.trim(),
     bairro: document.getElementById('cat-bairro').value.trim(),
@@ -3894,24 +3977,27 @@ function saveCatalogo() {
     lista: document.getElementById('cat-lista').value.trim()
   };
   if (!item.nome) { toast('Informe o nome'); return; }
-  if (editCatId !== null) { catalogoItems[editCatId] = item; toast('✅ Atualizado!'); }
-  else { catalogoItems.unshift(item); toast('✅ Adicionado!'); }
+  if (editCatId !== null) {
+    await sb.from('catalogo_imoveis').update(item).eq('id', editCatId);
+    toast('✅ Atualizado!');
+  } else {
+    await sb.from('catalogo_imoveis').insert([item]);
+    toast('✅ Adicionado!');
+  }
   editCatId = null;
   document.getElementById('cat-modal-title').textContent = 'Novo empreendimento';
-  localStorage.setItem('crm_catalogo', JSON.stringify(catalogoItems));
   closeModal('new-catalogo');
-  renderCatalogo();
+  await loadCatalogo();
 }
 
-function deleteCatalogo(idx) {
+async function deleteCatalogo(id) {
   if (!confirm('Remover este empreendimento?')) return;
-  catalogoItems.splice(idx, 1);
-  localStorage.setItem('crm_catalogo', JSON.stringify(catalogoItems));
-  renderCatalogo();
+  await sb.from('catalogo_imoveis').delete().eq('id', id);
   toast('🗑️ Removido!');
+  await loadCatalogo();
 }
 
-function importarCatalogo() {
+async function importarCatalogo() {
   var csv = document.getElementById('cat-csv').value.trim();
   if (!csv) { toast('Cole os dados'); return; }
   var lines = csv.split('\n').filter(function(l){return l.trim();});
@@ -3922,12 +4008,11 @@ function importarCatalogo() {
       novos.push({nome:p[0], bairro:p[1]||'', valor:p[2]||'', tipo:p[3]||'', status:p[4]||'', entrega:p[5]||'', lista:p[6]||''});
     }
   });
-  catalogoItems = novos.concat(catalogoItems);
-  localStorage.setItem('crm_catalogo', JSON.stringify(catalogoItems));
+  if (novos.length) await sb.from('catalogo_imoveis').insert(novos);
   toast('✅ ' + novos.length + ' empreendimentos importados!');
   closeModal('import-catalogo');
   document.getElementById('cat-csv').value = '';
-  renderCatalogo();
+  await loadCatalogo();
 }
 
 // ═══ SCRIPT ═══
@@ -4126,9 +4211,21 @@ function deleteFluxo(idx) {
 }
 
 // ═══ CONTROLE DE VENDAS ═══
-var vendasItems = JSON.parse(localStorage.getItem('crm_vendas') || JSON.stringify(VENDAS_INICIAL));
+var vendasItems = VENDAS_INICIAL.slice();
 var vendasFilter = 'todos';
 var editVendaId = null;
+
+async function loadVendas() {
+  try {
+    var r = await sb.from('controle_vendas').select('*').order('created_at', {ascending:false});
+    if (r.data && r.data.length) {
+      vendasItems = r.data;
+    } else {
+      vendasItems = VENDAS_INICIAL.slice();
+    }
+  } catch(e) { vendasItems = VENDAS_INICIAL.slice(); }
+  renderVendas();
+}
 
 function setVendasFilter(f, el) {
   vendasFilter = f;
@@ -4166,8 +4263,7 @@ function renderVendas() {
   var el4=document.getElementById('vd-parceiro'); if(el4) el4.textContent=parceiros;
 
   if (!lista.length) { tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted)">Nenhuma venda encontrada</td></tr>'; return; }
-  tbody.innerHTML = lista.map(function(v, i) {
-    var realIdx = vendasItems.indexOf(v);
+  tbody.innerHTML = lista.map(function(v) {
     return '<tr><td style="font-size:12px">' + (v.data||'—') + '</td>'
       + '<td><strong>' + (v.cliente||'—') + '</strong></td>'
       + '<td style="text-align:center">' + (v.qtde||1) + '</td>'
@@ -4179,15 +4275,16 @@ function renderVendas() {
       + '<td style="font-size:12px">' + (v.vendedor||'—') + '</td>'
       + '<td style="text-align:center"><span class="pill ' + ((v.parceiro||'').toUpperCase()==='SIM'?'pill-ativo':'pill-default') + '">' + (v.parceiro||'NÃO') + '</span></td>'
       + '<td style="white-space:nowrap">'
-      + '<button class="btn btn-xs" onclick="editVenda(' + realIdx + ')"><i class="ti ti-edit"></i></button>'
-      + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteVenda(' + realIdx + ')"><i class="ti ti-trash"></i></button>'
+      + (v.id ? '<button class="btn btn-xs" onclick="editVenda('+JSON.stringify(v.id)+')"><i class="ti ti-edit"></i></button>'
+      + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteVenda('+JSON.stringify(v.id)+')"><i class="ti ti-trash"></i></button>' : '')
       + '</td></tr>';
   }).join('');
 }
 
-function editVenda(idx) {
-  editVendaId = idx;
-  var v = vendasItems[idx];
+function editVenda(id) {
+  editVendaId = id;
+  var v = vendasItems.find(function(x){ return x.id === id; });
+  if (!v) return;
   document.getElementById('vd-modal-title').textContent = 'Editar venda';
   document.getElementById('vd-data').value = v.data||'';
   document.getElementById('vd-cliente').value = v.cliente||'';
@@ -4202,7 +4299,7 @@ function editVenda(idx) {
   openModal('new-venda');
 }
 
-function saveVenda() {
+async function saveVenda() {
   var item = {
     data: document.getElementById('vd-data').value,
     cliente: document.getElementById('vd-cliente').value.trim(),
@@ -4216,31 +4313,33 @@ function saveVenda() {
     parceiro: document.getElementById('vd-parceiro2').value
   };
   if (!item.cliente) { toast('Informe o cliente'); return; }
-  if (editVendaId !== null) { vendasItems[editVendaId] = item; toast('✅ Venda atualizada!'); }
-  else { vendasItems.unshift(item); toast('✅ Venda registrada! 🏆'); }
+  if (editVendaId !== null) {
+    await sb.from('controle_vendas').update(item).eq('id', editVendaId);
+    toast('✅ Venda atualizada!');
+  } else {
+    await sb.from('controle_vendas').insert([item]);
+    toast('✅ Venda registrada! 🏆');
+  }
   editVendaId = null;
   document.getElementById('vd-modal-title').textContent = 'Registrar venda';
-  localStorage.setItem('crm_vendas', JSON.stringify(vendasItems));
   closeModal('new-venda');
-  renderVendas();
+  await loadVendas();
 }
 
-function deleteVenda(idx) {
+async function deleteVenda(id) {
   if (!confirm('Remover esta venda?')) return;
-  vendasItems.splice(idx, 1);
-  localStorage.setItem('crm_vendas', JSON.stringify(vendasItems));
-  renderVendas();
+  await sb.from('controle_vendas').delete().eq('id', id);
   toast('🗑️ Removido!');
+  await loadVendas();
 }
 
 // ═══ INIT NOVOS MÓDULOS ═══
 var _origLoadAll2 = loadAll;
 loadAll = async function() {
   await _origLoadAll2();
-  renderCatalogo();
+  await loadCatalogo();
   renderScript();
   renderFluxoList();
-  renderVendas();
   renderDisparosAgenda();
 };
 
@@ -5041,8 +5140,18 @@ var DOCS_INICIAIS = [
   {nome:'Contrato de Prestação de Serviços de Intermediação — Proprietário V1', cat:'Contrato', url:'', desc:'Versão anterior do contrato de intermediação com proprietário', autor:'Sistema', data:'17/06/2026'},
   {nome:'Contrato de Administração de Imóveis com Procuração', cat:'Contrato', url:'', desc:'Contrato de administração + procuração — Differi como administradora, com 10% de taxa, garantia de aluguel e cláusulas completas', autor:'Sistema', data:'17/06/2026'},
 ];
-var docsItems = JSON.parse(localStorage.getItem('crm_docs') || 'null');
-if (!docsItems) { docsItems = DOCS_INICIAIS; localStorage.setItem('crm_docs', JSON.stringify(docsItems)); }
+var docsItems = DOCS_INICIAIS.slice();
+async function loadDocsBiblioteca() {
+  try {
+    var r = await sb.from('biblioteca_docs').select('*').order('created_at', {ascending:false});
+    if (r.data && r.data.length) {
+      docsItems = r.data.map(function(d){ return {id:d.id, nome:d.nome, cat:d.cat, url:d.url, desc:d.descricao, autor:d.autor, data:d.data}; });
+    } else {
+      docsItems = DOCS_INICIAIS.slice();
+    }
+  } catch(e) { docsItems = DOCS_INICIAIS.slice(); }
+  renderDocs();
+}
 var linksItems = JSON.parse(localStorage.getItem('crm_links') || JSON.stringify([
   {nome:'CRM Differi', url:'https://crmdifferi.netlify.app', icon:'🏠', cor:'#1a6b4a', desc:'Sistema CRM principal'},
   {nome:'Supabase', url:'https://supabase.com/dashboard', icon:'🗄️', cor:'#3ecf8e', desc:'Banco de dados'},
@@ -5122,28 +5231,28 @@ function renderDocs() {
       +'<td style="font-size:12px;color:var(--muted)">'+(d.data||'—')+'</td>'
       +'<td style="white-space:nowrap">'
       +(d.url?'<a href="'+d.url+'" target="_blank" class="btn btn-xs btn-primary"><i class="ti ti-external-link"></i>Abrir</a>':'')
-      +'<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteDoc('+i+')"><i class="ti ti-trash"></i></button>'
+      +(d.id ? '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteDoc('+JSON.stringify(d.id)+')"><i class="ti ti-trash"></i></button>' : '')
       +'</td></tr>';
   }).join('');
 }
 
-function saveDoc() {
+async function saveDoc() {
   var nome = document.getElementById('doc-nome').value.trim();
   if(!nome){toast('Informe o nome');return;}
-  docsItems.unshift({nome:nome, cat:document.getElementById('doc-cat').value, url:document.getElementById('doc-url').value.trim(), desc:document.getElementById('doc-desc').value.trim(), autor:currentUser?currentUser.nome:'—', data:nowStr()});
-  localStorage.setItem('crm_docs', JSON.stringify(docsItems));
+  var novo = {nome:nome, cat:document.getElementById('doc-cat').value, url:document.getElementById('doc-url').value.trim(), descricao:document.getElementById('doc-desc').value.trim(), autor:currentUser?currentUser.nome:'—', data:nowStr()};
+  var ins = await sb.from('biblioteca_docs').insert([novo]);
+  if (ins.error) { toast('❌ Erro ao salvar: ' + ins.error.message); return; }
   closeModal('new-doc');
   ['doc-nome','doc-url','doc-desc'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   toast('✅ Documento salvo!');
-  renderDocs();
+  await loadDocsBiblioteca();
 }
 
-function deleteDoc(idx) {
+async function deleteDoc(id) {
   if(!confirm('Remover?'))return;
-  docsItems.splice(idx,1);
-  localStorage.setItem('crm_docs',JSON.stringify(docsItems));
-  renderDocs();
+  await sb.from('biblioteca_docs').delete().eq('id', id);
   toast('🗑️ Removido!');
+  await loadDocsBiblioteca();
 }
 
 // LINKS
