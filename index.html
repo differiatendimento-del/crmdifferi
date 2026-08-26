@@ -1945,6 +1945,12 @@ const SB_URL = 'https://lqlhnfvvwsjdykwqmhbn.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxbGhuZnZ2d3NqZHlrd3FtaGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0OTk2NzksImV4cCI6MjA5NTA3NTY3OX0.mZ_Ys1eUGu_VTEZHpRV5ozVlcluCHlemIBqAdJc_wjY';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
+// Segundo projeto: o catálogo público de imóveis (differi-catalogo), usado só
+// para espelhar captações "Captado" — nunca usar aqui a chave secreta/service role.
+const SB_CAT_URL = 'https://rlmtsmqksedpkjezboko.supabase.co';
+const SB_CAT_KEY = 'sb_publishable_C8vI_EAoYaP9Um-Y9o5tig_Wxs1OQDS';
+const sbCatalogoPublico = supabase.createClient(SB_CAT_URL, SB_CAT_KEY);
+
 var currentUser = null;
 var leads = [], filteredLeads = [], imoveis = [], agendamentos = [];
 var currentLeadId = null, currentTab = 'dados', selectedTipo = 'env';
@@ -3458,7 +3464,43 @@ async function sincronizarCatalogoComCaptacao(captId, data) {
     res = await sb.from('catalogo_imoveis').insert([item]);
   }
   if (res.error) { console.error('Erro ao gravar no catálogo:', res.error); return {ok:false, motivo:res.error.message}; }
+  await sincronizarCatalogoPublicoComCaptacao(captId, data);
   return {ok:true, acao: jaExiste ? 'atualizado' : 'criado'};
+}
+
+// Espelha a captação "Captado" no site público differi-catalogo (projeto Supabase separado).
+// Por proteção, NUNCA envia telefone nem nome do proprietário pra cá — é um site público.
+async function sincronizarCatalogoPublicoComCaptacao(captId, data) {
+  try {
+    var existing = await sbCatalogoPublico.from('imoveis').select('id').eq('origem_captacao_id', captId).limit(1);
+    if (existing.error) { console.error('Erro ao consultar catálogo público:', existing.error); return {ok:false, motivo:existing.error.message}; }
+    var jaExiste = existing.data && existing.data.length ? existing.data[0].id : null;
+
+    if (data.status !== 'Captado') {
+      if (jaExiste) await sbCatalogoPublico.from('imoveis').update({ativo:false}).eq('id', jaExiste);
+      return {ok:true, acao:'desativado'};
+    }
+
+    var item = {
+      nome: data.endereco,
+      bairro: data.bairro,
+      cidade: data.cidade || 'João Pessoa',
+      categoria: 'pronto',
+      preco: data.valor || null,
+      entrega: 'Pronto',
+      tipo: data.tipo,
+      ativo: true,
+      origem_captacao_id: captId
+    };
+    var res;
+    if (jaExiste) {
+      res = await sbCatalogoPublico.from('imoveis').update(item).eq('id', jaExiste);
+    } else {
+      res = await sbCatalogoPublico.from('imoveis').insert([item]);
+    }
+    if (res.error) { console.error('Erro ao gravar no catálogo público:', res.error); return {ok:false, motivo:res.error.message}; }
+    return {ok:true, acao: jaExiste ? 'atualizado' : 'criado'};
+  } catch (e) { console.error('Erro inesperado no catálogo público:', e); return {ok:false, motivo:String(e)}; }
 }
 
 async function deleteCapt(id) {
