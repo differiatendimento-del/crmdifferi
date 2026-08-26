@@ -3485,7 +3485,7 @@ async function sincronizarCatalogoPublicoComCaptacao(captId, data) {
       nome: data.endereco,
       bairro: data.bairro,
       cidade: data.cidade || 'João Pessoa',
-      categoria: 'pronto',
+      categoria: data.tipo_operacao === 'ALUGUEL' ? 'aluguel' : 'pronto',
       preco: data.valor || null,
       entrega: 'Pronto',
       tipo: data.tipo,
