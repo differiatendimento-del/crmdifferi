@@ -1569,6 +1569,7 @@ textarea.fc{resize:vertical;min-height:60px}
         <div><label class="lbl">Prev. Entrega</label><input class="fc" id="cat-entrega" placeholder="Ex: Dez/2027"></div>
       </div>
       <div class="fld"><label class="lbl">Lista de disparo</label><input class="fc" id="cat-lista" placeholder="Ex: Flat 01|02|04"></div>
+      <div class="fld"><label class="lbl">Link da pasta da construtora (Google Drive)</label><input class="fc" id="cat-drive" placeholder="Cole aqui o link da pasta com fotos/materiais"></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('new-catalogo')">Cancelar</button>
@@ -4039,7 +4040,8 @@ function renderCatalogo() {
       + '<td style="font-size:11px;color:var(--muted)">' + (item.lista||'—') + '</td>'
       + '<td style="text-align:center">' + leadsBadge + '</td>'
       + '<td style="white-space:nowrap">'
-      + '<button class="btn btn-wa btn-xs" onclick="enviarCatalogoWA(' + JSON.stringify(item.id) + ')" title="Enviar no WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>'
+      + (item.link_drive ? '<button class="btn btn-xs" onclick="window.open(' + qa(item.link_drive) + ',\'_blank\')" title="Abrir pasta da construtora no Drive"><i class="ti ti-brand-google-drive"></i></button>' : '')
+      + '<button class="btn btn-wa btn-xs" style="margin-left:4px" onclick="enviarCatalogoWA(' + JSON.stringify(item.id) + ')" title="Enviar no WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>'
       + '<button class="btn btn-xs" style="margin-left:4px" onclick="editCatalogo(' + JSON.stringify(item.id) + ')"><i class="ti ti-edit"></i></button>'
       + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteCatalogo(' + JSON.stringify(item.id) + ')"><i class="ti ti-trash"></i></button>'
       + '</td></tr>';
@@ -4059,6 +4061,7 @@ function renderCatalogo() {
         + '<div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:4px">' + (item.valor||'—') + '</div>'
         + '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">' + (item.status||'—') + (item.entrega ? ' · ' + item.entrega : '') + '</div>'
         + '<div style="display:flex;gap:6px">'
+        + (item.link_drive ? '<button class="btn btn-xs" onclick="window.open(' + qa(item.link_drive) + ',\'_blank\')" title="Abrir pasta no Drive"><i class="ti ti-brand-google-drive"></i></button>' : '')
         + '<button class="btn btn-wa btn-xs" style="flex:1" onclick="enviarCatalogoWA(' + JSON.stringify(item.id) + ')"><i class="ti ti-brand-whatsapp"></i>Enviar</button>'
         + '<button class="btn btn-xs" onclick="editCatalogo(' + JSON.stringify(item.id) + ')"><i class="ti ti-edit"></i></button>'
         + '<button class="btn btn-xs" style="color:var(--danger)" onclick="deleteCatalogo(' + JSON.stringify(item.id) + ')"><i class="ti ti-trash"></i></button>'
@@ -4088,6 +4091,7 @@ function editCatalogo(id) {
   document.getElementById('cat-status').value = item.status||'🚀 Lançamento';
   document.getElementById('cat-entrega').value = item.entrega||'';
   document.getElementById('cat-lista').value = item.lista||'';
+  document.getElementById('cat-drive').value = item.link_drive||'';
   openModal('new-catalogo');
 }
 
@@ -4099,7 +4103,8 @@ async function saveCatalogo() {
     tipo: document.getElementById('cat-tipo').value,
     status: document.getElementById('cat-status').value,
     entrega: document.getElementById('cat-entrega').value.trim(),
-    lista: document.getElementById('cat-lista').value.trim()
+    lista: document.getElementById('cat-lista').value.trim(),
+    link_drive: document.getElementById('cat-drive').value.trim()
   };
   if (!item.nome) { toast('Informe o nome'); return; }
   if (editCatId !== null) {
