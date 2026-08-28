@@ -261,6 +261,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="nav-item" onclick="showPanel('clientes',this)"><i class="ti ti-trophy" style="color:#f39c12"></i>Clientes Vendidos</div>
     <div class="nav-item" onclick="showPanel('telemarketing',this)"><i class="ti ti-phone-call"></i>Telemarketing</div>
     <div class="nav-item" onclick="showPanel('recontato',this)"><i class="ti ti-phone-outgoing"></i>Programação de Recontato</div>
+    <div class="nav-item" onclick="showPanel('fantasmas',this)"><i class="ti ti-ghost"></i>Fantasmas<span class="nav-badge" id="badge-fantasmas">0</span></div>
     <div class="nav-item" onclick="showPanel('captacoes',this)"><i class="ti ti-home-search"></i>Captações</div>
     <div class="nav-item" onclick="showPanel('parcerias',this)"><i class="ti ti-users-group"></i>Parcerias</div>
     <div class="nav-item" onclick="showPanel('permutas',this)"><i class="ti ti-arrows-exchange"></i>Permutas</div>
@@ -392,6 +393,19 @@ textarea.fc{resize:vertical;min-height:60px}
         <div style="font-size:12px;color:var(--muted)">Leads prontos para recontato, do mais parado pro mais recente</div>
       </div>
       <div class="card"><div id="recontato-list"></div></div>
+    </div>
+
+    <!-- FANTASMAS -->
+    <div class="panel" id="panel-fantasmas">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;gap:7px">
+          <div class="chip on" onclick="setFantasmaF('prontos',this)">👻 Prontos pra recontato</div>
+          <div class="chip" onclick="setFantasmaF('aguardando',this)">⏳ Aguardando os 30 dias</div>
+          <div class="chip" onclick="setFantasmaF('todos',this)">Todos</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Contatos que já passaram pelo Telemarketing e vão sendo recontatados a cada 30 dias</div>
+      </div>
+      <div class="card"><div id="fantasmas-list"></div></div>
     </div>
 
     <!-- RELATÓRIOS -->
@@ -1074,11 +1088,12 @@ textarea.fc{resize:vertical;min-height:60px}
         <div class="metric-card"><div class="metric-label">Convertidos</div><div class="metric-val" style="color:var(--success)" id="tele-m-conv">—</div><div class="metric-sub">virou lead no CRM</div></div>
       </div>
       <!-- BARRA DE LIBERAÇÃO EM MASSA (admin) -->
-      <div id="tele-liberar-bar" style="display:none;align-items:center;gap:10px;background:rgba(26,107,74,.08);border:1px solid rgba(26,107,74,.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px">
+      <div id="tele-liberar-bar" style="display:none;align-items:center;gap:10px;background:rgba(26,107,74,.08);border:1px solid rgba(26,107,74,.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;flex-wrap:wrap">
         <span style="font-size:13px;font-weight:600" id="tele-selecionados-count">0 selecionados</span>
         <span style="font-size:12px;color:var(--muted)">Liberar para:</span>
         <select class="fc" id="tele-liberar-corretor" style="max-width:220px"></select>
         <button class="btn btn-primary btn-sm" onclick="liberarSelecionadosParaCorretor()"><i class="ti ti-send"></i>Liberar para recontato</button>
+        <button class="btn btn-sm" style="color:#7f8c8d;border-color:#7f8c8d" onclick="marcarSelecionadosComoFantasma()"><i class="ti ti-ghost"></i>Marcar como Fantasma</button>
         <button class="btn btn-sm" onclick="limparSelecaoTele()" style="margin-left:auto">Cancelar seleção</button>
       </div>
       <div class="tbl-wrap">
@@ -1721,6 +1736,7 @@ textarea.fc{resize:vertical;min-height:60px}
           <div class="tipo-btn" data-res="Sem interesse" onclick="selResTele(this)" style="border-color:#95a5a622"><span style="color:#95a5a6;font-weight:700">AT</span> Sem interesse</div>
           <div class="tipo-btn" data-res="Interessado — agendar" onclick="selResTele(this)" style="border-color:#2980b922"><span style="color:#2980b9;font-weight:700">AG</span> Agendou visita</div>
           <div class="tipo-btn" data-res="Convertido — virou lead" onclick="selResTele(this)" style="border-color:#27ae6022"><span style="color:#27ae60;font-weight:700">CV</span> Convertido — virou lead</div>
+          <div class="tipo-btn" data-res="Fantasma — recontato 30d" onclick="selResTele(this)" style="border-color:#7f8c8d22;grid-column:1 / -1"><span style="color:#7f8c8d;font-weight:700">👻</span> Fantasma — recontato em 30 dias</div>
         </div>
         <input type="hidden" id="atender-resultado" value="Não atendeu">
       </div>
@@ -2144,7 +2160,7 @@ async function loadAll(){
   if (typeof loadDocsBiblioteca === 'function') tasks.push(loadDocsBiblioteca());
   if (typeof loadVendas === 'function') tasks.push(loadVendas());
   await Promise.all(tasks);
-  renderDash();renderKanban();renderAg();renderImoveis();renderEquipe();renderAlertas();renderRel();renderIndicadores();renderRecontato();
+  renderDash();renderKanban();renderAg();renderImoveis();renderEquipe();renderAlertas();renderRel();renderIndicadores();renderRecontato();renderFantasmas();
   // Update all corretor selects and chips after everything is loaded
   if (typeof updateCorretorSelects === 'function') updateCorretorSelects();
   if (typeof renderCorretorChips === 'function') renderCorretorChips();
@@ -2197,7 +2213,7 @@ async function saveLead(andWA){
   document.getElementById('f-empr').value='';
   document.querySelectorAll('#empr-env-wrap input').forEach(function(cb){cb.checked=false;});
   document.getElementById('dup-alert').style.display='none';
-  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();
+  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();renderFantasmas();
   var motivoEnvioNovo = (typeof motivoParaTelemarketing === 'function') ? motivoParaTelemarketing(etiq, '', document.getElementById('f-sg').value, '') : null;
   if (motivoEnvioNovo && typeof autoEnviarTelemarketing === 'function') {
     await autoEnviarTelemarketing(nome, tel, perfil, document.getElementById('f-corretor').value, motivoEnvioNovo);
@@ -2213,7 +2229,7 @@ async function deleteLead(id){
   if(!confirm('Remover este lead?'))return;
   await sb.from('leads').delete().eq('id',id);
   toast('Removido');closeModal('detail');
-  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();
+  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();renderFantasmas();
 }
 
 function addNovoAnuncio(fid){
@@ -2302,7 +2318,7 @@ function showPanel(id,el){
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   document.getElementById('panel-'+id).classList.add('active');
   if(el)el.classList.add('active');
-  var titles={dashboard:'Dashboard',leads:'Leads',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
+  var titles={dashboard:'Dashboard',leads:'Leads',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',fantasmas:'Fantasmas',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
   document.getElementById('page-title').textContent=titles[id]||id;
   closeMobile();
 }
@@ -2526,7 +2542,7 @@ async function addHist(id){
   if(r.error){toast('Erro: '+r.error.message);return;}
   selectedCod=''; selectedTipo='env';
   toast('✅ Atendimento registrado!');
-  await loadLeads();renderDash();renderKanban();renderAlertas();renderRecontato();
+  await loadLeads();renderDash();renderKanban();renderAlertas();renderRecontato();renderFantasmas();
   var updated=leads.find(function(x){return String(x.id)===String(id);});
   if(updated)renderTab(updated,'hist');
 }
@@ -2552,7 +2568,7 @@ async function saveEdit(id){
   var r=await sb.from('leads').update(upd).eq('id',id);
   if(r.error){toast('Erro: '+r.error.message);return;}
   toast('Atualizado!');
-  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();
+  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();renderFantasmas();
   var updated=leads.find(function(x){return String(x.id)===String(id);});
   if(updated){document.getElementById('d-nome').textContent=updated.nome;renderTab(updated,'dados');document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});document.querySelectorAll('.tab-btn')[0].classList.add('active');}
 }
@@ -2841,7 +2857,7 @@ function setRecontatoF(f, el) {
   recontatoFiltro = f;
   document.querySelectorAll('#panel-recontato .chip').forEach(function(c){ c.classList.remove('on'); });
   if (el) el.classList.add('on');
-  renderRecontato();
+  renderRecontato();renderFantasmas();
 }
 function renderRecontato() {
   var el = document.getElementById('recontato-list');
@@ -2864,6 +2880,65 @@ function renderRecontato() {
       + '<button class="btn btn-wa btn-xs" style="margin-left:7px" onclick="event.stopPropagation();openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
       + '</div>';
   }).join('') : '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum lead para recontato no momento. ✅</div>';
+}
+
+// ═══ FANTASMAS (pós-Telemarketing, recontato a cada 30 dias) ═══
+var fantasmaFiltro = 'prontos';
+function setFantasmaF(f, el) {
+  fantasmaFiltro = f;
+  document.querySelectorAll('#panel-fantasmas .chip').forEach(function(c){ c.classList.remove('on'); });
+  if (el) el.classList.add('on');
+  renderFantasmas();
+}
+function diasParaContato(l) {
+  if (!l.proximo_contato) return null;
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var alvo = new Date(l.proximo_contato + 'T00:00:00');
+  return Math.round((alvo - hoje) / 86400000); // negativo/0 = pronto
+}
+function renderFantasmas() {
+  var el = document.getElementById('fantasmas-list');
+  if (!el) return;
+  var isAdmin = !currentUser || (currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing');
+  var todos = leads.filter(function(l) { return (l.status||'').toUpperCase() === 'FANTASMA'; });
+  var badge = document.getElementById('badge-fantasmas');
+  var prontosCount = todos.filter(function(l){ var d = diasParaContato(l); return d === null || d <= 0; }).length;
+  if (badge) badge.textContent = prontosCount;
+
+  var lista = todos.filter(function(l) {
+    var d = diasParaContato(l);
+    var pronto = (d === null || d <= 0);
+    if (fantasmaFiltro === 'prontos') return pronto;
+    if (fantasmaFiltro === 'aguardando') return !pronto;
+    return true;
+  });
+  lista.sort(function(a,b){ var da = diasParaContato(a), db = diasParaContato(b); return (da===null?-999:da) - (db===null?-999:db); });
+
+  if (!lista.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum contato nessa categoria. ✅</div>'; return; }
+  el.innerHTML = lista.map(function(l) {
+    var d = diasParaContato(l);
+    var pronto = (d === null || d <= 0);
+    var badgeHtml = pronto
+      ? '<span class="pill" style="background:rgba(39,174,96,.15);color:#1e8449">👻 Pronto pra recontato</span>'
+      : '<span class="pill" style="background:rgba(149,165,166,.15);color:#7f8c8d">⏳ Faltam ' + d + ' dia' + (d===1?'':'s') + '</span>';
+    return '<div class="agenda-item" style="cursor:pointer" onclick="openDetail('+JSON.stringify(l.id)+')">'
+      + '<div class="avatar av-sm">'+ini(l.nome)+'</div>'
+      + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+l.nome+'</div>'
+      + '<div style="font-size:11px;color:var(--muted)">'+(l.interesse||l.empreendimento||'—')+' · '+(l.telefone||'—')+(isAdmin?' · '+(l.corretor||'—'):'')+'</div></div>'
+      + badgeHtml
+      + '<button class="btn btn-wa btn-xs" style="margin-left:7px" onclick="event.stopPropagation();openWA('+qa(l.telefone)+','+qa(l.nome)+',\'\')"><i class="ti ti-brand-whatsapp"></i></button>'
+      + '<button class="btn btn-xs" style="margin-left:4px" title="Renovar +30 dias" onclick="event.stopPropagation();renovarFantasma('+JSON.stringify(l.id)+')"><i class="ti ti-refresh"></i></button>'
+      + '</div>';
+  }).join('');
+}
+async function renovarFantasma(id) {
+  if (!confirm('Tentou recontatar e ainda não deu certo? Isso agenda mais 30 dias e mantém como Fantasma.')) return;
+  var proximo = new Date(); proximo.setDate(proximo.getDate() + 30);
+  var proximoStr = proximo.toISOString().split('T')[0];
+  await sb.from('leads').update({proximo_contato: proximoStr}).eq('id', id);
+  toast('🔁 Renovado! Próximo contato: ' + proximo.toLocaleDateString('pt-BR'));
+  await loadLeads();
+  renderFantasmas();
 }
 
 // IMÓVEIS
@@ -3125,6 +3200,31 @@ async function liberarSelecionadosParaCorretor() {
   await loadTele();
 }
 
+async function marcarSelecionadosComoFantasma() {
+  if (!teleSelecionados.length) { toast('Selecione ao menos um contato'); return; }
+  if (!confirm('Marcar ' + teleSelecionados.length + ' contato(s) como Fantasma? Eles saem do Telemarketing, viram Leads e voltam a ser recontatados em 30 dias.')) return;
+  var proximo = new Date(); proximo.setDate(proximo.getDate() + 30);
+  var proximoStr = proximo.toISOString().split('T')[0];
+  var selecionados = teleContatos.filter(function(t){ return teleSelecionados.indexOf(t.id) !== -1; });
+  var novosLeads = selecionados.map(function(t) {
+    return {
+      nome: t.nome, telefone: t.telefone, interesse: t.interesse,
+      origem: 'TELEMARKETING', status: 'FANTASMA', status_geral: 'MAILING',
+      corretor: t.atendente || currentUser.nome,
+      proximo_contato: proximoStr,
+      historico: JSON.stringify([{tipo:'lig', texto:'Veio do Telemarketing sem prosseguir (marcação em massa). Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome}]),
+      criado_por: currentUser.nome, propostas: '[]'
+    };
+  });
+  if (novosLeads.length) await sb.from('leads').insert(novosLeads);
+  await sb.from('telemarketing').delete().in('id', teleSelecionados);
+  toast('👻 ' + selecionados.length + ' contato(s) marcados como Fantasma — recontato em ' + proximo.toLocaleDateString('pt-BR'));
+  limparSelecaoTele();
+  await loadTele();
+  if (typeof loadLeads === 'function') { await loadLeads(); }
+  if (typeof renderFantasmas === 'function') { renderFantasmas(); }
+}
+
 function openTele(id) {
   currentTeleId = id;
   var t = teleContatos.find(function(x){return x.id===id;});
@@ -3182,12 +3282,33 @@ async function registrarAtendimento() {
     status: resultado === 'Convertido — virou lead' ? 'Convertido' :
              resultado === 'Interessado — agendar' ? 'Em contato' :
              resultado === 'Sem interesse' ? 'Sem interesse' :
+             resultado === 'Fantasma — recontato 30d' ? 'Fantasma' :
              resultado === 'Em contato' ? 'Em contato' : 'Não atendeu',
     tentativas: (t.tentativas||0) + 1,
     ultimo_contato: nowStr(),
     resultado: resultado,
     observacoes: obs || t.observacoes
   };
+  if (resultado === 'Fantasma — recontato 30d') {
+    var proximo = new Date(); proximo.setDate(proximo.getDate() + 30);
+    var proximoStr = proximo.toISOString().split('T')[0];
+    var leadFantasma = {
+      nome: upd.nome, telefone: t.telefone, interesse: upd.interesse,
+      origem: 'TELEMARKETING', status: 'FANTASMA', status_geral: 'MAILING',
+      corretor: upd.atendente || currentUser.nome,
+      proximo_contato: proximoStr,
+      historico: JSON.stringify([{tipo:'lig', texto:'Veio do Telemarketing sem prosseguir. ' + (obs||'') + ' Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome}]),
+      criado_por: currentUser.nome, propostas: '[]'
+    };
+    await sb.from('leads').insert([leadFantasma]);
+    await sb.from('telemarketing').delete().eq('id', currentTeleId);
+    toast('👻 Marcado como Fantasma — recontato programado pra ' + proximo.toLocaleDateString('pt-BR'));
+    closeModal('atender-tele');
+    await loadTele();
+    if (typeof loadLeads === 'function') { await loadLeads(); }
+    if (typeof renderFantasmas === 'function') { await renderFantasmas(); }
+    return;
+  }
   await sb.from('telemarketing').update(upd).eq('id', currentTeleId);
   // Se convertido, criar lead automaticamente
   if (resultado === 'Convertido — virou lead') {
@@ -5802,7 +5923,7 @@ showPanel = function(id, el) {
    — Bloco 100% adicional. Nenhuma função/elemento existente foi
    removido ou alterado em seu comportamento original. ════════════ */
 
-var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing','documentacao'];
+var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing','documentacao','fantasmas'];
 var ALLOWED_PANELS_TELEMARKETING = ['leads','agenda','script','catalogo','textos','recontato','telemarketing'];
 
 /* ════════════ CHECKLIST DE DOCUMENTAÇÃO (admin cria/edita, corretor só visualiza) ════════════ */
