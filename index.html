@@ -1079,6 +1079,9 @@ textarea.fc{resize:vertical;min-height:60px}
           <i class="ti ti-search"></i>
           <input type="text" placeholder="Buscar por nome ou telefone..." id="tele-search" oninput="renderTele()" style="width:100%;padding:8px 11px 8px 33px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
         </div>
+        <select class="filter-sel" id="tele-filtro-atendente" onchange="renderTele()">
+          <option value="">Todos os atendentes</option>
+        </select>
       </div>
       <!-- MÉTRICAS TELE -->
       <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
@@ -2738,6 +2741,9 @@ function renderEquipe(){
       var q=meus.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
       var sr=meus.filter(function(l){return getTmp(l).days>3;}).length;
       var vd=meus.filter(function(l){return (l.status_geral||'').toUpperCase()==='VENDIDO';}).length;
+      var meusTele=(typeof teleContatos!=='undefined'?teleContatos:[]).filter(function(t){return (t.atendente||'').trim()===u.nome;});
+      var ligacoes=meusTele.reduce(function(s,t){return s+(t.tentativas||0);},0);
+      var convTele=meusTele.filter(function(t){return t.status==='Convertido';}).length;
       var metaL=metas[u.nome+'_leads']||30,metaQ=metas[u.nome+'_visitas']||10;
       var pL=Math.min(100,Math.round(meus.length/metaL*100));
       var pQ=Math.min(100,Math.round(q/metaQ*100));
@@ -2745,11 +2751,15 @@ function renderEquipe(){
         +'<div style="display:flex;align-items:center;gap:11px;margin-bottom:13px">'
         +'<div class="avatar" style="width:44px;height:44px;font-size:15px;background:'+u.cor+'22;color:'+u.cor+'">'+u.av+'</div>'
         +'<div><div style="font-size:15px;font-weight:600">'+u.nome+'</div><div style="font-size:12px;color:var(--muted)">'+u.role+'</div></div></div>'
-        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;margin-bottom:13px">'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;margin-bottom:7px">'
         +'<div style="text-align:center;padding:8px;background:var(--surface);border-radius:var(--radius)"><div style="font-size:20px;font-weight:600">'+meus.length+'</div><div style="font-size:10px;color:var(--muted)">LEADS</div></div>'
         +'<div style="text-align:center;padding:8px;background:rgba(231,76,60,.06);border-radius:var(--radius)"><div style="font-size:20px;font-weight:600;color:var(--danger)">'+q+'</div><div style="font-size:10px;color:var(--muted)">QUENTES</div></div>'
         +'<div style="text-align:center;padding:8px;background:rgba(243,156,18,.06);border-radius:var(--radius)"><div style="font-size:20px;font-weight:600;color:var(--warn)">'+sr+'</div><div style="font-size:10px;color:var(--muted)">+3 DIAS</div></div>'
         +'<div style="text-align:center;padding:8px;background:rgba(26,107,74,.06);border-radius:var(--radius)"><div style="font-size:20px;font-weight:600;color:var(--accent)">'+vd+'</div><div style="font-size:10px;color:var(--muted)">VENDAS</div></div>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:13px">'
+        +'<div style="text-align:center;padding:8px;background:rgba(41,128,185,.06);border-radius:var(--radius)"><div style="font-size:20px;font-weight:600;color:#2980b9">'+ligacoes+'</div><div style="font-size:10px;color:var(--muted)">LIGAÇÕES (TELEMKT)</div></div>'
+        +'<div style="text-align:center;padding:8px;background:rgba(39,174,96,.06);border-radius:var(--radius)"><div style="font-size:20px;font-weight:600;color:#27ae60">'+convTele+'</div><div style="font-size:10px;color:var(--muted)">CONVERTIDOS (TELEMKT)</div></div>'
         +'</div>'
         +'<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>Meta leads: '+meus.length+'/'+metaL+'</span><span style="font-weight:600">'+pL+'%</span></div><div class="meta-bar"><div class="meta-fill '+(pL<50?'danger':pL<80?'warn':'')+'" style="width:'+pL+'%"></div></div></div>'
         +'<div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>Meta quentes: '+q+'/'+metaQ+'</span><span style="font-weight:600">'+pQ+'%</span></div><div class="meta-bar"><div class="meta-fill '+(pQ<50?'danger':pQ<80?'warn':'')+'" style="width:'+pQ+'%"></div></div></div>'
@@ -3111,6 +3121,20 @@ function renderTele() {
   var interesseF = teleInteresseFilter;
   if (interesseF) {
     lista = lista.filter(function(t){ return (t.interesse||'').trim() === interesseF; });
+  }
+  // Popula e aplica o filtro de atendente
+  var selAtendente = document.getElementById('tele-filtro-atendente');
+  if (selAtendente) {
+    var atendentesUnicos = Array.from(new Set(teleContatos.map(function(t){ return (t.atendente||'').trim(); }).filter(Boolean))).sort();
+    var valorAtual = selAtendente.value;
+    selAtendente.innerHTML = '<option value="">Todos os atendentes</option>' + atendentesUnicos.map(function(a){
+      var count = teleContatos.filter(function(t){ return (t.atendente||'').trim() === a; }).length;
+      return '<option value="' + a.replace(/"/g,'&quot;') + '">' + a + ' (' + count + ')</option>';
+    }).join('');
+    selAtendente.value = valorAtual;
+    if (selAtendente.value) {
+      lista = lista.filter(function(t){ return (t.atendente||'').trim() === selAtendente.value; });
+    }
   }
   if (teleSort.col) {
     var col = teleSort.col, dir = teleSort.dir === 'asc' ? 1 : -1;
