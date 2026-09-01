@@ -447,6 +447,15 @@ textarea.fc{resize:vertical;min-height:60px}
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Quem tem login de Telemarketing/SDR tem o mesmo acesso restrito dos corretores (Leads, Captações, Agenda, Script, Catálogo), além da aba de Telemarketing.</div>
         <div id="telemkt-login-list"></div>
       </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="sec-hdr">
+          <div class="sec-title"><i class="ti ti-calendar-search" style="margin-right:6px;color:var(--accent)"></i>Login do(a) Captador(a) (CPF / Senha)</div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('new-captador')"><i class="ti ti-plus"></i>Novo Captador(a)</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Quem tem login de Captador(a) só vê a aba "Visitas de Captação" — nenhuma outra tela do CRM.</div>
+        <div id="captador-login-list"></div>
+      </div>
     </div>
 
     <!-- DOCUMENTAÇÃO -->
@@ -1995,6 +2004,22 @@ textarea.fc{resize:vertical;min-height:60px}
   </div>
 </div>
 
+<!-- MODAL NOVO CAPTADOR(A) (LOGIN) -->
+<div class="modal-overlay" id="modal-new-captador" style="display:none" onclick="if(event.target===this)closeModal('new-captador')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hdr"><div class="modal-title">Novo Captador(a) — Login</div><button class="modal-close" onclick="closeModal('new-captador')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div class="fld"><label class="lbl">Nome completo</label><input class="fc" id="ncap-nome" placeholder="Nome do(a) captador(a)"></div>
+      <div class="fld"><label class="lbl">CPF</label><input class="fc" id="ncap-cpf" placeholder="000.000.000-00" maxlength="14" oninput="formatCPFInput(this)"></div>
+      <div class="fld"><label class="lbl">Senha de acesso</label><input class="fc" id="ncap-senha" type="text" placeholder="Defina uma senha"></div>
+      <div style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 11px">Ela(e) usará este CPF e senha para entrar no CRM clicando em "Sou corretor — entrar com CPF" na tela de login. O acesso é restrito só à aba "Visitas de Captação".</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('new-captador')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCaptadorLogin()"><i class="ti ti-check"></i>Cadastrar</button>
+    </div>
+  </div>
+</div>
 <!-- MODAL NOVO TELEMARKETING/SDR (LOGIN) -->
 <div class="modal-overlay" id="modal-new-telemkt" style="display:none" onclick="if(event.target===this)closeModal('new-telemkt')">
   <div class="modal" style="max-width:420px">
@@ -2055,8 +2080,9 @@ function getAllEquipe() {
     if (c.ativo === false) return; // corretor desativado não aparece nos filtros
     if (nomesExistentes.indexOf(c.nome) !== -1) return; // já está em USERS, evita duplicar
     var iniciais = c.nome.trim().split(/\s+/).slice(0, 2).map(function(p){ return p[0].toUpperCase(); }).join('');
-    var ehTelemkt = c.tipo === 'telemarketing';
-    lista.push({nome: c.nome, role: ehTelemkt ? 'Telemarketing/SDR' : 'Corretor(a)', av: iniciais || '??', cor: CORES_EQUIPE_DINAMICA[idx % CORES_EQUIPE_DINAMICA.length], tipo: ehTelemkt ? 'telemarketing' : 'corretor'});
+    var roleLabel = c.tipo === 'telemarketing' ? 'Telemarketing/SDR' : c.tipo === 'captador' ? 'Captador(a)' : 'Corretor(a)';
+    var tipoFinal = c.tipo === 'telemarketing' ? 'telemarketing' : c.tipo === 'captador' ? 'captador' : 'corretor';
+    lista.push({nome: c.nome, role: roleLabel, av: iniciais || '??', cor: CORES_EQUIPE_DINAMICA[idx % CORES_EQUIPE_DINAMICA.length], tipo: tipoFinal});
     nomesExistentes.push(c.nome);
   });
   return lista;
@@ -6120,6 +6146,7 @@ showPanel = function(id, el) {
 
 var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing','documentacao','fantasmas','visitascapt'];
 var ALLOWED_PANELS_TELEMARKETING = ['leads','agenda','script','catalogo','textos','recontato','telemarketing'];
+var ALLOWED_PANELS_CAPTADOR = ['visitascapt'];
 
 /* ════════════ CHECKLIST DE DOCUMENTAÇÃO (admin cria/edita, corretor só visualiza) ════════════ */
 var DOC_TEMPLATES = {
@@ -6414,10 +6441,11 @@ async function doLoginCorretor() {
     }
     var corretor = r.data;
     var ehTelemkt = corretor.tipo === 'telemarketing';
+    var ehCaptador = corretor.tipo === 'captador';
     currentUser = {
       nome: corretor.nome,
-      role: ehTelemkt ? 'Telemarketing / SDR' : 'Corretor',
-      tipo: ehTelemkt ? 'telemarketing' : 'corretor',
+      role: ehTelemkt ? 'Telemarketing / SDR' : ehCaptador ? 'Captador(a)' : 'Corretor',
+      tipo: ehTelemkt ? 'telemarketing' : ehCaptador ? 'captador' : 'corretor',
       av: ini(corretor.nome),
       cor: '#16697A',
       cpf: corretor.cpf
@@ -6432,10 +6460,11 @@ async function doLoginCorretor() {
     document.getElementById('f-data-contato').value = todayStr();
     await initApp();
     applyRolePermissions();
-    var leadsNav = Array.prototype.find.call(document.querySelectorAll('.nav-item'), function(n){
-      return (n.getAttribute('onclick')||'').indexOf("showPanel('leads'") === 0;
+    var painelInicial = currentUser.tipo === 'captador' ? 'visitascapt' : 'leads';
+    var navInicial = Array.prototype.find.call(document.querySelectorAll('.nav-item'), function(n){
+      return (n.getAttribute('onclick')||'').indexOf("showPanel('" + painelInicial + "'") === 0;
     });
-    showPanel('leads', leadsNav);
+    showPanel(painelInicial, navInicial);
   } catch(e) {
     toast('❌ Erro ao entrar: ' + (e.message||e));
   }
@@ -6445,8 +6474,10 @@ async function doLoginCorretor() {
 // Aplica restrições de menu conforme o perfil do usuário logado (admin x corretor)
 function applyRolePermissions() {
   if (!currentUser) return;
-  var isAdmin = currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing';
-  var allowed = currentUser.tipo === 'telemarketing' ? ALLOWED_PANELS_TELEMARKETING : ALLOWED_PANELS_CORRETOR;
+  var isAdmin = currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing' && currentUser.tipo !== 'captador';
+  var allowed = currentUser.tipo === 'telemarketing' ? ALLOWED_PANELS_TELEMARKETING
+    : currentUser.tipo === 'captador' ? ALLOWED_PANELS_CAPTADOR
+    : ALLOWED_PANELS_CORRETOR;
   var navItems = document.querySelectorAll('.nav-item');
   navItems.forEach(function(item) {
     if (isAdmin) { item.style.display = ''; return; }
@@ -6536,6 +6567,7 @@ async function loadCorretoresLogin() {
   } catch(e) { corretoresLogin = []; }
   renderCorretoresLogin();
   renderTelemktLogin();
+  renderCaptadorLogin();
   // Atualiza todas as áreas que dependem da lista de corretores
   if (typeof renderEquipe === 'function') renderEquipe();
   if (typeof renderIndicadores === 'function') renderIndicadores();
@@ -6546,7 +6578,7 @@ async function loadCorretoresLogin() {
 function renderCorretoresLogin() {
   var el = document.getElementById('corretores-login-list');
   if (!el) return;
-  var lista = corretoresLogin.filter(function(c){ return c.tipo !== 'telemarketing'; });
+  var lista = corretoresLogin.filter(function(c){ return c.tipo !== 'telemarketing' && c.tipo !== 'captador'; });
   if (!lista.length) {
     el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum corretor cadastrado ainda.</div>';
     return;
@@ -6613,6 +6645,44 @@ async function saveTelemktLogin() {
     toast('✅ Telemarketing/SDR cadastrado!');
     closeModal('new-telemkt');
     ['nt-nome','nt-cpf','nt-senha'].forEach(function(id){ document.getElementById(id).value=''; });
+    await loadCorretoresLogin();
+  } catch(e) {
+    toast('❌ Erro: ' + (e.message||'CPF já pode estar cadastrado'));
+  }
+}
+
+function renderCaptadorLogin() {
+  var el = document.getElementById('captador-login-list');
+  if (!el) return;
+  var lista = corretoresLogin.filter(function(c){ return c.tipo === 'captador'; });
+  if (!lista.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum Captador(a) cadastrado ainda.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>CPF</th><th>Status</th><th>Ação</th></tr></thead><tbody>'
+    + lista.map(function(c) {
+        var ativo = c.ativo !== false;
+        return '<tr><td><strong>' + (c.nome||'—') + '</strong></td>'
+          + '<td style="font-size:12px;color:var(--muted)">' + (c.cpf||'—') + '</td>'
+          + '<td><span class="pill ' + (ativo?'pill-ativo':'pill-perdido') + '">' + (ativo?'Ativo':'Inativo') + '</span></td>'
+          + '<td style="white-space:nowrap">'
+          + '<button class="btn btn-xs" onclick="toggleCorretorAtivo(' + c.id + ',' + (!ativo) + ')">' + (ativo?'<i class="ti ti-lock"></i>Desativar':'<i class="ti ti-lock-open"></i>Ativar') + '</button>'
+          + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteCorretorLogin(' + c.id + ')"><i class="ti ti-trash"></i></button>'
+          + '</td></tr>';
+      }).join('')
+    + '</tbody></table></div>';
+}
+
+async function saveCaptadorLogin() {
+  var nome = document.getElementById('ncap-nome').value.trim();
+  var cpf = document.getElementById('ncap-cpf').value.trim();
+  var senha = document.getElementById('ncap-senha').value.trim();
+  if (!nome || !cpf || !senha) { toast('Preencha nome, CPF e senha'); return; }
+  try {
+    await sb.from('corretores_login').insert([{nome:nome, cpf:cpf, senha:senha, ativo:true, tipo:'captador'}]);
+    toast('✅ Captador(a) cadastrado!');
+    closeModal('new-captador');
+    ['ncap-nome','ncap-cpf','ncap-senha'].forEach(function(id){ document.getElementById(id).value=''; });
     await loadCorretoresLogin();
   } catch(e) {
     toast('❌ Erro: ' + (e.message||'CPF já pode estar cadastrado'));
