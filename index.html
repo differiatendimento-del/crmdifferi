@@ -263,6 +263,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="nav-item" onclick="showPanel('recontato',this)"><i class="ti ti-phone-outgoing"></i>Programação de Recontato</div>
     <div class="nav-item" onclick="showPanel('fantasmas',this)"><i class="ti ti-ghost"></i>Fantasmas<span class="nav-badge" id="badge-fantasmas">0</span></div>
     <div class="nav-item" onclick="showPanel('captacoes',this)"><i class="ti ti-home-search"></i>Captações</div>
+    <div class="nav-item" onclick="showPanel('visitascapt',this)"><i class="ti ti-calendar-search"></i>Visitas de Captação</div>
     <div class="nav-item" onclick="showPanel('parcerias',this)"><i class="ti ti-users-group"></i>Parcerias</div>
     <div class="nav-item" onclick="showPanel('permutas',this)"><i class="ti ti-arrows-exchange"></i>Permutas</div>
     <div class="nav-item" onclick="showPanel('disparos',this)"><i class="ti ti-send"></i>Disparos</div>
@@ -1152,6 +1153,59 @@ textarea.fc{resize:vertical;min-height:60px}
         </table>
       </div>
     </div>
+
+    <!-- VISITAS DE CAPTAÇÃO (agendamento de captadora de aluguel) -->
+    <div class="panel" id="panel-visitascapt">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;gap:7px">
+          <div class="chip on" onclick="setVisitaCaptF('todos',this)">Todos</div>
+          <div class="chip" onclick="setVisitaCaptF('pendentes',this)">📅 Pendentes</div>
+          <div class="chip" onclick="setVisitaCaptF('feitas',this)">✅ Visita feita</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="abrirNovaVisitaCapt()"><i class="ti ti-plus"></i>Novo agendamento</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Data/Hora</th><th>Prédio</th><th>Nº/Apto</th><th>Corretor</th><th>Telefone</th><th>Especificações</th><th>Visita feita</th><th>Ação</th></tr></thead>
+          <tbody id="visitascapt-body"><tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+<!-- MODAL NOVO AGENDAMENTO DE VISITA DE CAPTAÇÃO -->
+<div class="modal-overlay" id="modal-new-visitacapt" style="display:none" onclick="if(event.target===this)closeModal('new-visitacapt')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-hdr"><div class="modal-title" id="visitacapt-modal-title">Novo agendamento</div><button class="modal-close" onclick="closeModal('new-visitacapt')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div><label class="lbl">Nome do prédio</label><input class="fc" id="vc-predio-nome" placeholder="Ex: Edifício Beira Mar"></div>
+        <div><label class="lbl">Número / Apto</label><input class="fc" id="vc-predio-numero" placeholder="Ex: Apto 302"></div>
+      </div>
+      <div class="form-row">
+        <div><label class="lbl">Corretor responsável</label>
+          <select class="fc" id="vc-corretor"><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
+        </div>
+        <div><label class="lbl">Telefone</label><input class="fc" id="vc-telefone" placeholder="83 9XXXX-XXXX"></div>
+      </div>
+      <div class="fld"><label class="lbl">Link do anúncio</label><input class="fc" id="vc-anuncio" placeholder="https://..."></div>
+      <div class="form-row">
+        <div><label class="lbl">Data da visita</label><input class="fc" id="vc-data" type="date"></div>
+        <div><label class="lbl">Hora da visita</label><input class="fc" id="vc-hora" type="time"></div>
+      </div>
+      <div class="fld"><label class="lbl">Especificações do apartamento</label><textarea class="fc" id="vc-espec" placeholder="Quartos, m², mobiliado, vaga de garagem..."></textarea></div>
+      <div class="fld"><label class="lbl">Observações</label><textarea class="fc" id="vc-obs" placeholder="Espaço pra anotar o que achar importante..."></textarea></div>
+      <div class="fld" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="vc-feita" style="width:auto;accent-color:var(--accent)">
+        <label class="lbl" style="margin:0" for="vc-feita">Visita já feita</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('new-visitacapt')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveVisitaCapt()"><i class="ti ti-check"></i>Salvar</button>
+    </div>
+  </div>
+</div>
+
 
     <!-- INDICADORES -->
     <div class="panel" id="panel-indicadores">
@@ -2162,6 +2216,7 @@ async function loadAll(){
   if (typeof loadDocumentacao === 'function') tasks.push(loadDocumentacao());
   if (typeof loadDocsBiblioteca === 'function') tasks.push(loadDocsBiblioteca());
   if (typeof loadVendas === 'function') tasks.push(loadVendas());
+  if (typeof loadVisitasCapt === 'function') tasks.push(loadVisitasCapt());
   await Promise.all(tasks);
   renderDash();renderKanban();renderAg();renderImoveis();renderEquipe();renderAlertas();renderRel();renderIndicadores();renderRecontato();renderFantasmas();
   // Update all corretor selects and chips after everything is loaded
@@ -2321,7 +2376,7 @@ function showPanel(id,el){
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   document.getElementById('panel-'+id).classList.add('active');
   if(el)el.classList.add('active');
-  var titles={dashboard:'Dashboard',leads:'Leads',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',fantasmas:'Fantasmas',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
+  var titles={dashboard:'Dashboard',leads:'Leads',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',fantasmas:'Fantasmas',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',visitascapt:'Visitas de Captação',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
   document.getElementById('page-title').textContent=titles[id]||id;
   closeMobile();
 }
@@ -3398,6 +3453,122 @@ function setCaptOpFilter(f, el) {
   document.querySelectorAll('[onclick^="setCaptOpFilter"]').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
   renderCaptacoes();
+}
+
+// ═══ VISITAS DE CAPTAÇÃO (agendamento da captadora de aluguel) ═══
+var visitasCapt = [], visitaCaptFiltro = 'todos', editVisitaCaptId = null;
+
+async function loadVisitasCapt() {
+  var r = await sb.from('visitas_captacao').select('*').order('data_visita', {ascending:true});
+  visitasCapt = r.data || [];
+  renderVisitasCapt();
+}
+
+function setVisitaCaptF(f, el) {
+  visitaCaptFiltro = f;
+  document.querySelectorAll('#panel-visitascapt .chip').forEach(function(c){ c.classList.remove('on'); });
+  el.classList.add('on');
+  renderVisitasCapt();
+}
+
+function renderVisitasCapt() {
+  var tbody = document.getElementById('visitascapt-body');
+  if (!tbody) return;
+  var lista = visitasCapt.filter(function(v) {
+    if (visitaCaptFiltro === 'pendentes') return !v.visita_feita;
+    if (visitaCaptFiltro === 'feitas') return !!v.visita_feita;
+    return true;
+  });
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">Nenhum agendamento encontrado</td></tr>'; return; }
+  tbody.innerHTML = lista.map(function(v) {
+    var dataFmt = v.data_visita ? v.data_visita.split('-').reverse().join('/') : '—';
+    return '<tr>'
+      + '<td style="font-size:12px">' + dataFmt + (v.hora_visita ? ' às ' + v.hora_visita.substring(0,5) : '') + '</td>'
+      + '<td><strong>' + (v.predio_nome||'—') + '</strong></td>'
+      + '<td style="font-size:12px">' + (v.predio_numero||'—') + '</td>'
+      + '<td style="font-size:12px">' + (v.corretor||'—') + '</td>'
+      + '<td style="font-size:12px;color:var(--muted)">' + (v.telefone||'—') + '</td>'
+      + '<td style="font-size:11px;color:var(--muted);max-width:220px">' + (v.especificacoes||'—') + '</td>'
+      + '<td style="text-align:center"><input type="checkbox" ' + (v.visita_feita?'checked':'') + ' onchange="toggleVisitaFeita(' + JSON.stringify(v.id) + ',this.checked)"></td>'
+      + '<td style="white-space:nowrap">'
+      + (v.anuncio_url ? '<button class="btn btn-xs" onclick="window.open(' + qa(v.anuncio_url) + ',\'_blank\')" title="Abrir anúncio"><i class="ti ti-external-link"></i></button>' : '')
+      + (v.telefone ? '<button class="btn btn-wa btn-xs" style="margin-left:4px" onclick="openWA(' + qa(v.telefone) + ',' + qa(v.predio_nome) + ',\'\')"><i class="ti ti-brand-whatsapp"></i></button>' : '')
+      + '<button class="btn btn-xs" style="margin-left:4px" onclick="editVisitaCapt(' + JSON.stringify(v.id) + ')"><i class="ti ti-edit"></i></button>'
+      + '<button class="btn btn-xs" style="margin-left:4px;color:var(--danger)" onclick="deleteVisitaCapt(' + JSON.stringify(v.id) + ')"><i class="ti ti-trash"></i></button>'
+      + '</td></tr>';
+  }).join('');
+}
+
+async function toggleVisitaFeita(id, valor) {
+  await sb.from('visitas_captacao').update({visita_feita: valor}).eq('id', id);
+  var v = visitasCapt.find(function(x){ return x.id === id; });
+  if (v) v.visita_feita = valor;
+  toast(valor ? '✅ Marcada como visitada!' : 'Desmarcada');
+}
+
+function abrirNovaVisitaCapt() {
+  editVisitaCaptId = null;
+  document.getElementById('visitacapt-modal-title').textContent = 'Novo agendamento';
+  ['vc-predio-nome','vc-predio-numero','vc-telefone','vc-anuncio','vc-espec','vc-obs'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('vc-data').value = '';
+  document.getElementById('vc-hora').value = '';
+  document.getElementById('vc-feita').checked = false;
+  document.getElementById('vc-corretor').value = (currentUser && (currentUser.tipo==='corretor'||currentUser.tipo==='telemarketing')) ? currentUser.nome : 'Sandryne';
+  openModal('new-visitacapt');
+}
+
+function editVisitaCapt(id) {
+  editVisitaCaptId = id;
+  var v = visitasCapt.find(function(x){ return x.id === id; });
+  if (!v) return;
+  document.getElementById('visitacapt-modal-title').textContent = 'Editar agendamento';
+  document.getElementById('vc-predio-nome').value = v.predio_nome||'';
+  document.getElementById('vc-predio-numero').value = v.predio_numero||'';
+  document.getElementById('vc-corretor').value = v.corretor||'Sandryne';
+  document.getElementById('vc-telefone').value = v.telefone||'';
+  document.getElementById('vc-anuncio').value = v.anuncio_url||'';
+  document.getElementById('vc-data').value = v.data_visita||'';
+  document.getElementById('vc-hora').value = v.hora_visita||'';
+  document.getElementById('vc-espec').value = v.especificacoes||'';
+  document.getElementById('vc-obs').value = v.observacoes||'';
+  document.getElementById('vc-feita').checked = !!v.visita_feita;
+  openModal('new-visitacapt');
+}
+
+async function saveVisitaCapt() {
+  var predio = document.getElementById('vc-predio-nome').value.trim();
+  if (!predio) { toast('Informe o nome do prédio'); return; }
+  var data = {
+    predio_nome: predio,
+    predio_numero: document.getElementById('vc-predio-numero').value.trim(),
+    corretor: document.getElementById('vc-corretor').value,
+    telefone: document.getElementById('vc-telefone').value.trim(),
+    anuncio_url: document.getElementById('vc-anuncio').value.trim(),
+    data_visita: document.getElementById('vc-data').value || null,
+    hora_visita: document.getElementById('vc-hora').value || null,
+    especificacoes: document.getElementById('vc-espec').value.trim(),
+    observacoes: document.getElementById('vc-obs').value.trim(),
+    visita_feita: document.getElementById('vc-feita').checked
+  };
+  if (editVisitaCaptId) {
+    await sb.from('visitas_captacao').update(data).eq('id', editVisitaCaptId);
+    toast('✅ Agendamento atualizado!');
+  } else {
+    await sb.from('visitas_captacao').insert([data]);
+    toast('✅ Agendamento salvo!');
+  }
+  editVisitaCaptId = null;
+  closeModal('new-visitacapt');
+  await loadVisitasCapt();
+}
+
+async function deleteVisitaCapt(id) {
+  if (!confirm('Remover este agendamento?')) return;
+  await sb.from('visitas_captacao').delete().eq('id', id);
+  toast('🗑️ Removido!');
+  await loadVisitasCapt();
 }
 
 async function loadCaptacoes() {
@@ -5947,7 +6118,7 @@ showPanel = function(id, el) {
    — Bloco 100% adicional. Nenhuma função/elemento existente foi
    removido ou alterado em seu comportamento original. ════════════ */
 
-var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing','documentacao','fantasmas'];
+var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing','documentacao','fantasmas','visitascapt'];
 var ALLOWED_PANELS_TELEMARKETING = ['leads','agenda','script','catalogo','textos','recontato','telemarketing'];
 
 /* ════════════ CHECKLIST DE DOCUMENTAÇÃO (admin cria/edita, corretor só visualiza) ════════════ */
