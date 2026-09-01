@@ -1191,8 +1191,9 @@ textarea.fc{resize:vertical;min-height:60px}
         <div><label class="lbl">Número / Apto</label><input class="fc" id="vc-predio-numero" placeholder="Ex: Apto 302"></div>
       </div>
       <div class="form-row">
-        <div><label class="lbl">Corretor responsável</label>
-          <select class="fc" id="vc-corretor"><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
+        <div><label class="lbl">Corretor parceiro responsável</label>
+          <input class="fc" id="vc-corretor" list="vc-corretor-list" placeholder="Nome do corretor parceiro" autocomplete="off">
+          <datalist id="vc-corretor-list"></datalist>
         </div>
         <div><label class="lbl">Telefone</label><input class="fc" id="vc-telefone" placeholder="83 9XXXX-XXXX"></div>
       </div>
@@ -3505,6 +3506,11 @@ function renderVisitasCapt() {
     if (visitaCaptFiltro === 'feitas') return !!v.visita_feita;
     return true;
   });
+  var dl = document.getElementById('vc-corretor-list');
+  if (dl) {
+    var nomesUnicos = Array.from(new Set(visitasCapt.map(function(v){ return (v.corretor||'').trim(); }).filter(Boolean)));
+    dl.innerHTML = nomesUnicos.map(function(n){ return '<option value="' + n.replace(/"/g,'&quot;') + '">'; }).join('');
+  }
   if (!lista.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">Nenhum agendamento encontrado</td></tr>'; return; }
   tbody.innerHTML = lista.map(function(v) {
     var dataFmt = v.data_visita ? v.data_visita.split('-').reverse().join('/') : '—';
@@ -3535,13 +3541,12 @@ async function toggleVisitaFeita(id, valor) {
 function abrirNovaVisitaCapt() {
   editVisitaCaptId = null;
   document.getElementById('visitacapt-modal-title').textContent = 'Novo agendamento';
-  ['vc-predio-nome','vc-predio-numero','vc-telefone','vc-anuncio','vc-espec','vc-obs'].forEach(function(id){
+  ['vc-predio-nome','vc-predio-numero','vc-telefone','vc-anuncio','vc-espec','vc-obs','vc-corretor'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('vc-data').value = '';
   document.getElementById('vc-hora').value = '';
   document.getElementById('vc-feita').checked = false;
-  document.getElementById('vc-corretor').value = (currentUser && (currentUser.tipo==='corretor'||currentUser.tipo==='telemarketing')) ? currentUser.nome : 'Sandryne';
   openModal('new-visitacapt');
 }
 
@@ -3552,7 +3557,7 @@ function editVisitaCapt(id) {
   document.getElementById('visitacapt-modal-title').textContent = 'Editar agendamento';
   document.getElementById('vc-predio-nome').value = v.predio_nome||'';
   document.getElementById('vc-predio-numero').value = v.predio_numero||'';
-  document.getElementById('vc-corretor').value = v.corretor||'Sandryne';
+  document.getElementById('vc-corretor').value = v.corretor||'';
   document.getElementById('vc-telefone').value = v.telefone||'';
   document.getElementById('vc-anuncio').value = v.anuncio_url||'';
   document.getElementById('vc-data').value = v.data_visita||'';
