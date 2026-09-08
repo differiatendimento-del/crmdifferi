@@ -612,6 +612,12 @@ textarea.fc{resize:vertical;min-height:60px}
               <div class="tipo-btn" data-split="50-50" onclick="selSplit(this)">50% obra / 50% entrega</div>
               <div class="tipo-btn" data-split="80-20" onclick="selSplit(this)">80% obra / 20% entrega</div>
             </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+              <span style="font-size:12px;color:var(--muted);white-space:nowrap">Personalizado:</span>
+              <input class="fc" id="split-custom-obra" type="number" min="0" max="100" placeholder="% obra" style="max-width:110px" oninput="selSplitCustom()">
+              <span style="font-size:12px;color:var(--muted)">% obra</span>
+              <span style="font-size:12px;color:var(--muted)" id="split-custom-entrega-label"></span>
+            </div>
             <input type="hidden" id="fluxo-split" value="70-30">
           </div>
         </div>
@@ -5018,6 +5024,25 @@ function selSplit(el) {
   document.getElementById('fluxo-split').value = selectedSplit;
   document.querySelectorAll('#split-btns .tipo-btn').forEach(function(b){b.classList.remove('sel');});
   el.classList.add('sel');
+  var customEl = document.getElementById('split-custom-obra');
+  if (customEl) customEl.value = '';
+  var lbl = document.getElementById('split-custom-entrega-label');
+  if (lbl) lbl.textContent = '';
+  calcularFluxo();
+}
+
+function selSplitCustom() {
+  var obraPct = parseFloat(document.getElementById('split-custom-obra').value);
+  var lbl = document.getElementById('split-custom-entrega-label');
+  if (isNaN(obraPct) || obraPct < 0 || obraPct > 100) {
+    if (lbl) lbl.textContent = '';
+    return;
+  }
+  var entregaPct = 100 - obraPct;
+  if (lbl) lbl.textContent = '/ ' + entregaPct + '% entrega';
+  selectedSplit = obraPct + '-' + entregaPct;
+  document.getElementById('fluxo-split').value = selectedSplit;
+  document.querySelectorAll('#split-btns .tipo-btn').forEach(function(b){b.classList.remove('sel');});
   calcularFluxo();
 }
 
