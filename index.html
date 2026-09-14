@@ -1142,7 +1142,7 @@ textarea.fc{resize:vertical;min-height:60px}
           <div class="chip" onclick="setCaptOpFilter('PARCERIA',this)">🤝 Parceria</div>
         </div>
         <div style="display:flex;gap:7px">
-          <button class="btn btn-sm" id="btn-sync-catalogo" onclick="sincronizarTodasCaptacoesCatalogo()"><i class="ti ti-refresh"></i>Sincronizar com Catálogo</button>
+          <button class="btn btn-sm" id="btn-sync-catalogo" style="display:none" onclick="sincronizarTodasCaptacoesCatalogo()"><i class="ti ti-refresh"></i>Sincronizar com Catálogo</button>
           <button class="btn btn-primary btn-sm" onclick="abrirNovaCaptacao()"><i class="ti ti-plus"></i>Nova captação</button>
         </div>
       </div>
@@ -3623,7 +3623,7 @@ async function loadCaptacoes() {
   var el4 = document.getElementById('capt-m-taxa'); if(el4) el4.textContent = taxa + '%';
   var el5 = document.getElementById('ind-capt'); if(el5) el5.textContent = captado;
   var btnSync = document.getElementById('btn-sync-catalogo');
-  if (btnSync) btnSync.style.display = '';
+  if (btnSync) btnSync.style.display = (typeof isAdminDoc === 'function' && isAdminDoc()) ? '' : 'none';
 }
 
 // Sincronização retroativa: pega TODAS as captações já marcadas como "Captado"
@@ -3803,15 +3803,12 @@ async function sincronizarCatalogoComCaptacao(captId, data) {
   var item = {
     nome: data.endereco,
     bairro: data.bairro,
-    cidade: data.cidade || 'João Pessoa',
-    preco: data.valor ? parseFloat(String(data.valor).replace(/[^0-9.,]/g,'').replace(',','.')) : null,
-    m2: data.area || null,
-    quartos: data.quartos || null,
-    categoria: data.tipo_operacao === 'Aluguel' ? 'aluguel' : 'pronto',
-    tipo: data.tipo || null,
+    valor: valorFmt,
+    tipo: data.tipo,
+    status: '✅ Pronto',
     entrega: 'Pronto',
-    whatsapp: '5583982217424',
-    ativo: true,
+    lista: data.tipo_operacao || '',
+    tipo_operacao: data.tipo_operacao,
     origem_captacao_id: captId
   };
   var res;
@@ -5264,6 +5261,13 @@ function showFilePreview(fileName, contatos) {
   document.getElementById('file-rows-label').textContent = contatos.length + ' contatos encontrados';
   document.getElementById('file-preview').style.display = 'block';
   document.getElementById('drop-zone').style.display = 'none';
+
+  // Preenche a aba de destino com o nome do arquivo (sem extensão), se o campo ainda estiver vazio
+  var destinoEl = document.getElementById('import-interesse-destino');
+  if (destinoEl && !destinoEl.value.trim()) {
+    var nomeSemExtensao = fileName.replace(/\.(csv|xlsx|xls)$/i, '').trim();
+    destinoEl.value = nomeSemExtensao;
+  }
 
   // Show preview table (first 5)
   var tbody = document.getElementById('import-preview-body');
