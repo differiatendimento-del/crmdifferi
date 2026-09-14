@@ -2503,6 +2503,7 @@ function renderTab(l,tab){
       {cod:'D4', label:'Enviado D4', cor:'#1a6b4a', tipo:'env'},
       {cod:'D5', label:'Enviado D5', cor:'#1a6b4a', tipo:'env'},
       {cod:'TT', label:'Transferido ao Telemarketing', cor:'#e74c3c', tipo:'ret'},
+      {cod:'EC', label:'Contato encaminhado para corretor', cor:'#16a085', tipo:'env'},
     ];
     var tlHtml=hist.length?hist.slice().reverse().map(function(h){
       var cfg=TIPO_CFG[h.tipo]||TIPO_CFG.env;
@@ -6829,4 +6830,3 @@ function updateCorretorSelects() {
 </script>
 </body>
 </html>
-'Importação com aba automática'
