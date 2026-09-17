@@ -302,6 +302,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div style="display:flex;gap:7px;align-items:center">
       <span style="font-size:11px;color:var(--success);display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block"></span>Conectado</span>
       <button class="btn btn-sm" onclick="loadAll()"><i class="ti ti-refresh"></i>Atualizar</button>
+      <button class="btn btn-sm" id="btn-importar-leads" style="display:none" onclick="abrirImportarLeads()"><i class="ti ti-upload"></i>Importar Leads</button>
       <button class="btn btn-primary btn-sm" onclick="openModal('new-lead')"><i class="ti ti-plus"></i>Novo Lead</button>
     </div>
   </div>
@@ -1825,6 +1826,52 @@ textarea.fc{resize:vertical;min-height:60px}
 </div>
 
 <!-- MODAL IMPORTAR TELEMARKETING -->
+<!-- MODAL IMPORTAR LEADS (Waseller / planilhas em massa) -->
+<div class="modal-overlay" id="modal-import-leads" style="display:none" onclick="if(event.target===this)closeModal('import-leads')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-hdr"><div class="modal-title">Importar Leads (evita duplicados)</div><button class="modal-close" onclick="closeModal('import-leads')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;margin-bottom:12px">
+        Suba um arquivo por vez (ex: uma exportação do Waseller por etiqueta). Formato esperado: <strong>nome, telefone, interesse</strong> (a 3ª coluna é opcional).
+        Números de telefone que já existem na base de Leads são <strong>pulados automaticamente</strong>.
+      </div>
+
+      <div id="il-drop-zone" style="border:2px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;cursor:pointer" ondrop="handleLeadFileDrop(event)" ondragover="event.preventDefault()" onclick="document.getElementById('il-file-input').click()">
+        <i class="ti ti-file-upload" style="font-size:28px;color:var(--muted)"></i>
+        <div style="font-size:13px;margin-top:6px">Arraste o arquivo aqui ou clique pra escolher</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">.csv, .xlsx ou .xls</div>
+        <input type="file" id="il-file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleLeadFileSelect(event)">
+      </div>
+      <div id="il-file-preview" style="display:none;margin-top:10px">
+        <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:var(--radius);padding:10px 12px">
+          <i class="ti ti-file-check" style="font-size:20px;color:var(--accent)"></i>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600" id="il-file-name-label">arquivo.csv</div><div style="font-size:11px;color:var(--muted)" id="il-file-rows-label">0 contatos encontrados</div></div>
+          <button class="btn btn-xs" onclick="clearLeadFileImport()"><i class="ti ti-x"></i></button>
+        </div>
+      </div>
+
+      <div class="fld" style="margin-top:14px"><label class="lbl">Tipo de empreendimento (Perfil/Anúncio)</label>
+        <input class="fc" id="il-perfil-destino" list="il-perfil-list" placeholder="Ex: ALUGUEL, #500k PLANTA... (deixe em branco pra usar a coluna do arquivo)" autocomplete="off">
+        <datalist id="il-perfil-list"></datalist>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Se preencher, todos os leads desse arquivo recebem esse perfil/anúncio.</div>
+      </div>
+
+      <div class="form-row">
+        <div><label class="lbl">Corretor responsável</label>
+          <select class="fc" id="il-corretor"></select>
+        </div>
+        <div><label class="lbl">Origem</label>
+          <select class="fc" id="il-origem"><option>WASELLER</option><option>ANUNCIO</option><option>DISPARO</option><option>INTERNET</option><option>INDICAÇÃO</option><option>LOJA</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('import-leads')">Cancelar</button>
+      <button class="btn btn-primary" onclick="importarLeadsArquivo()" id="btn-importar-leads-confirm"><i class="ti ti-upload"></i>Importar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-importar-tele" style="display:none" onclick="if(event.target===this)closeModal('importar-tele')">
   <div class="modal" style="max-width:540px">
     <div class="modal-hdr"><div class="modal-title"><i class="ti ti-upload" style="color:var(--accent)"></i> Importar lista — Telemarketing</div><button class="modal-close" onclick="closeModal('importar-tele')"><i class="ti ti-x"></i></button></div>
@@ -5131,9 +5178,170 @@ switchTab = function(tab, el) {
 };
 
 
-// ═══ IMPORTAR TELEMARKETING — FILE UPLOAD ═══
-var importMethod = 'file';
-var parsedContatos = [];
+// ═══ IMPORTAR LEADS (Waseller/planilhas em massa, com deduplicação por telefone) ═══
+var parsedLeadContatos = [];
+
+function abrirImportarLeads() {
+  parsedLeadContatos = [];
+  document.getElementById('il-file-preview').style.display = 'none';
+  document.getElementById('il-drop-zone').style.display = 'block';
+  document.getElementById('il-file-input').value = '';
+  document.getElementById('il-perfil-destino').value = '';
+  document.getElementById('il-origem').value = 'WASELLER';
+  var listEl = document.getElementById('il-perfil-list');
+  if (listEl) {
+    var vistos = {};
+    listEl.innerHTML = '';
+    leads.forEach(function(l) {
+      var v = (l.interesse||l.anuncio||'').trim();
+      if (v && !vistos[v]) { vistos[v] = true; var opt = document.createElement('option'); opt.value = v; listEl.appendChild(opt); }
+    });
+  }
+  var corrEl = document.getElementById('il-corretor');
+  if (corrEl) {
+    corrEl.innerHTML = '<option value="">— não atribuir agora —</option>' + getAllEquipe().filter(function(u){ return u.tipo === 'corretor' || u.tipo === 'admin' || !u.tipo; }).map(function(u){ return '<option value="' + u.nome + '">' + u.nome + '</option>'; }).join('');
+  }
+  openModal('import-leads');
+}
+
+function handleLeadFileDrop(event) {
+  event.preventDefault();
+  var file = event.dataTransfer.files[0];
+  if (file) processLeadImportFile(file);
+}
+function handleLeadFileSelect(event) {
+  var file = event.target.files[0];
+  if (file) processLeadImportFile(file);
+}
+
+function processLeadImportFile(file) {
+  var name = file.name.toLowerCase();
+  var reader = new FileReader();
+  if (name.endsWith('.csv')) {
+    reader.onload = function(e) {
+      parsedLeadContatos = parseCSVText(e.target.result);
+      showLeadFilePreview(file.name, parsedLeadContatos);
+    };
+    reader.readAsText(file, 'UTF-8');
+  } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+    reader.onload = function(e) {
+      try { parseLeadXLSX(e.target.result, file.name); }
+      catch(err) { toast('⚠️ Erro ao ler Excel. Tente salvar como CSV primeiro.'); console.error(err); }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    toast('⚠️ Formato não suportado. Use .csv, .xlsx ou .xls');
+  }
+}
+
+function parseLeadXLSX(arrayBuffer, fileName) {
+  var bytes = new Uint8Array(arrayBuffer);
+  var str = '';
+  for (var i = 0; i < Math.min(bytes.length, 500000); i++) { str += String.fromCharCode(bytes[i]); }
+  try {
+    if (!str.match(/\[Content_Types\]/)) {
+      toast('⚠️ Não foi possível ler o Excel. Por favor salve como CSV (.csv) e importe novamente.');
+      return;
+    }
+    var textValues = [];
+    var tMatches = str.match(/<t[^>]*>[^<]+<\/t>/g) || [];
+    tMatches.forEach(function(m) { var val = m.replace(/<[^>]+>/g, '').trim(); if (val) textValues.push(val); });
+    if (textValues.length > 3) {
+      var contatos = [];
+      var start = (textValues[0].toLowerCase() === 'nome' || textValues[0].toLowerCase() === 'name') ? 3 : 0;
+      for (var j = start; j < textValues.length - 1; j += 3) {
+        var nome = textValues[j] || '', tel = textValues[j+1] || '', int2 = textValues[j+2] || '';
+        if (nome && tel) contatos.push({nome:nome, telefone:tel, interesse:int2});
+      }
+      parsedLeadContatos = contatos;
+      showLeadFilePreview(fileName, contatos);
+    } else {
+      toast('⚠️ Não consegui ler o Excel. Salve como CSV e tente novamente.');
+    }
+  } catch(e) {
+    toast('⚠️ Erro ao processar o Excel.');
+    console.error(e);
+  }
+}
+
+function showLeadFilePreview(fileName, contatos) {
+  document.getElementById('il-file-name-label').textContent = fileName;
+  document.getElementById('il-file-rows-label').textContent = contatos.length + ' contatos encontrados no arquivo';
+  document.getElementById('il-file-preview').style.display = 'block';
+  document.getElementById('il-drop-zone').style.display = 'none';
+  var perfilEl = document.getElementById('il-perfil-destino');
+  if (perfilEl && !perfilEl.value.trim()) {
+    perfilEl.value = fileName.replace(/\.(csv|xlsx|xls)$/i, '').trim();
+  }
+}
+
+function clearLeadFileImport() {
+  parsedLeadContatos = [];
+  document.getElementById('il-file-preview').style.display = 'none';
+  document.getElementById('il-drop-zone').style.display = 'block';
+  document.getElementById('il-file-input').value = '';
+}
+
+function normalizarTelefone(t) { return (t || '').replace(/\D/g, ''); }
+
+async function importarLeadsArquivo() {
+  if (!parsedLeadContatos.length) { toast('Selecione um arquivo primeiro'); return; }
+  var perfilDestino = document.getElementById('il-perfil-destino').value.trim();
+  var corretorEscolhido = document.getElementById('il-corretor').value;
+  var origem = document.getElementById('il-origem').value;
+
+  var telefonesExistentes = {};
+  leads.forEach(function(l) {
+    var n = normalizarTelefone(l.telefone);
+    if (n) telefonesExistentes[n] = true;
+  });
+
+  var novos = [], duplicadosBase = 0, duplicadosArquivo = 0, semTelefone = 0;
+  var vistosNesteLote = {};
+  parsedLeadContatos.forEach(function(ct) {
+    var telNorm = normalizarTelefone(ct.telefone);
+    if (!telNorm) { semTelefone++; return; }
+    if (telefonesExistentes[telNorm]) { duplicadosBase++; return; }
+    if (vistosNesteLote[telNorm]) { duplicadosArquivo++; return; }
+    vistosNesteLote[telNorm] = true;
+    novos.push({
+      nome: ct.nome || 'sem nome',
+      telefone: ct.telefone,
+      interesse: perfilDestino || ct.interesse || '',
+      origem: origem,
+      status: 'ENTRADA',
+      status_geral: 'ATENDIMENTO ATIVO',
+      corretor: corretorEscolhido || null,
+      historico: JSON.stringify([{tipo:'ok', texto:'Importado em massa (' + origem + ')', data:nowStr(), autor: currentUser ? currentUser.nome : 'Sistema'}]),
+      criado_por: currentUser ? currentUser.nome : 'Sistema',
+      propostas: '[]'
+    });
+  });
+
+  if (!novos.length) {
+    toast('⚠️ Nenhum lead novo — todos os ' + parsedLeadContatos.length + ' contatos já existem na base ou estão sem telefone.');
+    return;
+  }
+
+  var btn = document.getElementById('btn-importar-leads-confirm');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i>Importando...'; }
+
+  // Insere em lotes de 200 pra não estourar limite da requisição
+  var LOTE = 200;
+  for (var i = 0; i < novos.length; i += LOTE) {
+    var fatia = novos.slice(i, i + LOTE);
+    var ins = await sb.from('leads').insert(fatia);
+    if (ins.error) { toast('❌ Erro ao importar: ' + ins.error.message); if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-upload"></i>Importar'; } return; }
+  }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-upload"></i>Importar'; }
+  toast('✅ ' + novos.length + ' lead(s) novo(s) importado(s)! ' +
+    (duplicadosBase ? duplicadosBase + ' já existiam na base. ' : '') +
+    (duplicadosArquivo ? duplicadosArquivo + ' repetido(s) dentro do próprio arquivo. ' : '') +
+    (semTelefone ? semTelefone + ' sem telefone (ignorados).' : ''));
+  closeModal('import-leads');
+  await loadLeads(); renderDash(); renderKanban(); renderRel(); renderEquipe(); renderRecontato();
+}
 
 function setImportMethod(method, el) {
   importMethod = method;
@@ -6513,6 +6721,8 @@ async function doLoginCorretor() {
 function applyRolePermissions() {
   if (!currentUser) return;
   var isAdmin = currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing' && currentUser.tipo !== 'captador';
+  var btnImportarLeads = document.getElementById('btn-importar-leads');
+  if (btnImportarLeads) btnImportarLeads.style.display = isAdmin ? '' : 'none';
   var allowed = currentUser.tipo === 'telemarketing' ? ALLOWED_PANELS_TELEMARKETING
     : currentUser.tipo === 'captador' ? ALLOWED_PANELS_CAPTADOR
     : ALLOWED_PANELS_CORRETOR;
