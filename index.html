@@ -2098,6 +2098,27 @@ const SB_URL = 'https://lqlhnfvvwsjdykwqmhbn.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxbGhuZnZ2d3NqZHlrd3FtaGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0OTk2NzksImV4cCI6MjA5NTA3NTY3OX0.mZ_Ys1eUGu_VTEZHpRV5ozVlcluCHlemIBqAdJc_wjY';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
+// O Supabase limita cada consulta a 1000 linhas por padrão. Essa função busca
+// TUDO, em lotes de 1000, pra nenhuma tabela grande (leads, telemarketing,
+// captações, catálogo...) ficar cortada silenciosamente.
+async function fetchAllRows(tableName, orderCol, ascending) {
+  var todos = [];
+  var pagina = 0;
+  var TAMANHO_PAGINA = 1000;
+  while (true) {
+    var q = sb.from(tableName).select('*');
+    if (orderCol) q = q.order(orderCol, {ascending: !!ascending});
+    q = q.range(pagina * TAMANHO_PAGINA, pagina * TAMANHO_PAGINA + TAMANHO_PAGINA - 1);
+    var r = await q;
+    if (r.error) throw r.error;
+    var lote = r.data || [];
+    todos = todos.concat(lote);
+    if (lote.length < TAMANHO_PAGINA) break;
+    pagina++;
+  }
+  return todos;
+}
+
 // Segundo projeto: o catálogo público de imóveis (differi-catalogo), usado só
 // para espelhar captações "Captado" — nunca usar aqui a chave secreta/service role.
 const SB_CAT_URL = 'https://rlmtsmqksedpkjezboko.supabase.co';
@@ -2307,9 +2328,8 @@ async function loadAll(){
 // LEADS
 async function loadLeads(){
   try{
-    var r=await sb.from('leads').select('*').order('created_at',{ascending:false});
-    if(r.error)throw r.error;
-    leads=(r.data||[]).map(function(l){return Object.assign({},l,{historico:typeof l.historico==='string'?JSON.parse(l.historico||'[]'):l.historico||[]});});
+    var todos = await fetchAllRows('leads', 'created_at', false);
+    leads=todos.map(function(l){return Object.assign({},l,{historico:typeof l.historico==='string'?JSON.parse(l.historico||'[]'):l.historico||[]});});
     filteredLeads=leads.slice();
     filterLeads();
     document.getElementById('badge-leads').textContent=leads.length;
@@ -3135,8 +3155,7 @@ function renderAlertas(){
 var teleContatos = [], teleFilter = 'todos', currentTeleId = null;
 
 async function loadTele() {
-  var r = await sb.from('telemarketing').select('*').order('created_at', {ascending:false});
-  teleContatos = r.data || [];
+  teleContatos = await fetchAllRows('telemarketing', 'created_at', false);
   if (currentUser && currentUser.tipo === 'corretor') {
     teleContatos = teleContatos.filter(function(t){ return t.atendente === currentUser.nome; });
   }
@@ -3540,8 +3559,7 @@ function setCaptOpFilter(f, el) {
 var visitasCapt = [], visitaCaptFiltro = 'todos', editVisitaCaptId = null;
 
 async function loadVisitasCapt() {
-  var r = await sb.from('visitas_captacao').select('*').order('data_visita', {ascending:true});
-  visitasCapt = r.data || [];
+  visitasCapt = await fetchAllRows('visitas_captacao', 'data_visita', true);
   renderVisitasCapt();
 }
 
@@ -3657,8 +3675,7 @@ async function deleteVisitaCapt(id) {
 }
 
 async function loadCaptacoes() {
-  var r = await sb.from('captacoes').select('*').order('created_at', {ascending:false});
-  captacoes = r.data || [];
+  captacoes = await fetchAllRows('captacoes', 'created_at', false);
   renderCaptacoes();
   var prospect = captacoes.filter(function(c){return c.status==='A captar';}).length;
   var captado = captacoes.filter(function(c){return c.status==='Captado';}).length;
@@ -4350,16 +4367,13 @@ var catalogoView = 'tabela'; // 'tabela' | 'cards'
 var editCatId = null;
 
 async function loadCatalogo() {
-  var r = await sb.from('catalogo_imoveis').select('*').order('created_at', {ascending:false});
-  if (r.data && r.data.length) {
-    catalogoItems = r.data;
-  } else if (r.data && !r.data.length) {
+  var todos = await fetchAllRows('catalogo_imoveis', 'created_at', false);
+  if (todos.length) {
+    catalogoItems = todos;
+  } else {
     // Primeira vez: semeia com o catálogo inicial de lançamentos
     await sb.from('catalogo_imoveis').insert(CATALOGO_INICIAL);
-    var r2 = await sb.from('catalogo_imoveis').select('*').order('created_at', {ascending:false});
-    catalogoItems = r2.data || [];
-  } else {
-    catalogoItems = CATALOGO_INICIAL.slice();
+    catalogoItems = await fetchAllRows('catalogo_imoveis', 'created_at', false);
   }
   renderCatalogo();
 }
