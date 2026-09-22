@@ -258,6 +258,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="nav-lbl">Principal</div>
     <div class="nav-item active" onclick="showPanel('dashboard',this)"><i class="ti ti-dashboard"></i>Dashboard</div>
     <div class="nav-item" onclick="showPanel('leads',this)"><i class="ti ti-users"></i>Leads<span class="nav-badge" id="badge-leads">0</span></div>
+    <div class="nav-item" onclick="showPanel('arquivados',this)"><i class="ti ti-archive"></i>Arquivados<span class="nav-badge" id="badge-arquivados">0</span></div>
     <div class="nav-item" onclick="showPanel('clientes',this)"><i class="ti ti-trophy" style="color:#f39c12"></i>Clientes Vendidos</div>
     <div class="nav-item" onclick="showPanel('telemarketing',this)"><i class="ti ti-phone-call"></i>Telemarketing</div>
     <div class="nav-item" onclick="showPanel('recontato',this)"><i class="ti ti-phone-outgoing"></i>Programação de Recontato</div>
@@ -298,7 +299,7 @@ textarea.fc{resize:vertical;min-height:60px}
   <div class="topbar">
     <button class="mob-btn" onclick="toggleMobile()"><i class="ti ti-menu-2"></i></button>
     <div class="page-title" id="page-title">Dashboard</div>
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar nome, telefone..." id="search-input" oninput="filterLeads()"></div>
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar nome, telefone..." id="search-input" oninput="filterLeadsDebounced()"></div>
     <div style="display:flex;gap:7px;align-items:center">
       <span style="font-size:11px;color:var(--success);display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block"></span>Conectado</span>
       <button class="btn btn-sm" onclick="loadAll()"><i class="ti ti-refresh"></i>Atualizar</button>
@@ -350,6 +351,27 @@ textarea.fc{resize:vertical;min-height:60px}
         <button class="btn btn-sm" onclick="leadsPagAnterior()"><i class="ti ti-chevron-left"></i>Anterior</button>
         <span style="font-size:12px;color:var(--muted)" id="leads-pag-label">Página 1</span>
         <button class="btn btn-sm" onclick="leadsPagProxima()">Próxima<i class="ti ti-chevron-right"></i></button>
+      </div>
+    </div>
+
+    <!-- ARQUIVADOS (leads adormecidos, inativos há muito tempo) -->
+    <div class="panel" id="panel-arquivados">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--muted)">
+        💤 Leads com status Perdido, Desistiu, Finalizado ou Mailing sem contato há mais de 60 dias adormecem aqui sozinhos, pra não pesar a lista principal.
+        Buscar o nome/telefone na aba Leads já acorda o lead automaticamente — ou use "Reativar" aqui.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="search-wrap" style="max-width:340px;flex:1">
+          <i class="ti ti-search"></i>
+          <input type="text" placeholder="Buscar por nome ou telefone..." id="arq-search" oninput="renderArquivados()">
+        </div>
+        <button class="btn btn-sm" onclick="arquivarLeadsInativos()"><i class="ti ti-moon"></i>Arquivar inativos agora</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>Telefone</th><th>Status</th><th>Corretor</th><th>Sem contato há</th><th>Ação</th></tr></thead>
+          <tbody id="arquivados-body"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted)">Carregando...</td></tr></tbody>
+        </table>
       </div>
     </div>
 
@@ -2106,12 +2128,13 @@ const sb = supabase.createClient(SB_URL, SB_KEY);
 // O Supabase limita cada consulta a 1000 linhas por padrão. Essa função busca
 // TUDO, em lotes de 1000, pra nenhuma tabela grande (leads, telemarketing,
 // captações, catálogo...) ficar cortada silenciosamente.
-async function fetchAllRows(tableName, orderCol, ascending) {
+async function fetchAllRows(tableName, orderCol, ascending, columns, filtroFn) {
   var todos = [];
   var pagina = 0;
   var TAMANHO_PAGINA = 1000;
   while (true) {
-    var q = sb.from(tableName).select('*');
+    var q = sb.from(tableName).select(columns || '*');
+    if (filtroFn) q = filtroFn(q);
     if (orderCol) q = q.order(orderCol, {ascending: !!ascending});
     q = q.range(pagina * TAMANHO_PAGINA, pagina * TAMANHO_PAGINA + TAMANHO_PAGINA - 1);
     var r = await q;
@@ -2122,6 +2145,21 @@ async function fetchAllRows(tableName, orderCol, ascending) {
     pagina++;
   }
   return todos;
+}
+
+// Cache de históricos completos, usado só pelas telas de Indicadores/Relatórios
+// (que precisam contar atendimentos/ligações de TODOS os leads). Fica de fora do
+// carregamento principal pra não pesar o app inteiro toda vez.
+var historicosCache = null;
+async function garantirHistoricosParaIndicadores() {
+  if (historicosCache) return historicosCache;
+  var linhas = await fetchAllRows('leads', null, false, 'id,historico');
+  var mapa = {};
+  linhas.forEach(function(l) {
+    mapa[l.id] = typeof l.historico === 'string' ? JSON.parse(l.historico || '[]') : (l.historico || []);
+  });
+  historicosCache = mapa;
+  return mapa;
 }
 
 // Segundo projeto: o catálogo público de imóveis (differi-catalogo), usado só
@@ -2251,7 +2289,32 @@ function openWA(tel,nome,empr) {
   window.open('https://web.whatsapp.com/send?phone=' + f + '&text=' + encodeURIComponent(msg), '_blank');
 }
 
-function getLastHist(l) { var h=l.historico||[]; return h.length?h[h.length-1]:null; }
+function getLastHist(l) {
+  if (Array.isArray(l.historico)) {
+    var h = l.historico;
+    return h.length ? h[h.length - 1] : null;
+  }
+  // Histórico completo ainda não foi carregado (lista principal, pra ficar leve) —
+  // usa os campos-resumo mantidos em paralelo pra não perder o "+3 dias sem contato".
+  if (l.ultimo_contato_data) return { tipo: l.ultimo_contato_tipo || 'ok', data: l.ultimo_contato_data };
+  return null;
+}
+
+// Garante que l.historico está carregado por completo (array real), buscando do
+// banco só quando necessário. Use antes de editar/concatenar histórico de um lead,
+// pra nunca sobrescrever o que já existia.
+async function garantirHistoricoCompleto(id) {
+  var l = leads.find(function(x){ return String(x.id)===String(id); });
+  if (!l) return [];
+  if (Array.isArray(l.historico)) return l.historico; // já carregado
+  var r = await sb.from('leads').select('historico').eq('id', id).single();
+  var h = [];
+  if (!r.error && r.data) {
+    h = typeof r.data.historico === 'string' ? JSON.parse(r.data.historico || '[]') : (r.data.historico || []);
+  }
+  l.historico = h;
+  return h;
+}
 
 function getTmp(l) {
   if (isEncerrado(l)) return {score:100,cls:'cold',days:0,semRet:false,encerrado:true};
@@ -2333,8 +2396,15 @@ async function loadAll(){
 // LEADS
 async function loadLeads(){
   try{
-    var todos = await fetchAllRows('leads', 'created_at', false);
-    leads=todos.map(function(l){return Object.assign({},l,{historico:typeof l.historico==='string'?JSON.parse(l.historico||'[]'):l.historico||[]});});
+    // Não traz "historico" na listagem principal (fica pesado com a base grande) —
+    // usa ultimo_contato_tipo/data pra manter o "+3 dias sem contato" funcionando.
+    // O histórico completo de cada lead é buscado à parte quando ele é aberto (garantirHistoricoCompleto).
+    // Leads "adormecidos" (arquivado=true) também ficam de fora — veja panel-arquivados.
+    var COLUNAS_LEADS = 'id,nome,telefone,interesse,empreendimento,valor,status,status_geral,origem,canal,anuncio,observacoes,data_contato,data_venda,corretor,criado_por,propostas,empreendimentos_enviados,created_at,ultimo_contato_tipo,ultimo_contato_data,proximo_contato,arquivado';
+    var todos = await fetchAllRows('leads', 'created_at', false, COLUNAS_LEADS, function(q){
+      return q.or('arquivado.eq.false,arquivado.is.null');
+    });
+    leads=todos;
     filteredLeads=leads.slice();
     filterLeads();
     document.getElementById('badge-leads').textContent=leads.length;
@@ -2342,7 +2412,75 @@ async function loadLeads(){
     var sr=leads.filter(function(l){return getTmp(l).days>3;}).length;
     var q=leads.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
     document.getElementById('badge-alertas').textContent=q+sr;
+    if (currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing' && currentUser.tipo !== 'captador') {
+      arquivarLeadsInativos(); // roda em segundo plano, só pra admin
+    }
   }catch(e){console.error(e);toast('Erro ao carregar leads: '+(e.message||e));}
+}
+
+// ═══ LEADS ADORMECIDOS (arquivamento automático) ═══
+var DIAS_PARA_ADORMECER = 60;
+var STATUS_ADORMECEM = ['PERDIDO','DESISTIU','FINALIZADO','MAILING'];
+
+function diasSemContatoLead(l) {
+  var dataRef = l.ultimo_contato_data || l.data_contato || l.created_at;
+  if (!dataRef) return 0;
+  var d;
+  if (dataRef.indexOf('/') !== -1) { var p = dataRef.split(' ')[0].split('/'); d = new Date(p[2]+'-'+p[1]+'-'+p[0]); }
+  else { d = new Date(dataRef); }
+  if (isNaN(d.getTime())) return 0;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+
+async function arquivarLeadsInativos(silencioso) {
+  var candidatos = leads.filter(function(l) {
+    return STATUS_ADORMECEM.indexOf((l.status_geral||'').toUpperCase()) !== -1 && diasSemContatoLead(l) > DIAS_PARA_ADORMECER;
+  });
+  if (!candidatos.length) { if (!silencioso) toast('Nenhum lead inativo o suficiente pra adormecer.'); return; }
+  var ids = candidatos.map(function(l){ return l.id; });
+  await sb.from('leads').update({arquivado:true}).in('id', ids);
+  if (!silencioso) toast('💤 ' + ids.length + ' lead(s) inativo(s) adormecido(s).');
+  await loadLeads();
+  if (typeof renderArquivados === 'function') renderArquivados();
+}
+
+async function reativarLead(id) {
+  await sb.from('leads').update({arquivado:false}).eq('id', id);
+  toast('✅ Lead reativado — já está de volta na lista principal.');
+  await loadLeads();
+  if (typeof loadArquivados === 'function') await loadArquivados();
+}
+
+// ═══ ABA ARQUIVADOS ═══
+var arquivadosLista = [];
+async function loadArquivados() {
+  var COLUNAS = 'id,nome,telefone,status,status_geral,corretor,ultimo_contato_data,data_contato,created_at';
+  arquivadosLista = await fetchAllRows('leads', 'created_at', false, COLUNAS, function(q){ return q.eq('arquivado', true); });
+  var badge = document.getElementById('badge-arquivados');
+  if (badge) badge.textContent = arquivadosLista.length;
+  renderArquivados();
+}
+
+function renderArquivados() {
+  var tbody = document.getElementById('arquivados-body');
+  if (!tbody) return;
+  var q = (document.getElementById('arq-search') ? document.getElementById('arq-search').value : '').toLowerCase().trim();
+  var lista = arquivadosLista.filter(function(l) {
+    if (!q) return true;
+    return ((l.nome||'') + ' ' + (l.telefone||'')).toLowerCase().includes(q);
+  });
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted)">Nenhum lead adormecido' + (q ? ' com essa busca' : '') + '.</td></tr>'; return; }
+  tbody.innerHTML = lista.map(function(l) {
+    var dias = diasSemContatoLead(l);
+    return '<tr>'
+      + '<td><strong>' + (l.nome||'—') + '</strong></td>'
+      + '<td style="font-size:12px;color:var(--muted)">' + (l.telefone||'—') + '</td>'
+      + '<td><span class="pill ' + getSGClass(l.status_geral) + '">' + (l.status_geral||'—') + '</span></td>'
+      + '<td style="font-size:12px">' + (l.corretor||'—') + '</td>'
+      + '<td style="font-size:12px;color:var(--muted)">' + dias + ' dias</td>'
+      + '<td><button class="btn btn-primary btn-xs" onclick="reativarLead(' + JSON.stringify(l.id) + ')"><i class="ti ti-sun"></i>Reativar</button></td>'
+      + '</tr>';
+  }).join('');
 }
 
 function checkDup(){
@@ -2366,11 +2504,13 @@ async function saveLead(andWA){
   if(!etiq){toast('Selecione a etiqueta');return;}
   var enviados=Array.from(document.querySelectorAll('#empr-env-wrap input:checked')).map(function(x){return x.value;}).join(', ');
   var histTxt=document.getElementById('f-hist').value.trim();
-  var hist=[{tipo:'env',texto:histTxt||'Lead cadastrado no CRM',data:nowStr(),autor:currentUser.nome}];
-  var lead={nome:nome,telefone:tel,interesse:perfil,empreendimento:document.getElementById('f-empr').value.trim(),origem:document.getElementById('f-origem').value,canal:document.getElementById('f-canal')?document.getElementById('f-canal').value.trim():'',status:etiq,status_geral:document.getElementById('f-sg').value,valor:faixa,corretor:document.getElementById('f-corretor').value,observacoes:document.getElementById('f-obs').value.trim(),data_contato:document.getElementById('f-data-contato').value,historico:JSON.stringify(hist),criado_por:currentUser.nome,propostas:'[]',empreendimentos_enviados:enviados};
+  var primeiroItem = {tipo:'env',texto:histTxt||'Lead cadastrado no CRM',data:nowStr(),autor:currentUser.nome};
+  var hist=[primeiroItem];
+  var lead={nome:nome,telefone:tel,interesse:perfil,empreendimento:document.getElementById('f-empr').value.trim(),origem:document.getElementById('f-origem').value,canal:document.getElementById('f-canal')?document.getElementById('f-canal').value.trim():'',status:etiq,status_geral:document.getElementById('f-sg').value,valor:faixa,corretor:document.getElementById('f-corretor').value,observacoes:document.getElementById('f-obs').value.trim(),data_contato:document.getElementById('f-data-contato').value,historico:JSON.stringify(hist),ultimo_contato_tipo:primeiroItem.tipo,ultimo_contato_data:primeiroItem.data,criado_por:currentUser.nome,propostas:'[]',empreendimentos_enviados:enviados};
   var r=await sb.from('leads').insert([lead]);
   if(r.error){toast('Erro: '+r.error.message);return;}
   toast('Lead salvo!');
+  historicosCache = null;
   closeModal('new-lead');
   ['f-nome','f-tel','f-obs','f-hist'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('f-empr').value='';
@@ -2412,6 +2552,12 @@ function addNovoAnuncioEnviado(){
 var filterSRActive=false;
 function toggleSR(el){filterSRActive=!filterSRActive;el.classList.toggle('on',filterSRActive);filterLeads();}
 
+var _filterLeadsTimer = null;
+function filterLeadsDebounced() {
+  clearTimeout(_filterLeadsTimer);
+  _filterLeadsTimer = setTimeout(filterLeads, 400);
+}
+
 function filterLeads(){
   // Rebuild fil-cr from all known corretors (leads + equipe)
   var selCr = document.getElementById('fil-cr');
@@ -2445,6 +2591,32 @@ function filterLeads(){
   renderTable();
   var lbl=document.getElementById('leads-count-label');
   if(lbl)lbl.textContent=filteredLeads.length+' leads';
+
+  // Se a busca não achou nada localmente, procura também entre os adormecidos
+  // e acorda automaticamente quem for encontrado.
+  if (!filteredLeads.length && q && q.trim().length >= 3) {
+    buscarEAcordarArquivados(q.trim());
+  }
+}
+
+var _buscaArquivadosEmAndamento = false;
+async function buscarEAcordarArquivados(termo) {
+  if (_buscaArquivadosEmAndamento) return;
+  _buscaArquivadosEmAndamento = true;
+  try {
+    var termoDigitos = termo.replace(/\D/g, '');
+    var r = await sb.from('leads').select('id,nome,telefone').eq('arquivado', true)
+      .or('nome.ilike.%' + termo + '%' + (termoDigitos ? ',telefone.ilike.%' + termoDigitos + '%' : ''));
+    if (r.error || !r.data || !r.data.length) return;
+    var ids = r.data.map(function(l){ return l.id; });
+    await sb.from('leads').update({arquivado:false}).in('id', ids);
+    toast('💤➡️✅ ' + r.data.length + ' lead(s) adormecido(s) encontrado(s) e reativado(s) automaticamente!');
+    await loadLeads();
+    var searchEl = document.getElementById('search-input');
+    if (searchEl) filterLeads();
+  } finally {
+    _buscaArquivadosEmAndamento = false;
+  }
 }
 
 // PAGINAÇÃO — evita travar o navegador desenhando milhares de linhas de uma vez
@@ -2506,7 +2678,7 @@ function showPanel(id,el){
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   document.getElementById('panel-'+id).classList.add('active');
   if(el)el.classList.add('active');
-  var titles={dashboard:'Dashboard',leads:'Leads',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',fantasmas:'Fantasmas',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',visitascapt:'Visitas de Captação',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
+  var titles={dashboard:'Dashboard',leads:'Leads',arquivados:'Arquivados',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',fantasmas:'Fantasmas',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',visitascapt:'Visitas de Captação',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
   document.getElementById('page-title').textContent=titles[id]||id;
   closeMobile();
 }
@@ -2516,7 +2688,7 @@ function openModal(id){document.getElementById('modal-'+id).style.display='flex'
 function closeModal(id){document.getElementById('modal-'+id).style.display='none';}
 
 // DETALHE
-function openDetail(id,tab){
+async function openDetail(id,tab){
   currentLeadId=id;currentTab=tab||'dados';
   var l=leads.find(function(x){return String(x.id)===String(id);});if(!l)return;
   document.getElementById('d-nome').textContent=l.nome||'Lead';
@@ -2530,6 +2702,9 @@ function openDetail(id,tab){
   if(activeEl)activeEl.classList.add('active');
   renderTab(l,currentTab);
   openModal('detail');
+  // Histórico completo é carregado à parte (não vem na listagem principal pra ficar leve)
+  await garantirHistoricoCompleto(id);
+  if (String(currentLeadId)===String(id)) renderTab(l,currentTab);
 }
 
 function switchTab(tab,el){
@@ -2726,19 +2901,24 @@ async function addHist(id){
   if(!selectedCod){toast('Selecione um código de resultado');return;}
   var l=leads.find(function(x){return String(x.id)===String(id);});if(!l)return;
   var textoFinal = selectedCod + (txt?' — '+txt:'');
-  var hist=(l.historico||[]).concat([{tipo:selectedTipo,cod:selectedCod,texto:textoFinal,data:nowStr(),autor:currentUser.nome}]);
-  var r=await sb.from('leads').update({historico:JSON.stringify(hist)}).eq('id',id);
+  var histAtual = await garantirHistoricoCompleto(id);
+  var novoItem = {tipo:selectedTipo,cod:selectedCod,texto:textoFinal,data:nowStr(),autor:currentUser.nome};
+  var hist=histAtual.concat([novoItem]);
+  var r=await sb.from('leads').update({historico:JSON.stringify(hist), ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data}).eq('id',id);
   if(r.error){toast('Erro: '+r.error.message);return;}
   selectedCod=''; selectedTipo='env';
   toast('✅ Atendimento registrado!');
+  historicosCache = null;
   await loadLeads();renderDash();renderKanban();renderAlertas();renderRecontato();renderFantasmas();
   var updated=leads.find(function(x){return String(x.id)===String(id);});
-  if(updated)renderTab(updated,'hist');
+  if(updated){updated.historico=hist;renderTab(updated,'hist');}
 }
 
 async function saveEdit(id){
   var l=leads.find(function(x){return String(x.id)===String(id);});
-  var hist=(l.historico||[]).concat([{tipo:'ok',texto:'Dados atualizados',data:nowStr(),autor:currentUser.nome}]);
+  var histAtual = await garantirHistoricoCompleto(id);
+  var novoItem = {tipo:'ok',texto:'Dados atualizados',data:nowStr(),autor:currentUser.nome};
+  var hist=histAtual.concat([novoItem]);
   var upd={
     nome:document.getElementById('e-nome').value.trim(),
     telefone:document.getElementById('e-tel').value.trim(),
@@ -2752,14 +2932,16 @@ async function saveEdit(id){
     observacoes:document.getElementById('e-obs').value.trim(),
     data_contato:document.getElementById('e-data-contato').value||null,
     data_venda:document.getElementById('e-data-venda').value||null,
-    historico:JSON.stringify(hist)
+    historico:JSON.stringify(hist),
+    ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data
   };
   var r=await sb.from('leads').update(upd).eq('id',id);
   if(r.error){toast('Erro: '+r.error.message);return;}
   toast('Atualizado!');
+  historicosCache = null;
   await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();renderFantasmas();
   var updated=leads.find(function(x){return String(x.id)===String(id);});
-  if(updated){document.getElementById('d-nome').textContent=updated.nome;renderTab(updated,'dados');document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});document.querySelectorAll('.tab-btn')[0].classList.add('active');}
+  if(updated){updated.historico=hist;document.getElementById('d-nome').textContent=updated.nome;renderTab(updated,'dados');document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});document.querySelectorAll('.tab-btn')[0].classList.add('active');}
 }
 
 async function saveProposta(id){
@@ -2770,13 +2952,15 @@ async function saveProposta(id){
   var resultado=document.getElementById('pro-resultado').value;
   var dataVenda=document.getElementById('pro-data-venda').value;
   props.push({valor:valor,validade:document.getElementById('pro-validade').value,resultado:resultado,obs:document.getElementById('pro-obs').value.trim(),data:nowStr(),autor:currentUser.nome});
-  var hist=(l.historico||[]).concat([{tipo:'pro',texto:'Proposta de '+valor+' — '+resultado,data:nowStr(),autor:currentUser.nome}]);
-  var upd={propostas:JSON.stringify(props),historico:JSON.stringify(hist)};
+  var histAtual = await garantirHistoricoCompleto(id);
+  var novoItem = {tipo:'pro',texto:'Proposta de '+valor+' — '+resultado,data:nowStr(),autor:currentUser.nome};
+  var hist=histAtual.concat([novoItem]);
+  var upd={propostas:JSON.stringify(props),historico:JSON.stringify(hist), ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data};
   if(resultado==='Aceita'){upd.status_geral='VENDIDO';if(dataVenda)upd.data_venda=dataVenda;}
   await sb.from('leads').update(upd).eq('id',id);
-  toast('Proposta salva!');await loadLeads();renderRel();renderDash();
+  toast('Proposta salva!');historicosCache = null;await loadLeads();renderRel();renderDash();
   var updated=leads.find(function(x){return String(x.id)===String(id);});
-  if(updated)renderTab(updated,'proposta');
+  if(updated){updated.historico=hist;renderTab(updated,'proposta');}
 }
 
 // KANBAN
@@ -3416,18 +3600,21 @@ async function marcarSelecionadosComoFantasma() {
   var proximoStr = proximo.toISOString().split('T')[0];
   var selecionados = teleContatos.filter(function(t){ return teleSelecionados.indexOf(t.id) !== -1; });
   var novosLeads = selecionados.map(function(t) {
+    var itemHist = {tipo:'lig', texto:'Veio do Telemarketing sem prosseguir (marcação em massa). Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome};
     return {
       nome: t.nome, telefone: t.telefone, interesse: t.interesse,
       origem: 'TELEMARKETING', status: 'FANTASMA', status_geral: 'MAILING',
       corretor: t.atendente || currentUser.nome,
       proximo_contato: proximoStr,
-      historico: JSON.stringify([{tipo:'lig', texto:'Veio do Telemarketing sem prosseguir (marcação em massa). Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome}]),
+      historico: JSON.stringify([itemHist]),
+      ultimo_contato_tipo: itemHist.tipo, ultimo_contato_data: itemHist.data,
       criado_por: currentUser.nome, propostas: '[]'
     };
   });
   if (novosLeads.length) await sb.from('leads').insert(novosLeads);
   await sb.from('telemarketing').delete().in('id', teleSelecionados);
   toast('👻 ' + selecionados.length + ' contato(s) marcados como Fantasma — recontato em ' + proximo.toLocaleDateString('pt-BR'));
+  historicosCache = null;
   limparSelecaoTele();
   await loadTele();
   if (typeof loadLeads === 'function') { await loadLeads(); }
@@ -3501,17 +3688,20 @@ async function registrarAtendimento() {
   if (resultado === 'Fantasma — recontato 30d') {
     var proximo = new Date(); proximo.setDate(proximo.getDate() + 30);
     var proximoStr = proximo.toISOString().split('T')[0];
+    var itemHistFantasma = {tipo:'lig', texto:'Veio do Telemarketing sem prosseguir. ' + (obs||'') + ' Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome};
     var leadFantasma = {
       nome: upd.nome, telefone: t.telefone, interesse: upd.interesse,
       origem: 'TELEMARKETING', status: 'FANTASMA', status_geral: 'MAILING',
       corretor: upd.atendente || currentUser.nome,
       proximo_contato: proximoStr,
-      historico: JSON.stringify([{tipo:'lig', texto:'Veio do Telemarketing sem prosseguir. ' + (obs||'') + ' Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome}]),
+      historico: JSON.stringify([itemHistFantasma]),
+      ultimo_contato_tipo: itemHistFantasma.tipo, ultimo_contato_data: itemHistFantasma.data,
       criado_por: currentUser.nome, propostas: '[]'
     };
     await sb.from('leads').insert([leadFantasma]);
     await sb.from('telemarketing').delete().eq('id', currentTeleId);
     toast('👻 Marcado como Fantasma — recontato programado pra ' + proximo.toLocaleDateString('pt-BR'));
+    historicosCache = null;
     closeModal('atender-tele');
     await loadTele();
     if (typeof loadLeads === 'function') { await loadLeads(); }
@@ -3521,15 +3711,18 @@ async function registrarAtendimento() {
   await sb.from('telemarketing').update(upd).eq('id', currentTeleId);
   // Se convertido, criar lead automaticamente
   if (resultado === 'Convertido — virou lead') {
+    var itemHistConv = {tipo:'lig', texto:'Convertido do Telemarketing. ' + (obs||''), data:nowStr(), autor:currentUser.nome};
     var novoLead = {
       nome: upd.nome, telefone: t.telefone, interesse: upd.interesse,
       origem: 'TELEMARKETING', status: 'ENTRADA', status_geral: 'ATENDIMENTO ATIVO',
       corretor: upd.atendente || currentUser.nome,
-      historico: JSON.stringify([{tipo:'lig', texto:'Convertido do Telemarketing. ' + (obs||''), data:nowStr(), autor:currentUser.nome}]),
+      historico: JSON.stringify([itemHistConv]),
+      ultimo_contato_tipo: itemHistConv.tipo, ultimo_contato_data: itemHistConv.data,
       criado_por: currentUser.nome, propostas: '[]'
     };
     await sb.from('leads').insert([novoLead]);
     toast('✅ Lead criado no CRM automaticamente!');
+    historicosCache = null;
     await loadLeads(); renderDash(); renderKanban();
   } else {
     toast('✅ Atendimento registrado!');
@@ -3976,6 +4169,9 @@ function setIndFilter(f, el) {
 }
 
 function renderIndicadores() {
+  if (!historicosCache) {
+    garantirHistoricosParaIndicadores().then(function(){ renderIndicadores(); });
+  }
   // Filter leads by period
   var now = new Date();
   var filteredL = leads.filter(function(l) {
@@ -3999,8 +4195,8 @@ function renderIndicadores() {
   var ticket = propostasAceitas.length ? Math.round(propostasAceitas.reduce(function(a,b){return a+b;},0)/propostasAceitas.length) : 0;
 
   // Atendimentos (historico entries)
-  var atend = filteredL.reduce(function(s,l){return s+(l.historico||[]).length;},0);
-  var lig = filteredL.reduce(function(s,l){return s+(l.historico||[]).filter(function(h){return h.tipo==='lig'||h.tipo==='sem';}).length;},0);
+  var atend = filteredL.reduce(function(s,l){return s+((historicosCache && historicosCache[l.id])||[]).length;},0);
+  var lig = filteredL.reduce(function(s,l){return s+((historicosCache && historicosCache[l.id])||[]).filter(function(h){return h.tipo==='lig'||h.tipo==='sem';}).length;},0);
   var visitas = agendamentos.filter(function(a){return a.confirmado;}).length;
   var propostas = filteredL.reduce(function(s,l){return s+JSON.parse(l.propostas||'[]').length;},0);
   var quentes = filteredL.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
@@ -4064,8 +4260,8 @@ function renderIndicadores() {
         var nome = u.nome;
         var meus = filteredL.filter(function(l){return l.corretor===nome;});
         if (!meus.length) return '';
-        var atd = meus.reduce(function(s,l){return s+(l.historico||[]).length;},0);
-        var ligs = meus.reduce(function(s,l){return s+(l.historico||[]).filter(function(h){return h.tipo==='lig'||h.tipo==='sem';}).length;},0);
+        var atd = meus.reduce(function(s,l){return s+((historicosCache && historicosCache[l.id])||[]).length;},0);
+        var ligs = meus.reduce(function(s,l){return s+((historicosCache && historicosCache[l.id])||[]).filter(function(h){return h.tipo==='lig'||h.tipo==='sem';}).length;},0);
         var props = meus.reduce(function(s,l){return s+JSON.parse(l.propostas||'[]').length;},0);
         var vds = meus.filter(function(l){return (l.status_geral||'').toUpperCase()==='VENDIDO';}).length;
         var conv = meus.length ? Math.round(vds/meus.length*100) : 0;
@@ -4927,6 +5123,7 @@ showPanel = function(id, el) {
   else if (id === 'fluxo') { renderFluxoList(); }
   else if (id === 'vendas') renderVendas();
   else if (id === 'disparos') { renderDisparosAgenda(); }
+  else if (id === 'arquivados') { loadArquivados(); }
 };
 
 
@@ -5348,6 +5545,7 @@ async function importarLeadsArquivo() {
     if (telefonesExistentes[telNorm]) { duplicadosBase++; return; }
     if (vistosNesteLote[telNorm]) { duplicadosArquivo++; return; }
     vistosNesteLote[telNorm] = true;
+    var itemHistImport = {tipo:'ok', texto:'Importado em massa (' + origem + ')', data:nowStr(), autor: currentUser ? currentUser.nome : 'Sistema'};
     novos.push({
       nome: ct.nome || 'sem nome',
       telefone: ct.telefone,
@@ -5356,7 +5554,8 @@ async function importarLeadsArquivo() {
       status: 'ENTRADA',
       status_geral: 'ATENDIMENTO ATIVO',
       corretor: corretorEscolhido || null,
-      historico: JSON.stringify([{tipo:'ok', texto:'Importado em massa (' + origem + ')', data:nowStr(), autor: currentUser ? currentUser.nome : 'Sistema'}]),
+      historico: JSON.stringify([itemHistImport]),
+      ultimo_contato_tipo: itemHistImport.tipo, ultimo_contato_data: itemHistImport.data,
       criado_por: currentUser ? currentUser.nome : 'Sistema',
       propostas: '[]'
     });
@@ -5384,6 +5583,7 @@ async function importarLeadsArquivo() {
     (duplicadosArquivo ? duplicadosArquivo + ' repetido(s) dentro do próprio arquivo. ' : '') +
     (semTelefone ? semTelefone + ' sem telefone (ignorados).' : ''));
   closeModal('import-leads');
+  historicosCache = null;
   await loadLeads(); renderDash(); renderKanban(); renderRel(); renderEquipe(); renderRecontato();
 }
 
