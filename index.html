@@ -2400,7 +2400,7 @@ async function loadLeads(){
     // usa ultimo_contato_tipo/data pra manter o "+3 dias sem contato" funcionando.
     // O histórico completo de cada lead é buscado à parte quando ele é aberto (garantirHistoricoCompleto).
     // Leads "adormecidos" (arquivado=true) também ficam de fora — veja panel-arquivados.
-    var COLUNAS_LEADS = 'id,nome,telefone,interesse,empreendimento,valor,status,status_geral,origem,canal,anuncio,observacoes,data_contato,data_venda,corretor,criado_por,propostas,empreendimentos_enviados,created_at,ultimo_contato_tipo,ultimo_contato_data,proximo_contato,arquivado';
+    var COLUNAS_LEADS = 'id,nome,telefone,interesse,empreendimento,valor,status,status_geral,origem,canal,observacoes,data_contato,data_venda,corretor,criado_por,propostas,empreendimentos_enviados,created_at,ultimo_contato_tipo,ultimo_contato_data,proximo_contato,arquivado';
     var todos = await fetchAllRows('leads', 'created_at', false, COLUNAS_LEADS, function(q){
       return q.or('arquivado.eq.false,arquivado.is.null');
     });
