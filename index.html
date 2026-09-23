@@ -2895,31 +2895,42 @@ function toggleChk(lid,idx,el,total){
   if(bar)bar.style.width=Math.round(checked.length/total*100)+'%';
 }
 
+// Atualiza um lead só localmente (sem recarregar a base inteira do banco) e
+// re-renderiza as telas que dependem dele. Mais rápido com muita gente usando junto.
+function atualizarLeadLocal(id, patch) {
+  var l = leads.find(function(x){ return String(x.id)===String(id); });
+  if (l && patch) Object.assign(l, patch);
+  filterLeads();
+  var sr=leads.filter(function(x){return getTmp(x).days>3;}).length;
+  var q=leads.filter(function(x){return (x.status||'').toUpperCase()==='QUENTE';}).length;
+  var al=document.getElementById('badge-alertas'); if(al) al.textContent=q+sr;
+  renderDash();renderKanban();renderAlertas();renderRecontato();renderFantasmas();renderRel();renderEquipe();
+  return l;
+}
+
 async function addHist(id){
   var txt=document.getElementById('hist-txt').value.trim();
   if(!selectedCod&&!txt){toast('Selecione um código e descreva o atendimento');return;}
   if(!selectedCod){toast('Selecione um código de resultado');return;}
   var l=leads.find(function(x){return String(x.id)===String(id);});if(!l)return;
   var textoFinal = selectedCod + (txt?' — '+txt:'');
-  var histAtual = await garantirHistoricoCompleto(id);
   var novoItem = {tipo:selectedTipo,cod:selectedCod,texto:textoFinal,data:nowStr(),autor:currentUser.nome};
-  var hist=histAtual.concat([novoItem]);
-  var r=await sb.from('leads').update({historico:JSON.stringify(hist), ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data}).eq('id',id);
+  // Grava direto no banco de forma atômica — mesmo que outra pessoa esteja
+  // editando esse lead no mesmo instante, nenhum dos dois apaga o do outro.
+  var r = await sb.rpc('historico_append', {p_id:id, p_item:novoItem, p_tipo:novoItem.tipo, p_data:novoItem.data});
   if(r.error){toast('Erro: '+r.error.message);return;}
   selectedCod=''; selectedTipo='env';
   toast('✅ Atendimento registrado!');
   historicosCache = null;
-  await loadLeads();renderDash();renderKanban();renderAlertas();renderRecontato();renderFantasmas();
-  var updated=leads.find(function(x){return String(x.id)===String(id);});
-  if(updated){updated.historico=hist;renderTab(updated,'hist');}
+  l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([novoItem]);
+  atualizarLeadLocal(id,{ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data});
+  renderTab(l,'hist');
 }
 
 async function saveEdit(id){
-  var l=leads.find(function(x){return String(x.id)===String(id);});
-  var histAtual = await garantirHistoricoCompleto(id);
+  var l=leads.find(function(x){return String(x.id)===String(id);});if(!l)return;
   var novoItem = {tipo:'ok',texto:'Dados atualizados',data:nowStr(),autor:currentUser.nome};
-  var hist=histAtual.concat([novoItem]);
-  var upd={
+  var campos={
     nome:document.getElementById('e-nome').value.trim(),
     telefone:document.getElementById('e-tel').value.trim(),
     interesse:document.getElementById('e-perfil').value,
@@ -2931,36 +2942,43 @@ async function saveEdit(id){
     corretor:document.getElementById('e-corretor').value,
     observacoes:document.getElementById('e-obs').value.trim(),
     data_contato:document.getElementById('e-data-contato').value||null,
-    data_venda:document.getElementById('e-data-venda').value||null,
-    historico:JSON.stringify(hist),
-    ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data
+    data_venda:document.getElementById('e-data-venda').value||null
   };
-  var r=await sb.from('leads').update(upd).eq('id',id);
+  var r=await sb.from('leads').update(campos).eq('id',id);
   if(r.error){toast('Erro: '+r.error.message);return;}
+  var rh = await sb.rpc('historico_append', {p_id:id, p_item:novoItem, p_tipo:novoItem.tipo, p_data:novoItem.data});
+  if(rh.error){ console.error(rh.error); }
   toast('Atualizado!');
   historicosCache = null;
-  await loadLeads();renderDash();renderKanban();renderRel();renderEquipe();renderRecontato();renderFantasmas();
-  var updated=leads.find(function(x){return String(x.id)===String(id);});
-  if(updated){updated.historico=hist;document.getElementById('d-nome').textContent=updated.nome;renderTab(updated,'dados');document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});document.querySelectorAll('.tab-btn')[0].classList.add('active');}
+  l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([novoItem]);
+  atualizarLeadLocal(id, Object.assign({}, campos, {ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data}));
+  document.getElementById('d-nome').textContent=l.nome;renderTab(l,'dados');document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});document.querySelectorAll('.tab-btn')[0].classList.add('active');
 }
 
 async function saveProposta(id){
   var valor=document.getElementById('pro-valor').value.trim();
   if(!valor){toast('Informe o valor');return;}
-  var l=leads.find(function(x){return String(x.id)===String(id);});
-  var props=JSON.parse(l.propostas||'[]');
+  var l=leads.find(function(x){return String(x.id)===String(id);});if(!l)return;
   var resultado=document.getElementById('pro-resultado').value;
   var dataVenda=document.getElementById('pro-data-venda').value;
-  props.push({valor:valor,validade:document.getElementById('pro-validade').value,resultado:resultado,obs:document.getElementById('pro-obs').value.trim(),data:nowStr(),autor:currentUser.nome});
-  var histAtual = await garantirHistoricoCompleto(id);
+  var novaProposta={valor:valor,validade:document.getElementById('pro-validade').value,resultado:resultado,obs:document.getElementById('pro-obs').value.trim(),data:nowStr(),autor:currentUser.nome};
+  var rp = await sb.rpc('propostas_append', {p_id:id, p_item:novaProposta});
+  if(rp.error){toast('Erro: '+rp.error.message);return;}
   var novoItem = {tipo:'pro',texto:'Proposta de '+valor+' — '+resultado,data:nowStr(),autor:currentUser.nome};
-  var hist=histAtual.concat([novoItem]);
-  var upd={propostas:JSON.stringify(props),historico:JSON.stringify(hist), ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data};
-  if(resultado==='Aceita'){upd.status_geral='VENDIDO';if(dataVenda)upd.data_venda=dataVenda;}
-  await sb.from('leads').update(upd).eq('id',id);
-  toast('Proposta salva!');historicosCache = null;await loadLeads();renderRel();renderDash();
-  var updated=leads.find(function(x){return String(x.id)===String(id);});
-  if(updated){updated.historico=hist;renderTab(updated,'proposta');}
+  var rh = await sb.rpc('historico_append', {p_id:id, p_item:novoItem, p_tipo:novoItem.tipo, p_data:novoItem.data});
+  if(rh.error){ console.error(rh.error); }
+  var patch={ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data};
+  if(resultado==='Aceita'){
+    patch.status_geral='VENDIDO'; if(dataVenda)patch.data_venda=dataVenda;
+    await sb.from('leads').update({status_geral:'VENDIDO', data_venda:dataVenda||null}).eq('id',id);
+  }
+  toast('Proposta salva!');
+  historicosCache = null;
+  var propsAtuais = typeof l.propostas === 'string' ? JSON.parse(l.propostas||'[]') : (l.propostas||[]);
+  l.propostas = JSON.stringify(propsAtuais.concat([novaProposta]));
+  l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([novoItem]);
+  atualizarLeadLocal(id, patch);
+  renderTab(l,'proposta');
 }
 
 // KANBAN
