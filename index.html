@@ -1102,13 +1102,16 @@ textarea.fc{resize:vertical;min-height:60px}
 
     <!-- TELEMARKETING -->
     <div class="panel" id="panel-telemarketing">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="display:flex;gap:7px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
           <div class="chip on" onclick="setTeleFilter('todos',this)">Todos</div>
           <div class="chip" onclick="setTeleFilter('Aguardando',this)">⏳ Aguardando</div>
           <div class="chip" onclick="setTeleFilter('Em contato',this)">📞 Em contato</div>
           <div class="chip" onclick="setTeleFilter('Não atendeu',this)">❌ Não atendeu</div>
           <div class="chip" onclick="setTeleFilter('Convertido',this)">✅ Convertido</div>
+          <div class="chip" onclick="setTeleFilter('__hoje',this)">📅 Follow-ups de hoje</div>
+          <div class="chip" onclick="setTeleFilter('__vencidos',this)">⚠️ Vencidos</div>
+          <div class="chip" onclick="setTeleFilter('Visita agendada',this)">🏠 Visita agendada</div>
         </div>
         <div style="display:flex;gap:7px">
           <button class="btn btn-sm" onclick="openModal('importar-tele')"><i class="ti ti-upload"></i>Importar</button>
@@ -1128,7 +1131,8 @@ textarea.fc{resize:vertical;min-height:60px}
         </select>
       </div>
       <!-- MÉTRICAS TELE -->
-      <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+      <div class="metrics-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px">
+        <div class="metric-card"><div class="metric-label">Follow-ups vencidos</div><div class="metric-val" style="color:#e74c3c" id="tele-m-vencidos">—</div><div class="metric-sub">zerar até 12h</div></div>
         <div class="metric-card"><div class="metric-label">Na fila</div><div class="metric-val" id="tele-m-total">—</div><div class="metric-sub">aguardando contato</div></div>
         <div class="metric-card"><div class="metric-label">Ligações hoje</div><div class="metric-val" style="color:var(--info)" id="tele-m-hoje">—</div><div class="metric-sub">realizadas</div></div>
         <div class="metric-card"><div class="metric-label">Não atendeu</div><div class="metric-val" style="color:var(--warn)" id="tele-m-naoatend">—</div><div class="metric-sub">tentar novamente</div></div>
@@ -1150,11 +1154,13 @@ textarea.fc{resize:vertical;min-height:60px}
             <th style="cursor:pointer" onclick="setTeleSort('nome')">Nome <span id="tele-sort-nome"></span></th>
             <th style="cursor:pointer" onclick="setTeleSort('telefone')">Telefone <span id="tele-sort-telefone"></span></th>
             <th style="cursor:pointer" onclick="setTeleSort('interesse')">Interesse <span id="tele-sort-interesse"></span></th>
+            <th style="cursor:pointer" onclick="setTeleSort('prioridade')">Prior. <span id="tele-sort-prioridade"></span></th>
             <th>Status</th>
+            <th style="cursor:pointer" onclick="setTeleSort('proximo_contato')">Próx. contato <span id="tele-sort-proximo_contato"></span></th>
             <th style="cursor:pointer" onclick="setTeleSort('tentativas')">Tentativas <span id="tele-sort-tentativas"></span></th>
             <th style="cursor:pointer" onclick="setTeleSort('ultimo_contato')">Último contato <span id="tele-sort-ultimo_contato"></span></th>
             <th>Atendente</th><th>Ação</th></tr></thead>
-          <tbody id="tele-body"><tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">Carregando...</td></tr></tbody>
+          <tbody id="tele-body"><tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted)">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1801,6 +1807,10 @@ textarea.fc{resize:vertical;min-height:60px}
           <select class="fc" id="tele-atendente"><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
         </div>
       </div>
+      <div class="form-row">
+        <div><label class="lbl">Prioridade</label><select class="fc" id="tele-new-prioridade"><option>P1</option><option selected>P2</option><option>P3</option><option>P4</option></select></div>
+        <div><label class="lbl">Origem / campanha</label><input class="fc" id="tele-new-origem" placeholder="Anúncio, site, indicação..."></div>
+      </div>
       <div class="fld"><label class="lbl">Observações</label><textarea class="fc" id="tele-obs" placeholder="Informações do contato..."></textarea></div>
     </div>
     <div class="modal-footer">
@@ -1812,7 +1822,7 @@ textarea.fc{resize:vertical;min-height:60px}
 
 <!-- MODAL ATENDER TELEMARKETING -->
 <div class="modal-overlay" id="modal-atender-tele" style="display:none" onclick="if(event.target===this)closeModal('atender-tele')">
-  <div class="modal" style="max-width:500px">
+  <div class="modal" style="max-width:640px">
     <div class="modal-hdr"><div class="modal-title" id="atender-nome-title">Atender contato</div><button class="modal-close" onclick="closeModal('atender-tele')"><i class="ti ti-x"></i></button></div>
     <div class="modal-body">
       <div id="atender-info" style="background:var(--surface);padding:12px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:14px;font-size:13px"></div>
@@ -1837,11 +1847,71 @@ textarea.fc{resize:vertical;min-height:60px}
           <div class="tipo-btn" data-res="Sem interesse" onclick="selResTele(this)" style="border-color:#95a5a622"><span style="color:#95a5a6;font-weight:700">AT</span> Sem interesse</div>
           <div class="tipo-btn" data-res="Interessado — agendar" onclick="selResTele(this)" style="border-color:#2980b922"><span style="color:#2980b9;font-weight:700">AG</span> Agendou visita</div>
           <div class="tipo-btn" data-res="Convertido — virou lead" onclick="selResTele(this)" style="border-color:#27ae6022"><span style="color:#27ae60;font-weight:700">CV</span> Convertido — virou lead</div>
+          <div class="tipo-btn" data-res="Em qualificação" onclick="selResTele(this)" style="border-color:#8e44ad22"><span style="color:#8e44ad;font-weight:700">EQ</span> Atendeu — em qualificação</div>
+          <div class="tipo-btn" data-res="Qualificado" onclick="selResTele(this)" style="border-color:#16a08522"><span style="color:#16a085;font-weight:700">QL</span> Qualificado</div>
+          <div class="tipo-btn" data-res="Nutrição" onclick="selResTele(this)" style="border-color:#34495e22"><span style="color:#34495e;font-weight:700">NT</span> Futuro / nutrição (15 dias)</div>
+          <div class="tipo-btn" data-res="Número inválido" onclick="selResTele(this)" style="border-color:#c0392b22"><span style="color:#c0392b;font-weight:700">NI</span> Número inválido</div>
           <div class="tipo-btn" data-res="Fantasma — recontato 30d" onclick="selResTele(this)" style="border-color:#7f8c8d22;grid-column:1 / -1"><span style="color:#7f8c8d;font-weight:700">👻</span> Fantasma — recontato em 30 dias</div>
         </div>
         <input type="hidden" id="atender-resultado" value="Não atendeu">
       </div>
+      <!-- CANAL -->
+      <div class="fld">
+        <label class="lbl">Canal deste contato</label>
+        <div style="display:flex;gap:6px" id="canal-btns-tele">
+          <div class="tipo-btn sel" data-canal="Ligação" onclick="selCanalTele(this)">📞 Ligação</div>
+          <div class="tipo-btn" data-canal="WhatsApp" onclick="selCanalTele(this)">💬 WhatsApp</div>
+        </div>
+      </div>
+      <!-- VISITA AGENDADA -->
+      <div id="tele-visita-box" style="display:none;background:rgba(41,128,185,.07);border:1px solid rgba(41,128,185,.25);border-radius:var(--radius);padding:12px;margin-bottom:12px">
+        <div style="font-weight:600;font-size:13px;margin-bottom:8px">🏠 Visita / atendimento com corretor</div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div><label class="lbl">Data</label><input type="date" class="fc" id="tele-visita-data"></div>
+          <div><label class="lbl">Hora</label><input type="time" class="fc" id="tele-visita-hora"></div>
+          <div><label class="lbl">Corretor</label><select class="fc" id="tele-visita-corretor"></select></div>
+        </div>
+        <div class="fld" style="margin-bottom:0"><label class="lbl">Imóvel / local</label><input class="fc" id="tele-visita-imovel" placeholder="Empreendimento, endereço ou online"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">Ao registrar: cria o lead no CRM com este corretor e o agendamento na Agenda.</div>
+      </div>
+      <!-- MOTIVO DE PERDA -->
+      <div class="fld" id="tele-motivo-box" style="display:none">
+        <label class="lbl">Motivo de perda</label>
+        <select class="fc" id="tele-motivo-perda">
+          <option value="">Selecione...</option>
+          <option>Preço acima do orçamento</option><option>Sem crédito aprovado</option><option>Comprou com outra imobiliária</option>
+          <option>Desistiu de comprar</option><option>Localização não atende</option><option>Só pesquisando</option>
+          <option>Queria alugar</option><option>Não lembra de ter se cadastrado</option><option>Sem contato após cadência</option><option>Outro</option>
+        </select>
+      </div>
+      <!-- QUALIFICAÇÃO -->
+      <details id="tele-qualif-box" style="border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px">
+        <summary style="cursor:pointer;font-weight:600;font-size:13px">📋 Qualificação do lead <span id="tele-qualif-status" style="font-weight:400;color:var(--muted);font-size:12px"></span></summary>
+        <div class="form-row" style="margin-top:10px">
+          <div><label class="lbl">Finalidade</label><select class="fc" id="tq-finalidade"><option value="">—</option><option>Morar</option><option>Investir</option><option>Morar e investir</option></select></div>
+          <div><label class="lbl">Tipo de imóvel</label><input class="fc" id="tq-tipo" placeholder="Apto 3 quartos, flat, casa..."></div>
+        </div>
+        <div class="form-row">
+          <div><label class="lbl">Bairros</label><input class="fc" id="tq-bairros" placeholder="Cabo Branco, Manaíra..."></div>
+          <div><label class="lbl">Faixa de valor</label><input class="fc" id="tq-faixa" placeholder="Até R$ 500 mil"></div>
+        </div>
+        <div class="form-row">
+          <div><label class="lbl">Pagamento</label><select class="fc" id="tq-pagamento"><option value="">—</option><option>Financiamento</option><option>FGTS</option><option>À vista</option><option>Permuta</option><option>Financiamento + FGTS</option><option>Direto com construtora</option></select></div>
+          <div><label class="lbl">Prazo para comprar</label><select class="fc" id="tq-prazo"><option value="">—</option><option>Até 3 meses</option><option>3 a 6 meses</option><option>Mais de 6 meses</option><option>Não sabe</option></select></div>
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <div><label class="lbl">Decisor</label><input class="fc" id="tq-decisor" placeholder="Ele(a) mesmo, casal, família..."></div>
+          <div><label class="lbl">Origem / campanha</label><input class="fc" id="tq-origem" placeholder="Anúncio, site, indicação..."></div>
+        </div>
+      </details>
+      <!-- PRÓXIMO PASSO -->
+      <div class="form-row" style="grid-template-columns:110px 1fr 1fr">
+        <div><label class="lbl">Prioridade</label><select class="fc" id="tele-prioridade"><option value="">—</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
+        <div><label class="lbl">Próximo contato</label><input type="date" class="fc" id="tele-proximo-contato"></div>
+        <div><label class="lbl">Próxima ação</label><input class="fc" id="tele-proxima-acao" placeholder="Ligar à tarde, enviar /d3..."></div>
+      </div>
       <div class="fld"><label class="lbl">Observações</label><textarea class="fc" id="atender-obs" rows="2" placeholder="O que foi falado..."></textarea></div>
+      <div id="tele-historico-box"></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('atender-tele')">Cancelar</button>
@@ -3397,12 +3467,60 @@ async function loadTele() {
   var naoAtend = teleContatos.filter(function(t){return t.status==='Não atendeu';}).length;
   var conv = teleContatos.filter(function(t){return t.status==='Convertido';}).length;
   var hoje = new Date().toLocaleDateString('pt-BR');
-  var hoje2 = teleContatos.filter(function(t){return (t.ultimo_contato||'').includes(hoje);}).length;
+  var hoje2 = 0;
+  teleContatos.forEach(function(t){
+    var hist = teleParseHist(t);
+    var n = hist.filter(function(h){ return h.canal === 'Ligação' && (h.data||'').indexOf(hoje) === 0; }).length;
+    if (!hist.length && (t.ultimo_contato||'').includes(hoje)) n = 1;
+    hoje2 += n;
+  });
+  var vencidos = teleContatos.filter(function(t){ return teleFollowStatus(t) === 'vencido'; }).length;
+  var elV = document.getElementById('tele-m-vencidos'); if(elV) elV.textContent = vencidos;
   var el = document.getElementById('tele-m-total'); if(el) el.textContent = total;
   var el2 = document.getElementById('tele-m-hoje'); if(el2) el2.textContent = hoje2;
   var el3 = document.getElementById('tele-m-naoatend'); if(el3) el3.textContent = naoAtend;
   var el4 = document.getElementById('tele-m-conv'); if(el4) el4.textContent = conv;
   var el5 = document.getElementById('ind-tele'); if(el5) el5.textContent = total;
+}
+
+var TELE_ENCERRADOS = ['Convertido','Sem interesse','Inválido','Fantasma'];
+function teleParseHist(t) {
+  try { var h = JSON.parse(t.historico || '[]'); return Array.isArray(h) ? h : []; } catch(e) { return []; }
+}
+function teleFollowStatus(t) {
+  if (!t.proximo_contato || TELE_ENCERRADOS.indexOf(t.status) !== -1) return '';
+  var hoje = todayStr();
+  if (t.proximo_contato < hoje) return 'vencido';
+  if (t.proximo_contato === hoje) return 'hoje';
+  return 'futuro';
+}
+function teleAddDias(n) { var d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; }
+// Cadência SDR: dias até o próximo contato conforme a tentativa que acabou de ser feita
+function teleSugestaoProximo(tentativaFeita, resultado) {
+  if (resultado === 'Nutrição') return teleAddDias(15);
+  if (resultado === 'Retornar mais tarde') return teleAddDias(0);
+  var mapa = {1:0, 2:1, 3:1, 4:1, 5:1, 6:3};
+  var dias = mapa[tentativaFeita];
+  if (dias === undefined) return teleAddDias(15);
+  return teleAddDias(dias);
+}
+function selCanalTele(el) {
+  document.querySelectorAll('#canal-btns-tele .tipo-btn').forEach(function(b){b.classList.remove('sel');});
+  el.classList.add('sel');
+}
+function teleAtualizarCamposResultado() {
+  var res = document.getElementById('atender-resultado').value;
+  var vis = document.getElementById('tele-visita-box'); if (vis) vis.style.display = res === 'Interessado — agendar' ? '' : 'none';
+  var mot = document.getElementById('tele-motivo-box'); if (mot) mot.style.display = res === 'Sem interesse' ? '' : 'none';
+  if (res === 'Em qualificação' || res === 'Qualificado' || res === 'Interessado — agendar') {
+    var q = document.getElementById('tele-qualif-box'); if (q) q.open = true;
+  }
+  var t = teleContatos.find(function(x){return x.id===currentTeleId;});
+  var prox = document.getElementById('tele-proximo-contato');
+  if (t && prox && !prox.dataset.manual) {
+    var semProximo = ['Convertido — virou lead','Sem interesse','Número inválido','Fantasma — recontato 30d','Interessado — agendar'];
+    prox.value = semProximo.indexOf(res) !== -1 ? '' : teleSugestaoProximo((t.tentativas||0) + 1, res);
+  }
 }
 
 function setTeleFilter(f, el) {
@@ -3421,7 +3539,7 @@ function setTeleInteresse(v) {
 function setTeleSort(col) {
   if (teleSort.col === col) { teleSort.dir = teleSort.dir === 'asc' ? 'desc' : 'asc'; }
   else { teleSort.col = col; teleSort.dir = 'asc'; }
-  ['nome','telefone','interesse','tentativas','ultimo_contato'].forEach(function(c){
+  ['nome','telefone','interesse','tentativas','ultimo_contato','prioridade','proximo_contato'].forEach(function(c){
     var el = document.getElementById('tele-sort-'+c);
     if (el) el.textContent = (c === teleSort.col) ? (teleSort.dir === 'asc' ? '▲' : '▼') : '';
   });
@@ -3494,7 +3612,10 @@ function renderTele() {
   var tbody = document.getElementById('tele-body');
   if (!tbody) return;
   renderTeleInteresseTabs();
-  var lista = teleFilter === 'todos' ? teleContatos.slice() : teleContatos.filter(function(t){return t.status===teleFilter;});
+  var lista = teleFilter === 'todos' ? teleContatos.slice()
+    : teleFilter === '__hoje' ? teleContatos.filter(function(t){ var f = teleFollowStatus(t); return f === 'hoje' || f === 'vencido'; })
+    : teleFilter === '__vencidos' ? teleContatos.filter(function(t){ return teleFollowStatus(t) === 'vencido'; })
+    : teleContatos.filter(function(t){return t.status===teleFilter;});
   var q = (document.getElementById('tele-search') ? document.getElementById('tele-search').value : '').trim();
   if (q) {
     var qDigits = q.replace(/\D/g, '');
@@ -3552,8 +3673,9 @@ function renderTele() {
       selCorretor.dataset.filled = '1';
     }
   }
-  if (!lista.length) { tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">Nenhum contato encontrado</td></tr>'; return; }
-  var statusColors = {'Aguardando':'#f39c12','Em contato':'#2980b9','Não atendeu':'#e74c3c','Convertido':'#27ae60','Sem interesse':'#95a5a6'};
+  if (!lista.length) { tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted)">Nenhum contato encontrado</td></tr>'; return; }
+  var statusColors = {'Aguardando':'#f39c12','Em contato':'#2980b9','Não atendeu':'#e74c3c','Convertido':'#27ae60','Sem interesse':'#95a5a6','Em qualificação':'#8e44ad','Qualificado':'#16a085','Visita agendada':'#2980b9','Nutrição':'#34495e','Inválido':'#c0392b'};
+  var prioColors = {'P1':'#e74c3c','P2':'#e67e22','P3':'#2980b9','P4':'#95a5a6'};
   tbody.innerHTML = lista.map(function(t) {
     var cor = statusColors[t.status] || '#95a5a6';
     var checkTd = isAdminTele
@@ -3564,7 +3686,11 @@ function renderTele() {
       + '<td><strong>' + (t.nome||'—') + '</strong></td>'
       + '<td style="font-size:12px;color:var(--muted)">' + (t.telefone||'—') + '</td>'
       + '<td style="font-size:12px">' + (t.interesse||'—') + '</td>'
+      + '<td>' + (t.prioridade ? '<span class="pill" style="background:' + (prioColors[t.prioridade]||'#95a5a6') + '22;color:' + (prioColors[t.prioridade]||'#95a5a6') + '">' + t.prioridade + '</span>' : '<span style="color:var(--muted)">—</span>') + '</td>'
       + '<td><span class="pill" style="background:' + cor + '22;color:' + cor + '">' + (t.status||'—') + '</span></td>'
+      + (function(){ var f = teleFollowStatus(t); if (!t.proximo_contato) return '<td style="font-size:12px;color:var(--muted)">—</td>';
+          var dt = t.proximo_contato.split('-').reverse().join('/'); var c = f === 'vencido' ? '#e74c3c' : f === 'hoje' ? '#e67e22' : 'var(--muted)';
+          return '<td style="font-size:12px;color:' + c + ';font-weight:' + (f==='vencido'||f==='hoje'?'600':'400') + '">' + (f==='vencido'?'⚠️ ':'') + dt + '</td>'; })()
       + '<td style="text-align:center">' + (t.tentativas||0) + 'x</td>'
       + '<td style="font-size:12px;color:var(--muted)">' + (t.ultimo_contato||'—') + '</td>'
       + '<td style="font-size:12px">' + (t.atendente||'—') + '</td>'
@@ -3663,6 +3789,32 @@ function openTele(id) {
   };
   document.getElementById('atender-resultado').value = 'Não atendeu';
   document.getElementById('atender-obs').value = '';
+  // Campos SDR
+  document.querySelectorAll('#resultado-btns-tele .tipo-btn').forEach(function(b){ b.classList.toggle('sel', b.getAttribute('data-res') === 'Não atendeu'); });
+  document.querySelectorAll('#canal-btns-tele .tipo-btn').forEach(function(b){ b.classList.toggle('sel', b.getAttribute('data-canal') === 'Ligação'); });
+  var setv = function(id, v){ var e = document.getElementById(id); if (e) e.value = v || ''; };
+  setv('tq-finalidade', t.finalidade); setv('tq-tipo', t.tipo_imovel); setv('tq-bairros', t.bairros); setv('tq-faixa', t.faixa_valor);
+  setv('tq-pagamento', t.pagamento); setv('tq-prazo', t.prazo); setv('tq-decisor', t.decisor); setv('tq-origem', t.origem);
+  setv('tele-prioridade', t.prioridade); setv('tele-proxima-acao', t.proxima_acao); setv('tele-motivo-perda', t.motivo_perda);
+  setv('tele-visita-data', t.data_visita); setv('tele-visita-hora', t.hora_visita); setv('tele-visita-imovel', t.interesse);
+  var prox = document.getElementById('tele-proximo-contato');
+  if (prox) { delete prox.dataset.manual; prox.onchange = function(){ prox.dataset.manual = '1'; }; }
+  var selCorr = document.getElementById('tele-visita-corretor');
+  if (selCorr) {
+    selCorr.innerHTML = '<option value="">Selecione...</option>' + getAllEquipe().filter(function(u){ return u.tipo === 'corretor'; })
+      .map(function(u){ return '<option value="'+u.nome.replace(/"/g,'&quot;')+'"'+((t.corretor_repasse||'')===u.nome?' selected':'')+'>'+u.nome+'</option>'; }).join('');
+  }
+  var qn = ['finalidade','faixa_valor','bairros','prazo'].filter(function(k){ return t[k]; }).length;
+  var qs = document.getElementById('tele-qualif-status'); if (qs) qs.textContent = '(' + qn + ' de 4 respostas mínimas)';
+  var qb = document.getElementById('tele-qualif-box'); if (qb) qb.open = qn > 0;
+  teleAtualizarCamposResultado();
+  var hist = teleParseHist(t).slice().reverse();
+  var hb = document.getElementById('tele-historico-box');
+  if (hb) hb.innerHTML = hist.length
+    ? '<div class="lbl" style="margin-top:4px">Histórico de contatos</div><div style="max-height:140px;overflow-y:auto;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px">'
+      + hist.map(function(h){ return '<div style="padding:4px 0;border-bottom:1px solid var(--border)"><strong>' + (h.data||'') + '</strong> · ' + (h.canal||'') + ' · ' + (h.resultado||'') + (h.autor ? ' · ' + h.autor : '') + (h.obs ? '<div style="color:var(--muted)">' + h.obs + '</div>' : '') + '</div>'; }).join('')
+      + '</div>'
+    : '';
   var isAdminTeleModal = currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing';
   var transferBtn = document.getElementById('atender-transferir-btn');
   if (transferBtn) transferBtn.style.display = isAdminTeleModal ? '' : 'none';
@@ -3689,13 +3841,42 @@ async function registrarAtendimento() {
   var nomeEditado = document.getElementById('atender-nome-edit') ? document.getElementById('atender-nome-edit').value.trim() : t.nome;
   var interesseEditado = document.getElementById('atender-interesse-edit') ? document.getElementById('atender-interesse-edit').value.trim() : t.interesse;
   var atendenteEditado = document.getElementById('atender-atendente-edit') ? document.getElementById('atender-atendente-edit').value : t.atendente;
+  var gv = function(id){ var e = document.getElementById(id); return e ? e.value.trim() : ''; };
+  var canalSel = document.querySelector('#canal-btns-tele .tipo-btn.sel');
+  var canal = canalSel ? canalSel.getAttribute('data-canal') : 'Ligação';
+  var proximoContato = gv('tele-proximo-contato');
+  var semProximo = ['Convertido — virou lead','Sem interesse','Número inválido','Fantasma — recontato 30d','Interessado — agendar'];
+  if (semProximo.indexOf(resultado) === -1 && !proximoContato) { toast('⚠️ Preencha a data do próximo contato'); return; }
+  if (resultado === 'Sem interesse' && !gv('tele-motivo-perda')) { toast('⚠️ Selecione o motivo de perda'); return; }
+  var visita = null;
+  if (resultado === 'Interessado — agendar') {
+    visita = {data: gv('tele-visita-data'), hora: gv('tele-visita-hora'), corretor: gv('tele-visita-corretor'), imovel: gv('tele-visita-imovel')};
+    if (!visita.data || !visita.hora || !visita.corretor) { toast('⚠️ Preencha data, hora e corretor da visita'); return; }
+  }
+  var hist = teleParseHist(t);
+  hist.push({data: nowStr(), canal: canal, tentativa: (t.tentativas||0) + 1, resultado: resultado, obs: obs, autor: currentUser ? currentUser.nome : ''});
+  var camposSDR = {
+    finalidade: gv('tq-finalidade') || null, tipo_imovel: gv('tq-tipo') || null, bairros: gv('tq-bairros') || null,
+    faixa_valor: gv('tq-faixa') || null, pagamento: gv('tq-pagamento') || null, prazo: gv('tq-prazo') || null,
+    decisor: gv('tq-decisor') || null, origem: gv('tq-origem') || null, prioridade: gv('tele-prioridade') || null,
+    proximo_contato: semProximo.indexOf(resultado) === -1 ? proximoContato : null,
+    proxima_acao: gv('tele-proxima-acao') || null,
+    motivo_perda: resultado === 'Sem interesse' ? gv('tele-motivo-perda') : t.motivo_perda,
+    primeiro_contato_em: t.primeiro_contato_em || new Date().toISOString(),
+    historico: JSON.stringify(hist)
+  };
+  if (visita) { camposSDR.corretor_repasse = visita.corretor; camposSDR.data_visita = visita.data; camposSDR.hora_visita = visita.hora; }
   var upd = {
     nome: nomeEditado || t.nome,
     interesse: interesseEditado || t.interesse,
     atendente: atendenteEditado || t.atendente,
     status: resultado === 'Convertido — virou lead' ? 'Convertido' :
-             resultado === 'Interessado — agendar' ? 'Em contato' :
+             resultado === 'Interessado — agendar' ? 'Visita agendada' :
              resultado === 'Sem interesse' ? 'Sem interesse' :
+             resultado === 'Em qualificação' ? 'Em qualificação' :
+             resultado === 'Qualificado' ? 'Qualificado' :
+             resultado === 'Nutrição' ? 'Nutrição' :
+             resultado === 'Número inválido' ? 'Inválido' :
              resultado === 'Fantasma — recontato 30d' ? 'Fantasma' :
              resultado === 'Em contato' ? 'Em contato' : 'Não atendeu',
     tentativas: (t.tentativas||0) + 1,
@@ -3703,6 +3884,7 @@ async function registrarAtendimento() {
     resultado: resultado,
     observacoes: obs || t.observacoes
   };
+  Object.keys(camposSDR).forEach(function(k){ upd[k] = camposSDR[k]; });
   if (resultado === 'Fantasma — recontato 30d') {
     var proximo = new Date(); proximo.setDate(proximo.getDate() + 30);
     var proximoStr = proximo.toISOString().split('T')[0];
@@ -3726,7 +3908,41 @@ async function registrarAtendimento() {
     if (typeof renderFantasmas === 'function') { await renderFantasmas(); }
     return;
   }
-  await sb.from('telemarketing').update(upd).eq('id', currentTeleId);
+  var rUpd = await sb.from('telemarketing').update(upd).eq('id', currentTeleId);
+  if (rUpd && rUpd.error) { console.error(rUpd.error); toast('Erro ao salvar: ' + rUpd.error.message); return; }
+  // Visita agendada: cria lead com o corretor + agendamento na Agenda
+  if (visita) {
+    var q = camposSDR;
+    var resumo = 'Repasse SDR → ' + visita.corretor + '. Procura: ' + (q.tipo_imovel||'—') + ' em ' + (q.bairros||'—') + ' | Finalidade: ' + (q.finalidade||'—')
+      + ' | Faixa: ' + (q.faixa_valor||'—') + ' | Pagamento: ' + (q.pagamento||'—') + ' | Prazo: ' + (q.prazo||'—') + ' | Decisor: ' + (q.decisor||'—')
+      + ' | Visita: ' + visita.data.split('-').reverse().join('/') + ' ' + visita.hora + ' — ' + (visita.imovel||'') + (obs ? ' | Obs: ' + obs : '');
+    var itemHistVis = {tipo:'lig', texto: resumo, data:nowStr(), autor:currentUser.nome};
+    var jaLead = leads && leads.find ? leads.find(function(l){ return (l.telefone||'').replace(/\D/g,'') && (l.telefone||'').replace(/\D/g,'').slice(-8) === (t.telefone||'').replace(/\D/g,'').slice(-8); }) : null;
+    if (!jaLead) {
+      await sb.from('leads').insert([{
+        nome: upd.nome, telefone: t.telefone, interesse: upd.interesse,
+        origem: 'TELEMARKETING', status: 'ENTRADA', status_geral: 'ATENDIMENTO ATIVO',
+        corretor: visita.corretor, valor: q.faixa_valor || null,
+        historico: JSON.stringify([itemHistVis]),
+        ultimo_contato_tipo: itemHistVis.tipo, ultimo_contato_data: itemHistVis.data,
+        criado_por: currentUser.nome, propostas: '[]'
+      }]);
+    } else {
+      toast('ℹ️ Esse telefone já existe em Leads (corretor: ' + (jaLead.corretor||'—') + '). Só o agendamento foi criado.', 5000);
+    }
+    await sb.from('agendamentos').insert([{
+      cliente: upd.nome, telefone: t.telefone, data: visita.data, hora: visita.hora,
+      imovel: visita.imovel || upd.interesse, tipo: 'Visita', obs: 'Agendado pela SDR com ' + visita.corretor + '. ' + (obs||''),
+      confirmado: false, criado_por: currentUser.nome
+    }]);
+    toast('🏠 Visita agendada e repassada para ' + visita.corretor + '!');
+    historicosCache = null;
+    if (typeof loadLeads === 'function') await loadLeads();
+    if (typeof loadAgs === 'function') await loadAgs();
+    closeModal('atender-tele');
+    await loadTele();
+    return;
+  }
   // Se convertido, criar lead automaticamente
   if (resultado === 'Convertido — virou lead') {
     var itemHistConv = {tipo:'lig', texto:'Convertido do Telemarketing. ' + (obs||''), data:nowStr(), autor:currentUser.nome};
@@ -3758,6 +3974,9 @@ async function saveTele() {
     interesse: document.getElementById('tele-interesse').value,
     atendente: document.getElementById('tele-atendente').value,
     observacoes: document.getElementById('tele-obs').value.trim(),
+    prioridade: document.getElementById('tele-new-prioridade') ? document.getElementById('tele-new-prioridade').value : null,
+    origem: document.getElementById('tele-new-origem') ? (document.getElementById('tele-new-origem').value.trim() || null) : null,
+    proximo_contato: todayStr(),
     status: 'Aguardando'
   }]);
   toast('✅ Contato adicionado!');
@@ -5322,6 +5541,7 @@ function selResTele(el) {
   document.getElementById('atender-resultado').value = res;
   document.querySelectorAll('#resultado-btns-tele .tipo-btn').forEach(function(b){b.classList.remove('sel');});
   el.classList.add('sel');
+  if (typeof teleAtualizarCamposResultado === 'function') teleAtualizarCamposResultado();
 }
 
 // ═══ FLUXO - seleção do split ═══
