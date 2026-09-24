@@ -1151,6 +1151,7 @@ textarea.fc{resize:vertical;min-height:60px}
         <table>
           <thead><tr>
             <th id="tele-th-check" style="display:none"><input type="checkbox" id="tele-check-all" onchange="toggleSelecionarTodosTele(this)"></th>
+            <th>Ação</th>
             <th style="cursor:pointer" onclick="setTeleSort('nome')">Nome <span id="tele-sort-nome"></span></th>
             <th style="cursor:pointer" onclick="setTeleSort('telefone')">Telefone <span id="tele-sort-telefone"></span></th>
             <th style="cursor:pointer" onclick="setTeleSort('interesse')">Interesse <span id="tele-sort-interesse"></span></th>
@@ -1159,7 +1160,7 @@ textarea.fc{resize:vertical;min-height:60px}
             <th style="cursor:pointer" onclick="setTeleSort('proximo_contato')">Próx. contato <span id="tele-sort-proximo_contato"></span></th>
             <th style="cursor:pointer" onclick="setTeleSort('tentativas')">Tentativas <span id="tele-sort-tentativas"></span></th>
             <th style="cursor:pointer" onclick="setTeleSort('ultimo_contato')">Último contato <span id="tele-sort-ultimo_contato"></span></th>
-            <th>Atendente</th><th>Ação</th></tr></thead>
+            <th>Atendente</th></tr></thead>
           <tbody id="tele-body"><tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted)">Carregando...</td></tr></tbody>
         </table>
       </div>
@@ -3683,6 +3684,10 @@ function renderTele() {
       : '';
     return '<tr onclick="openTele(' + JSON.stringify(t.id) + ')" style="cursor:pointer">'
       + checkTd
+      + '<td onclick="event.stopPropagation()" style="white-space:nowrap">'
+      + '<button class="btn btn-primary btn-xs" onclick="openTele(' + JSON.stringify(t.id) + ')"><i class="ti ti-phone"></i>Ligar</button>'
+      + '<button class="btn btn-wa btn-xs" style="margin-left:4px" onclick="openWA(' + qa(t.telefone) + ',' + qa(t.nome) + ',\'\')"><i class="ti ti-brand-whatsapp"></i></button>'
+      + '</td>'
       + '<td><strong>' + (t.nome||'—') + '</strong></td>'
       + '<td style="font-size:12px;color:var(--muted)">' + (t.telefone||'—') + '</td>'
       + '<td style="font-size:12px">' + (t.interesse||'—') + '</td>'
@@ -3694,10 +3699,7 @@ function renderTele() {
       + '<td style="text-align:center">' + (t.tentativas||0) + 'x</td>'
       + '<td style="font-size:12px;color:var(--muted)">' + (t.ultimo_contato||'—') + '</td>'
       + '<td style="font-size:12px">' + (t.atendente||'—') + '</td>'
-      + '<td onclick="event.stopPropagation()" style="white-space:nowrap">'
-      + '<button class="btn btn-wa btn-xs" onclick="openWA(' + qa(t.telefone) + ',' + qa(t.nome) + ',\'\')"><i class="ti ti-brand-whatsapp"></i></button>'
-      + '<button class="btn btn-primary btn-xs" style="margin-left:4px" onclick="openTele(' + JSON.stringify(t.id) + ')"><i class="ti ti-phone"></i>Ligar</button>'
-      + '</td></tr>';
+      + '</tr>';
   }).join('');
 }
 
