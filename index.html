@@ -1178,28 +1178,46 @@ textarea.fc{resize:vertical;min-height:60px}
         </div>
         <div style="display:flex;gap:7px">
           <button class="btn btn-sm" id="btn-sync-catalogo" style="display:none" onclick="sincronizarTodasCaptacoesCatalogo()"><i class="ti ti-refresh"></i>Sincronizar com Catálogo</button>
+          <button class="btn btn-sm" onclick="abrirImportarBaseCapt()"><i class="ti ti-upload"></i>Importar base</button>
           <button class="btn btn-primary btn-sm" onclick="abrirNovaCaptacao()"><i class="ti ti-plus"></i>Nova captação</button>
         </div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="display:flex;gap:7px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
           <div class="chip on" onclick="setCaptFilter('todos',this)">Todos</div>
+          <div class="chip" onclick="setCaptFilter('__hoje',this)">📅 Follow-ups de hoje</div>
+          <div class="chip" onclick="setCaptFilter('__vencidos',this)">⚠️ Vencidos</div>
           <div class="chip" onclick="setCaptFilter('A captar',this)">🎯 A captar</div>
+          <div class="chip" onclick="setCaptFilter('Tentativa de contato',this)">📞 Tentativa</div>
+          <div class="chip" onclick="setCaptFilter('Em conversa',this)">💬 Em conversa</div>
+          <div class="chip" onclick="setCaptFilter('Autorização enviada',this)">✍️ Autorização enviada</div>
           <div class="chip" onclick="setCaptFilter('Captado',this)">✅ Captados</div>
+          <div class="chip" onclick="setCaptFilter('Fotos agendadas',this)">📸 Fotos agendadas</div>
+          <div class="chip" onclick="setCaptFilter('Publicado',this)">🌐 Publicados</div>
+          <div class="chip" onclick="setCaptFilter('Alugado',this)">🔑 Alugados</div>
+          <div class="chip" onclick="setCaptFilter('Retornar depois',this)">⏳ Retornar depois</div>
           <div class="chip" onclick="setCaptFilter('Perdido',this)">❌ Perdidos</div>
         </div>
       </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="search-wrap" style="max-width:340px;flex:1">
+          <i class="ti ti-search"></i>
+          <input type="text" placeholder="Buscar por proprietário, prédio, endereço ou telefone..." id="capt-search" oninput="renderCaptacoes()" style="width:100%;padding:8px 11px 8px 33px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        </div>
+      </div>
       <!-- MÉTRICAS CAPTAÇÃO -->
-      <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+      <div class="metrics-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px">
+        <div class="metric-card"><div class="metric-label">Follow-ups vencidos</div><div class="metric-val" style="color:#e74c3c" id="capt-m-vencidos">—</div><div class="metric-sub">zerar até 12h</div></div>
+        <div class="metric-card"><div class="metric-label">Ligações hoje</div><div class="metric-val" style="color:var(--info)" id="capt-m-lig">—</div><div class="metric-sub">registradas no CRM</div></div>
+        <div class="metric-card"><div class="metric-label">Captados no mês</div><div class="metric-val" style="color:var(--success)" id="capt-m-mes">—</div><div class="metric-sub">autorização assinada</div></div>
+        <div class="metric-card"><div class="metric-label">Fotos na semana</div><div class="metric-val" style="color:#8e44ad" id="capt-m-fotos">—</div><div class="metric-sub">agendadas com o Pedro</div></div>
         <div class="metric-card"><div class="metric-label">A captar</div><div class="metric-val" style="color:var(--warn)" id="capt-m-prospect">—</div><div class="metric-sub">em prospecção</div></div>
         <div class="metric-card"><div class="metric-label">Captados</div><div class="metric-val" style="color:var(--success)" id="capt-m-captado">—</div><div class="metric-sub">imóveis captados</div></div>
-        <div class="metric-card"><div class="metric-label">Valor em carteira</div><div class="metric-val" style="color:var(--accent);font-size:18px" id="capt-m-valor">—</div><div class="metric-sub">total captado</div></div>
-        <div class="metric-card"><div class="metric-label">Taxa captação</div><div class="metric-val" style="color:var(--info)" id="capt-m-taxa">—</div><div class="metric-sub">% de conversão</div></div>
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>Endereço</th><th>Operação</th><th>Tipo</th><th>Bairro</th><th>Valor</th><th>Proprietário</th><th>Telefone</th><th>Status</th><th>Corretor</th><th>Ação</th></tr></thead>
-          <tbody id="capt-body"><tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)">Carregando...</td></tr></tbody>
+          <thead><tr><th>Endereço</th><th>Operação</th><th>Tipo</th><th>Bairro</th><th>Valor</th><th>Proprietário</th><th>Telefone</th><th>Status</th><th>Próx. contato</th><th>Tent.</th><th>Responsável</th><th>Ação</th></tr></thead>
+          <tbody id="capt-body"><tr><td colspan="12" style="text-align:center;padding:30px;color:var(--muted)">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -2040,7 +2058,7 @@ textarea.fc{resize:vertical;min-height:60px}
 
 <!-- MODAL NOVA CAPTAÇÃO -->
 <div class="modal-overlay" id="modal-new-capt" style="display:none" onclick="if(event.target===this)closeModal('new-capt')">
-  <div class="modal" style="max-width:540px">
+  <div class="modal" style="max-width:720px">
     <div class="modal-hdr"><div class="modal-title" id="capt-modal-title">Nova captação</div><button class="modal-close" onclick="closeModal('new-capt')"><i class="ti ti-x"></i></button></div>
     <div class="modal-body">
       <div class="fld"><label class="lbl">Endereço do imóvel</label><input class="fc" id="capt-end" placeholder="Rua, número, bairro..."></div>
@@ -2057,20 +2075,89 @@ textarea.fc{resize:vertical;min-height:60px}
         </div>
       </div>
       <div class="form-row">
-        <div><label class="lbl">Bairro</label><input class="fc" id="capt-bairro" placeholder="Ex: Miramar"></div>
-        <div><label class="lbl">Valor estimado</label><input class="fc" id="capt-valor" placeholder="R$ 500.000,00"></div>
+        <div><label class="lbl">Bairro</label><input class="fc" id="capt-bairro" placeholder="Ex: Cabo Branco"></div>
+        <div><label class="lbl">Valor (aluguel ou venda)</label><input class="fc" id="capt-valor" placeholder="R$ 5.500,00"></div>
       </div>
       <div class="form-row">
         <div><label class="lbl">Status</label>
-          <select class="fc" id="capt-status"><option>A captar</option><option>Captado</option><option>Perdido</option></select>
+          <select class="fc" id="capt-status" onchange="captAtualizarCamposStatus()"><option>A captar</option><option>Tentativa de contato</option><option>Em conversa</option><option>Autorização enviada</option><option>Captado</option><option>Fotos agendadas</option><option>Fotos feitas</option><option>Publicado</option><option>Em locação</option><option>Alugado</option><option>Retornar depois</option><option>Perdido</option><option>Inválido</option></select>
         </div>
         <div><label class="lbl">Data de captação</label><input class="fc" id="capt-data" type="date"></div>
+      </div>
+      <div class="form-row">
+        <div><label class="lbl">Origem</label><input class="fc" id="capt-origem" list="capt-origem-list" placeholder="Anúncio, base, indicação..."><datalist id="capt-origem-list"><option>Anúncio de captação</option><option>Base de proprietários</option><option>Indicação</option></datalist></div>
+        <div><label class="lbl">Quem captou (registrar manualmente)</label><input class="fc" id="capt-captado-por" placeholder="Nome de quem captou"></div>
+      </div>
+      <div class="form-row" id="capt-motivo-row" style="display:none">
+        <div><label class="lbl">Motivo de perda</label>
+          <select class="fc" id="capt-motivo-perda"><option value="">Selecione...</option><option>Já alugou</option><option>Desistiu de alugar</option><option>Exclusividade com outra imobiliária</option><option>Não aceita a taxa de administração (10%)</option><option>Aluguel muito acima do mercado</option><option>Vai usar o imóvel</option><option>Prefere alugar sozinho</option><option>Sem contato após cadência</option><option>Outro</option></select>
+        </div>
+        <div></div>
+      </div>
+      <!-- REGISTRO DE CONTATO -->
+      <div style="background:rgba(41,128,185,.07);border:1px solid rgba(41,128,185,.25);border-radius:var(--radius);padding:12px;margin-bottom:12px">
+        <div style="font-weight:600;font-size:13px;margin-bottom:8px">📞 Registrar contato agora <span id="capt-tent-info" style="font-weight:400;color:var(--muted);font-size:12px"></span></div>
+        <div class="form-row" style="grid-template-columns:1fr 1.4fr">
+          <div><label class="lbl">Canal</label><select class="fc" id="capt-reg-canal"><option value="">— sem registro —</option><option>Ligação</option><option>WhatsApp</option></select></div>
+          <div><label class="lbl">Resultado</label><select class="fc" id="capt-reg-resultado" onchange="captSugerirProximo()"><option value="">—</option><option>Não atendeu</option><option>Caixa postal</option><option>Conversou</option><option>Pediu retorno</option><option>Aceitou — enviar autorização</option><option>Sem interesse</option><option>Número inválido</option></select></div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1.4fr;margin-bottom:0">
+          <div><label class="lbl">Próximo contato</label><input class="fc" type="date" id="capt-proximo"></div>
+          <div><label class="lbl">Próxima ação</label><input class="fc" id="capt-proxima-acao" placeholder="Ligar à tarde, enviar /capd3..."></div>
+        </div>
+        <div class="fld" style="margin:8px 0 0"><label class="lbl">O que foi falado</label><input class="fc" id="capt-reg-obs" placeholder="Resumo do contato"></div>
+        <div id="capt-historico-box" style="margin-top:8px"></div>
+      </div>
+      <!-- FICHA COMPLETA -->
+      <details id="capt-ficha" style="border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px">
+        <summary style="cursor:pointer;font-weight:600;font-size:13px">📋 Ficha completa do imóvel <span id="capt-ficha-status" style="font-weight:400;color:var(--muted);font-size:12px"></span></summary>
+        <div class="form-row" style="margin-top:10px">
+          <div><label class="lbl">Prédio / condomínio</label><input class="fc" id="capt-predio" placeholder="Nome do prédio, apto"></div>
+          <div><label class="lbl">E-mail do proprietário</label><input class="fc" id="capt-email" placeholder="email@..."></div>
+        </div>
+        <div class="form-row">
+          <div><label class="lbl">CPF do proprietário</label><input class="fc" id="capt-cpf" placeholder="Para a autorização"></div>
+          <div><label class="lbl">Metragem (m²)</label><input class="fc" id="capt-metragem" placeholder="120"></div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div><label class="lbl">Quartos</label><input class="fc" id="capt-quartos"></div>
+          <div><label class="lbl">Suítes</label><input class="fc" id="capt-suites"></div>
+          <div><label class="lbl">Vagas (qtd, cobertas, fixas, nº)</label><input class="fc" id="capt-vagas" placeholder="2 cobertas fixas nº 34/35"></div>
+        </div>
+        <div class="form-row">
+          <div><label class="lbl">Mobília</label><select class="fc" id="capt-mobiliado"><option value="">—</option><option>Mobiliado</option><option>Semimobiliado</option><option>Vazio</option></select></div>
+          <div><label class="lbl">Disponibilidade</label><input class="fc" id="capt-disponibilidade" placeholder="Vazio / livre em 10/11 / contrato vence em..."></div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+          <div><label class="lbl">Condomínio (R$)</label><input class="fc" id="capt-condominio"></div>
+          <div><label class="lbl">Condomínio incluso?</label><select class="fc" id="capt-cond-incluso"><option value="">—</option><option>Incluso no aluguel</option><option>Por fora</option></select></div>
+          <div><label class="lbl">IPTU (R$)</label><input class="fc" id="capt-iptu"></div>
+          <div><label class="lbl">IPTU incluso?</label><select class="fc" id="capt-iptu-incluso"><option value="">—</option><option>Incluso no aluguel</option><option>Por fora</option></select></div>
+        </div>
+        <div class="form-row">
+          <div><label class="lbl">Aceita pet?</label><select class="fc" id="capt-pet"><option value="">—</option><option>Sim</option><option>Não</option><option>Porte pequeno</option></select></div>
+          <div><label class="lbl">Garantia aceita</label><input class="fc" id="capt-garantia" placeholder="Seguro-fiança, caução, fiador"></div>
+        </div>
+        <div class="form-row">
+          <div><label class="lbl">Porta / chave</label><select class="fc" id="capt-tipo-chave"><option value="">—</option><option>Chave física</option><option>Fechadura digital (senha)</option></select></div>
+          <div><label class="lbl">Onde está a chave / quem passa a senha</label><input class="fc" id="capt-local-chave" placeholder="Portaria, com o proprietário, síndico..."></div>
+        </div>
+        <div class="fld"><label class="lbl">Entrada no prédio: como o proprietário autoriza e o que a portaria exige</label><textarea class="fc" id="capt-acesso" rows="2" placeholder="Aviso à portaria, lista, app do condomínio; documento com foto, horário permitido..."></textarea></div>
+        <div class="form-row" style="margin-bottom:0">
+          <div><label class="lbl" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="capt-tambem-vende"> Proprietário também quer vender</label></div>
+          <div></div>
+        </div>
+      </details>
+      <!-- FOTOS -->
+      <div class="form-row">
+        <div><label class="lbl">Data das fotos (Pedro)</label><input class="fc" type="date" id="capt-data-fotos"></div>
+        <div><label class="lbl">Hora das fotos</label><input class="fc" type="time" id="capt-hora-fotos"></div>
       </div>
       <div class="form-row">
         <div><label class="lbl">Nome do proprietário</label><input class="fc" id="capt-prop" placeholder="Nome do proprietário"></div>
         <div><label class="lbl">Telefone</label><input class="fc" id="capt-tel" placeholder="83 9XXXX-XXXX"></div>
       </div>
-      <div class="fld"><label class="lbl">Corretor responsável</label>
+      <div class="fld"><label class="lbl">Responsável (quem trabalha este contato)</label>
         <select class="fc" id="capt-corretor"><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
       </div>
       <div class="fld"><label class="lbl">Link das fotos (Google Drive)</label><input class="fc" id="capt-drive" placeholder="Cole aqui o link da pasta do Drive com as fotos"></div>
@@ -2079,6 +2166,27 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('new-capt')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveCaptacao()"><i class="ti ti-check"></i>Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORTAR BASE DE PROPRIETÁRIOS -->
+<div class="modal-overlay" id="modal-importar-base-capt" style="display:none" onclick="if(event.target===this)closeModal('importar-base-capt')">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-hdr"><div class="modal-title">Importar base de proprietários</div><button class="modal-close" onclick="closeModal('importar-base-capt')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Copie as linhas da planilha (sem o cabeçalho) e cole abaixo. Ordem das colunas:<br><strong>Nome · Telefone · Prédio/endereço · Bairro · Tipo · Quartos · Valor do aluguel · Fonte</strong><br>Telefones que já estão em Captações são ignorados automaticamente.</div>
+      <div class="fld"><textarea class="fc" id="capt-import-texto" rows="9" placeholder="Maria Silva	83 99999-0000	Ed. Mar Azul apto 1201	Cabo Branco	Apartamento	3	6500	Lista síndico"></textarea></div>
+      <div class="form-row">
+        <div><label class="lbl">Responsável pelos contatos</label><select class="fc" id="capt-import-resp"></select></div>
+        <div><label class="lbl">Operação</label><select class="fc" id="capt-import-op"><option value="ALUGUEL">Aluguel</option><option value="VENDA">Venda</option></select></div>
+      </div>
+      <div id="capt-import-preview" style="font-size:12px;color:var(--muted)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('importar-base-capt')">Cancelar</button>
+      <button class="btn" onclick="previewImportBaseCapt()"><i class="ti ti-eye"></i>Conferir</button>
+      <button class="btn btn-primary" onclick="importarBaseCapt()"><i class="ti ti-upload"></i>Importar</button>
     </div>
   </div>
 </div>
@@ -4009,6 +4117,150 @@ async function importarCSV() {
 
 // ═══ CAPTAÇÕES ═══
 var captacoes = [], captFilter = 'todos', captOpFilter = 'todos', editCaptId = null;
+// Status que mantêm o imóvel no Catálogo (captado e ainda disponível)
+var CAPT_NO_CATALOGO = ['Captado','Fotos agendadas','Fotos feitas','Publicado','Em locação'];
+// Status em que a próxima ação + data é obrigatória
+var CAPT_EXIGE_PROXIMO = ['A captar','Tentativa de contato','Em conversa','Autorização enviada','Retornar depois'];
+function captHist(cp) { try { var h = JSON.parse(cp.historico || '[]'); return Array.isArray(h) ? h : []; } catch(e) { return []; } }
+function captFollow(cp) {
+  if (!cp.proximo_contato || CAPT_EXIGE_PROXIMO.indexOf(cp.status || 'A captar') === -1) return '';
+  var hoje = todayStr();
+  if (cp.proximo_contato < hoje) return 'vencido';
+  if (cp.proximo_contato === hoje) return 'hoje';
+  return 'futuro';
+}
+function captAddDias(n) { var d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; }
+function parseValorBR(v) {
+  v = String(v || '').replace(/[^0-9.,]/g, '');
+  if (!v) return null;
+  if (v.indexOf(',') !== -1) v = v.replace(/\./g, '').replace(',', '.');
+  else if (/\.\d{3}$/.test(v)) v = v.replace(/\./g, '');
+  var n = parseFloat(v);
+  return isNaN(n) ? null : n;
+}
+function captSugerirProximo() {
+  var res = document.getElementById('capt-reg-resultado').value;
+  var prox = document.getElementById('capt-proximo');
+  var cp = editCaptId ? captacoes.find(function(x){ return x.id === editCaptId; }) : null;
+  var tent = ((cp && cp.tentativas) || 0) + 1;
+  var mapa = {1:0, 2:1, 3:2, 4:2, 5:2};
+  var stSel = document.getElementById('capt-status');
+  var stOrig = cp ? (cp.status || 'A captar') : 'A captar';
+  if (stSel.value === stOrig) {
+    if (res === 'Não atendeu' || res === 'Caixa postal') { if (['A captar'].indexOf(stOrig) !== -1) stSel.value = 'Tentativa de contato'; }
+    else if (res === 'Conversou' || res === 'Pediu retorno') { if (['A captar','Tentativa de contato'].indexOf(stOrig) !== -1) stSel.value = 'Em conversa'; }
+    else if (res === 'Aceitou — enviar autorização') stSel.value = 'Autorização enviada';
+    else if (res === 'Sem interesse') stSel.value = 'Perdido';
+    else if (res === 'Número inválido') stSel.value = 'Inválido';
+    captAtualizarCamposStatus();
+  }
+  if (!prox.dataset.manual) {
+    if (res === 'Não atendeu' || res === 'Caixa postal') prox.value = captAddDias(mapa[tent] !== undefined ? mapa[tent] : 30);
+    else if (res === 'Conversou' || res === 'Pediu retorno') prox.value = captAddDias(1);
+    else if (res === 'Aceitou — enviar autorização') prox.value = captAddDias(2);
+  }
+}
+function captAtualizarCamposStatus() {
+  var st = document.getElementById('capt-status').value;
+  var row = document.getElementById('capt-motivo-row'); if (row) row.style.display = st === 'Perdido' ? '' : 'none';
+}
+function captPreencherResponsaveis(selId, atual) {
+  var sel = document.getElementById(selId); if (!sel) return;
+  var nomes = getAllEquipe().map(function(u){ return u.nome; });
+  if (atual && nomes.indexOf(atual) === -1) nomes.unshift(atual);
+  sel.innerHTML = nomes.map(function(n){ return '<option value="' + n.replace(/"/g,'&quot;') + '">' + n + '</option>'; }).join('');
+  if (atual) sel.value = atual;
+}
+var CAPT_FICHA_CAMPOS = [
+  ['capt-predio','predio'],['capt-email','email_proprietario'],['capt-cpf','cpf_proprietario'],['capt-metragem','metragem'],
+  ['capt-quartos','quartos'],['capt-suites','suites'],['capt-vagas','vagas'],['capt-mobiliado','mobiliado'],
+  ['capt-disponibilidade','disponibilidade'],['capt-condominio','condominio'],['capt-cond-incluso','condominio_incluso'],
+  ['capt-iptu','iptu'],['capt-iptu-incluso','iptu_incluso'],['capt-pet','aceita_pet'],['capt-garantia','garantia'],
+  ['capt-tipo-chave','tipo_chave'],['capt-local-chave','local_chave'],['capt-acesso','acesso_predio']
+];
+function captPreencherFicha(cp) {
+  cp = cp || {};
+  CAPT_FICHA_CAMPOS.forEach(function(par){ var el = document.getElementById(par[0]); if (el) el.value = cp[par[1]] || ''; });
+  var tv = document.getElementById('capt-tambem-vende'); if (tv) tv.checked = !!cp.tambem_vende;
+  var set = function(id, v){ var el = document.getElementById(id); if (el) el.value = v || ''; };
+  set('capt-origem', cp.origem); set('capt-captado-por', cp.captado_por); set('capt-motivo-perda', cp.motivo_perda);
+  set('capt-proximo', cp.proximo_contato); set('capt-proxima-acao', cp.proxima_acao);
+  var px = document.getElementById('capt-proximo'); if (px) { delete px.dataset.manual; px.onchange = function(){ px.dataset.manual = '1'; }; }
+  set('capt-data-fotos', cp.data_fotos); set('capt-hora-fotos', cp.hora_fotos);
+  set('capt-reg-canal', ''); set('capt-reg-resultado', ''); set('capt-reg-obs', '');
+  var preenchidos = CAPT_FICHA_CAMPOS.filter(function(par){ return cp[par[1]]; }).length;
+  var fs = document.getElementById('capt-ficha-status'); if (fs) fs.textContent = '(' + preenchidos + ' de ' + CAPT_FICHA_CAMPOS.length + ' campos)';
+  var fd = document.getElementById('capt-ficha'); if (fd) fd.open = false;
+  var ti = document.getElementById('capt-tent-info'); if (ti) ti.textContent = cp.id ? '— ' + (cp.tentativas || 0) + ' tentativa(s) até agora' : '';
+  var hist = captHist(cp).slice().reverse();
+  var hb = document.getElementById('capt-historico-box');
+  if (hb) hb.innerHTML = hist.length
+    ? '<div class="lbl">Histórico</div><div style="max-height:120px;overflow-y:auto;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;background:var(--card)">'
+      + hist.map(function(h){ return '<div style="padding:3px 0;border-bottom:1px solid var(--border)"><strong>' + (h.data||'') + '</strong> · ' + (h.canal||'') + ' · ' + (h.resultado||'') + (h.autor ? ' · ' + h.autor : '') + (h.obs ? '<div style="color:var(--muted)">' + h.obs + '</div>' : '') + '</div>'; }).join('')
+      + '</div>'
+    : '';
+  captAtualizarCamposStatus();
+}
+
+// ---- Importar base de proprietários ----
+function abrirImportarBaseCapt() {
+  document.getElementById('capt-import-texto').value = '';
+  document.getElementById('capt-import-preview').innerHTML = '';
+  captPreencherResponsaveis('capt-import-resp', currentUser ? currentUser.nome : 'Sandryne');
+  openModal('importar-base-capt');
+}
+function captChaveTel(t) {
+  var d = String(t || '').replace(/\D/g, '');
+  if ((d.length === 12 || d.length === 13) && d.indexOf('55') === 0) d = d.substring(2);
+  return d;
+}
+function parseBaseCapt() {
+  var txt = document.getElementById('capt-import-texto').value;
+  var linhas = txt.split(/\r?\n/).filter(function(l){ return l.trim(); });
+  var existentes = {};
+  captacoes.forEach(function(c){ var k = captChaveTel(c.telefone); if (k.length >= 10) existentes[k] = true; });
+  var novos = [], duplicados = 0, invalidos = 0, vistos = {};
+  linhas.forEach(function(l) {
+    var p = l.indexOf('\t') !== -1 ? l.split('\t') : l.split(/[;,]/);
+    p = p.map(function(x){ return (x || '').trim(); });
+    if (/^nome$/i.test(p[0] || '')) return;
+    var k = captChaveTel(p[1]);
+    if (k.length < 10) { invalidos++; return; }
+    if (existentes[k] || vistos[k]) { duplicados++; return; }
+    vistos[k] = true;
+    novos.push({nome:p[0]||'', tel:p[1]||'', predio:p[2]||'', bairro:p[3]||'', tipo:p[4]||'Apartamento', quartos:p[5]||'', valor:p[6]||'', fonte:p[7]||''});
+  });
+  return {novos:novos, duplicados:duplicados, invalidos:invalidos};
+}
+function previewImportBaseCapt() {
+  var r = parseBaseCapt();
+  document.getElementById('capt-import-preview').innerHTML = '<strong>' + r.novos.length + '</strong> novos para importar · ' + r.duplicados + ' já existentes/duplicados (ignorados) · ' + r.invalidos + ' com telefone inválido (ignorados)';
+}
+async function importarBaseCapt() {
+  var r = parseBaseCapt();
+  if (!r.novos.length) { previewImportBaseCapt(); toast('Nenhum contato novo para importar'); return; }
+  if (!confirm('Importar ' + r.novos.length + ' proprietário(s)? (' + r.duplicados + ' duplicados e ' + r.invalidos + ' inválidos serão ignorados)')) return;
+  var resp = document.getElementById('capt-import-resp').value;
+  var op = document.getElementById('capt-import-op').value;
+  var hoje = todayStr();
+  var linhas = r.novos.map(function(n) {
+    return {
+      endereco: n.predio || '(sem endereço)', predio: n.predio || null, bairro: n.bairro || null, tipo: n.tipo || 'Apartamento',
+      quartos: n.quartos || null, valor: parseValorBR(n.valor), proprietario: n.nome || null, telefone: n.tel,
+      tipo_operacao: op, status: 'A captar', corretor: resp, origem: n.fonte ? 'Base de proprietários — ' + n.fonte : 'Base de proprietários',
+      proximo_contato: hoje, tentativas: 0, historico: '[]'
+    };
+  });
+  var erro = null;
+  for (var i = 0; i < linhas.length; i += 500) {
+    var res = await sb.from('captacoes').insert(linhas.slice(i, i + 500));
+    if (res.error) { erro = res.error; break; }
+  }
+  if (erro) { toast('Erro ao importar: ' + erro.message, 6000); return; }
+  toast('✅ ' + linhas.length + ' proprietário(s) importado(s)!');
+  closeModal('importar-base-capt');
+  await loadCaptacoes();
+}
 
 function setCaptOpFilter(f, el) {
   captOpFilter = f;
@@ -4140,9 +4392,20 @@ async function loadCaptacoes() {
   captacoes = await fetchAllRows('captacoes', 'created_at', false);
   renderCaptacoes();
   var prospect = captacoes.filter(function(c){return c.status==='A captar';}).length;
-  var captado = captacoes.filter(function(c){return c.status==='Captado';}).length;
+  var captado = captacoes.filter(function(c){return CAPT_NO_CATALOGO.indexOf(c.status)!==-1 || c.status==='Alugado';}).length;
+  var hojeBR = new Date().toLocaleDateString('pt-BR');
+  var mesISO = todayStr().substring(0, 7);
+  var vencidosC = captacoes.filter(function(c){ return captFollow(c) === 'vencido'; }).length;
+  var ligHoje = 0;
+  captacoes.forEach(function(c){ ligHoje += captHist(c).filter(function(h){ return h.canal === 'Ligação' && (h.data||'').indexOf(hojeBR) === 0; }).length; });
+  var captMes = captacoes.filter(function(c){ return c.data_captacao && c.data_captacao.substring(0,7) === mesISO; }).length;
+  var ini = new Date(); ini.setDate(ini.getDate() - ((ini.getDay() + 6) % 7)); var iniISO = ini.toISOString().split('T')[0];
+  var fim = new Date(ini); fim.setDate(fim.getDate() + 6); var fimISO = fim.toISOString().split('T')[0];
+  var fotosSem = captacoes.filter(function(c){ return c.data_fotos && c.data_fotos >= iniISO && c.data_fotos <= fimISO; }).length;
+  var setM = function(id, v){ var e = document.getElementById(id); if (e) e.textContent = v; };
+  setM('capt-m-vencidos', vencidosC); setM('capt-m-lig', ligHoje); setM('capt-m-mes', captMes); setM('capt-m-fotos', fotosSem);
   var total = captacoes.length || 1;
-  var valorTotal = captacoes.filter(function(c){return c.status==='Captado';}).reduce(function(s,c){return s+(parseFloat(c.valor)||0);},0);
+  var valorTotal = captacoes.filter(function(c){return CAPT_NO_CATALOGO.indexOf(c.status)!==-1;}).reduce(function(s,c){return s+(parseFloat(c.valor)||0);},0);
   var taxa = Math.round(captado/total*100);
   var el1 = document.getElementById('capt-m-prospect'); if(el1) el1.textContent = prospect;
   var el2 = document.getElementById('capt-m-captado'); if(el2) el2.textContent = captado;
@@ -4157,7 +4420,7 @@ async function loadCaptacoes() {
 // (inclusive as antigas, de antes da conexão automática existir) e garante
 // que cada uma tenha o espelho correspondente no Catálogo.
 async function sincronizarTodasCaptacoesCatalogo() {
-  var captadas = captacoes.filter(function(c){ return c.status === 'Captado'; });
+  var captadas = captacoes.filter(function(c){ return CAPT_NO_CATALOGO.indexOf(c.status) !== -1; });
   if (!captadas.length) { toast('Nenhuma captação com status "Captado" encontrada.'); return; }
   if (!confirm('Sincronizar ' + captadas.length + ' captação(ões) já "Captada(s)" com o Catálogo agora?')) return;
   var criados = 0, atualizados = 0, erros = 0, primeiroErro = '';
@@ -4189,10 +4452,23 @@ function setCaptFilter(f, el) {
 function renderCaptacoes() {
   var tbody = document.getElementById('capt-body');
   if (!tbody) return;
-  var lista = captFilter === 'todos' ? captacoes.slice() : captacoes.filter(function(c){return c.status===captFilter;});
+  var lista = captFilter === 'todos' ? captacoes.slice()
+    : captFilter === '__hoje' ? captacoes.filter(function(c){ var f = captFollow(c); return f === 'hoje' || f === 'vencido'; })
+    : captFilter === '__vencidos' ? captacoes.filter(function(c){ return captFollow(c) === 'vencido'; })
+    : captacoes.filter(function(c){return (c.status||'A captar')===captFilter;});
   if (captOpFilter !== 'todos') lista = lista.filter(function(c){ return c.tipo_operacao === captOpFilter; });
-  if (!lista.length) { tbody.innerHTML='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)">Nenhuma captação encontrada</td></tr>'; return; }
-  var statusColors = {'A captar':'#f39c12','Captado':'#27ae60','Perdido':'#e74c3c'};
+  var qEl = document.getElementById('capt-search');
+  var q = qEl ? qEl.value.trim() : '';
+  if (q) {
+    var qd = q.replace(/\D/g, ''), ql = q.toLowerCase();
+    lista = lista.filter(function(c){
+      return [c.proprietario, c.endereco, c.predio, c.bairro].some(function(v){ return (v||'').toLowerCase().indexOf(ql) !== -1; })
+        || (qd.length >= 4 && (c.telefone||'').replace(/\D/g,'').indexOf(qd) !== -1);
+    });
+  }
+  if (captFilter === '__hoje' || captFilter === '__vencidos') lista.sort(function(a,b){ return (a.proximo_contato||'').localeCompare(b.proximo_contato||''); });
+  if (!lista.length) { tbody.innerHTML='<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--muted)">Nenhuma captação encontrada</td></tr>'; return; }
+  var statusColors = {'A captar':'#f39c12','Tentativa de contato':'#e67e22','Em conversa':'#2980b9','Autorização enviada':'#8e44ad','Captado':'#27ae60','Fotos agendadas':'#16a085','Fotos feitas':'#16a085','Publicado':'#1a6b4a','Em locação':'#2c3e50','Alugado':'#1a6b4a','Retornar depois':'#7f8c8d','Perdido':'#e74c3c','Inválido':'#c0392b'};
   var opColors = {'VENDA':'#1a6b4a','ALUGUEL':'#2980b9','REPASSE':'#e67e22','PARCERIA':'#9b59b6'};
   var isAdminCapt = currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing';
   tbody.innerHTML = lista.map(function(cp) {
@@ -4211,6 +4487,10 @@ function renderCaptacoes() {
       + '<td style="font-size:12px">' + propCel + '</td>'
       + '<td style="font-size:12px;color:var(--muted)">' + telCel + '</td>'
       + '<td><span class="pill" style="background:' + cor + '22;color:' + cor + '">' + (cp.status||'—') + '</span></td>'
+      + (function(){ if (!cp.proximo_contato) return '<td style="font-size:12px;color:var(--muted)">—</td>';
+          var f = captFollow(cp); var c = f === 'vencido' ? '#e74c3c' : f === 'hoje' ? '#e67e22' : 'var(--muted)';
+          return '<td style="font-size:12px;white-space:nowrap;color:' + c + ';font-weight:' + (f==='vencido'||f==='hoje'?'600':'400') + '">' + (f==='vencido'?'⚠️ ':'') + cp.proximo_contato.split('-').reverse().join('/') + '</td>'; })()
+      + '<td style="font-size:12px;text-align:center">' + (cp.tentativas||0) + 'x</td>'
       + '<td style="font-size:12px">' + (cp.corretor||'—') + '</td>'
       + '<td onclick="event.stopPropagation()" style="white-space:nowrap">'
       + (cp.link_drive ? '<button class="btn btn-xs" onclick="window.open(' + qa(cp.link_drive) + ',\'_blank\')" title="Abrir fotos no Drive"><i class="ti ti-brand-google-drive"></i></button>' : '')
@@ -4227,9 +4507,11 @@ function abrirNovaCaptacao() {
   ['capt-end','capt-bairro','capt-valor','capt-prop','capt-tel','capt-drive','capt-obs'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.value = '';
   });
-  document.getElementById('capt-operacao').value = 'VENDA';
+  document.getElementById('capt-operacao').value = 'ALUGUEL';
   document.getElementById('capt-tipo').value = 'Apartamento';
   document.getElementById('capt-status').value = 'A captar';
+  captPreencherResponsaveis('capt-corretor', currentUser ? currentUser.nome : 'Sandryne');
+  captPreencherFicha({proximo_contato: todayStr()});
   document.getElementById('capt-data').value = '';
   var propEl = document.getElementById('capt-prop'), telEl = document.getElementById('capt-tel');
   propEl.disabled = false; propEl.placeholder = 'Nome do proprietário';
@@ -4264,8 +4546,9 @@ function editCapt(id) {
     propEl.value = ''; propEl.disabled = true; propEl.placeholder = '🔒 Só quem captou vê esse contato';
     telEl.value = ''; telEl.disabled = true; telEl.placeholder = '🔒 Restrito';
   }
-  document.getElementById('capt-corretor').value = cp.corretor||'Sandryne';
+  captPreencherResponsaveis('capt-corretor', cp.corretor||'Sandryne');
   document.getElementById('capt-data').value = cp.data_captacao||'';
+  captPreencherFicha(cp);
   document.getElementById('capt-drive').value = cp.link_drive||'';
   document.getElementById('capt-obs').value = cp.observacoes||'';
   openModal('new-capt');
@@ -4281,7 +4564,7 @@ async function saveCaptacao() {
     tipo_operacao: document.getElementById('capt-operacao').value,
     tipo: document.getElementById('capt-tipo').value,
     bairro: document.getElementById('capt-bairro').value.trim(),
-    valor: parseFloat(document.getElementById('capt-valor').value.replace(/[^0-9.]/g,''))||null,
+    valor: parseValorBR(document.getElementById('capt-valor').value),
     status: document.getElementById('capt-status').value,
     corretor: document.getElementById('capt-corretor').value,
     data_captacao: document.getElementById('capt-data').value||null,
@@ -4292,12 +4575,39 @@ async function saveCaptacao() {
     data.proprietario = propEl.value.trim();
     data.telefone = telEl.value.trim();
   }
+  // Campos da operação de captação
+  CAPT_FICHA_CAMPOS.forEach(function(par){ var el = document.getElementById(par[0]); if (el) data[par[1]] = el.value.trim() || null; });
+  data.tambem_vende = !!(document.getElementById('capt-tambem-vende') || {}).checked;
+  var gv = function(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  data.origem = gv('capt-origem') || null;
+  data.captado_por = gv('capt-captado-por') || null;
+  data.proximo_contato = gv('capt-proximo') || null;
+  data.proxima_acao = gv('capt-proxima-acao') || null;
+  data.data_fotos = gv('capt-data-fotos') || null;
+  data.hora_fotos = gv('capt-hora-fotos') || null;
+  data.motivo_perda = data.status === 'Perdido' ? (gv('capt-motivo-perda') || null) : null;
+  if (data.status === 'Perdido' && !data.motivo_perda) { toast('⚠️ Selecione o motivo de perda'); return; }
+  if (CAPT_EXIGE_PROXIMO.indexOf(data.status) !== -1 && !data.proximo_contato) { toast('⚠️ Preencha a data do próximo contato'); return; }
+  if (CAPT_EXIGE_PROXIMO.indexOf(data.status) === -1) data.proximo_contato = null;
+  if (data.status === 'Captado' && !data.data_captacao) data.data_captacao = todayStr();
+  if (data.data_fotos && ['Captado','Autorização enviada'].indexOf(data.status) !== -1) data.status = 'Fotos agendadas';
+  var cpAtual = editCaptId ? captacoes.find(function(x){ return x.id === editCaptId; }) : null;
+  var canalReg = gv('capt-reg-canal'), resReg = gv('capt-reg-resultado');
+  if (canalReg && resReg) {
+    var hist = captHist(cpAtual || {});
+    hist.push({data: nowStr(), canal: canalReg, resultado: resReg, obs: gv('capt-reg-obs'), autor: currentUser ? currentUser.nome : ''});
+    data.historico = JSON.stringify(hist);
+    data.tentativas = ((cpAtual && cpAtual.tentativas) || 0) + 1;
+    if (!cpAtual || !cpAtual.primeiro_contato_em) data.primeiro_contato_em = new Date().toISOString();
+  } else if (canalReg || resReg) { toast('⚠️ Para registrar o contato, escolha canal e resultado'); return; }
   var captId = editCaptId;
   if (editCaptId) {
-    await sb.from('captacoes').update(data).eq('id', editCaptId);
+    var up = await sb.from('captacoes').update(data).eq('id', editCaptId);
+    if (up && up.error) { toast('Erro ao salvar: ' + up.error.message, 6000); return; }
     toast('✅ Captação atualizada!');
   } else {
     var ins = await sb.from('captacoes').insert([data]).select();
+    if (ins && ins.error) { toast('Erro ao salvar: ' + ins.error.message, 6000); return; }
     captId = ins.data && ins.data[0] ? ins.data[0].id : null;
     toast('✅ Captação salva!');
   }
@@ -4318,7 +4628,7 @@ async function sincronizarCatalogoComCaptacao(captId, data) {
   if (existing.error) { console.error('Erro ao consultar catálogo:', existing.error); return {ok:false, motivo:existing.error.message}; }
   var jaExiste = existing.data && existing.data.length ? existing.data[0].id : null;
 
-  if (data.status !== 'Captado') {
+  if (CAPT_NO_CATALOGO.indexOf(data.status) === -1) {
     if (jaExiste) {
       var del = await sb.from('catalogo_imoveis').delete().eq('id', jaExiste);
       if (del.error) { console.error('Erro ao remover do catálogo:', del.error); return {ok:false, motivo:del.error.message}; }
@@ -4357,7 +4667,7 @@ async function sincronizarCatalogoPublicoComCaptacao(captId, data) {
     if (existing.error) { console.error('Erro ao consultar catálogo público:', existing.error); return {ok:false, motivo:existing.error.message}; }
     var jaExiste = existing.data && existing.data.length ? existing.data[0].id : null;
 
-    if (data.status !== 'Captado') {
+    if (CAPT_NO_CATALOGO.indexOf(data.status) === -1) {
       if (jaExiste) await sbCatalogoPublico.from('imoveis').update({ativo:false}).eq('id', jaExiste);
       return {ok:true, acao:'desativado'};
     }
@@ -6875,7 +7185,7 @@ showPanel = function(id, el) {
    removido ou alterado em seu comportamento original. ════════════ */
 
 var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing','documentacao','fantasmas','visitascapt'];
-var ALLOWED_PANELS_TELEMARKETING = ['leads','agenda','script','catalogo','textos','recontato','telemarketing'];
+var ALLOWED_PANELS_TELEMARKETING = ['leads','agenda','script','catalogo','textos','recontato','telemarketing','captacoes','visitascapt'];
 var ALLOWED_PANELS_CAPTADOR = ['visitascapt'];
 
 /* ════════════ CHECKLIST DE DOCUMENTAÇÃO (admin cria/edita, corretor só visualiza) ════════════ */
