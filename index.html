@@ -292,6 +292,7 @@ textarea.fc{resize:vertical;min-height:60px}
       <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500" id="sidebar-name">Sandryne</div><div style="font-size:11px;color:var(--muted)" id="sidebar-role">Assistente Comercial</div></div>
       <i class="ti ti-logout" style="color:var(--muted);font-size:15px"></i>
     </div>
+    <button class="btn btn-xs" style="width:100%;justify-content:center;margin-top:8px" onclick="openTrocarSenha(false)"><i class="ti ti-key"></i>Trocar minha senha</button>
   </div>
 </aside>
 <div class="mob-overlay" id="mob-overlay" onclick="closeMobile()"></div>
@@ -2248,13 +2249,27 @@ textarea.fc{resize:vertical;min-height:60px}
 </div>
 
 <!-- MODAL NOVO CORRETOR (LOGIN) -->
+<div class="modal-overlay" id="modal-trocar-senha" style="display:none" onclick="if(event.target===this && !trocaObrigatoria)closeModal('trocar-senha')">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-hdr"><div class="modal-title" id="ts-titulo">Trocar minha senha</div><button class="modal-close" id="ts-fechar" onclick="closeModal('trocar-senha')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div id="ts-aviso" style="display:none;font-size:12px;background:#fff6e0;border:1px solid #f0d58a;border-radius:var(--radius);padding:9px 11px;margin-bottom:10px">Por segurança, defina agora a nova senha dos administradores. Depois, passe a senha nova para os outros administradores.</div>
+      <div class="fld"><label class="lbl">Nova senha</label><input class="fc" id="ts-senha1" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password"></div>
+      <div class="fld"><label class="lbl">Repita a nova senha</label><input class="fc" id="ts-senha2" type="password" autocomplete="new-password" onkeydown="if(event.key==='Enter')salvarNovaSenha()"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="ts-cancelar" onclick="closeModal('trocar-senha')">Cancelar</button>
+      <button class="btn btn-primary" id="ts-salvar" onclick="salvarNovaSenha()"><i class="ti ti-check"></i>Salvar nova senha</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-new-corretor" style="display:none" onclick="if(event.target===this)closeModal('new-corretor')">
   <div class="modal" style="max-width:420px">
     <div class="modal-hdr"><div class="modal-title">Novo corretor — Login</div><button class="modal-close" onclick="closeModal('new-corretor')"><i class="ti ti-x"></i></button></div>
     <div class="modal-body">
       <div class="fld"><label class="lbl">Nome completo</label><input class="fc" id="nc-nome" placeholder="Nome do corretor"></div>
       <div class="fld"><label class="lbl">CPF</label><input class="fc" id="nc-cpf" placeholder="000.000.000-00" maxlength="14" oninput="formatCPFInput(this)"></div>
-      <div class="fld"><label class="lbl">Senha de acesso</label><input class="fc" id="nc-senha" type="text" placeholder="Defina uma senha"></div>
+      <div class="fld"><label class="lbl">Senha de acesso</label><input class="fc" id="nc-senha" type="text" placeholder="Mínimo 6 caracteres"></div>
       <div style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 11px">O corretor usará este CPF e senha para entrar no CRM clicando em "Sou corretor — entrar com CPF" na tela de login.</div>
     </div>
     <div class="modal-footer">
@@ -2271,7 +2286,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="modal-body">
       <div class="fld"><label class="lbl">Nome completo</label><input class="fc" id="ncap-nome" placeholder="Nome do(a) captador(a)"></div>
       <div class="fld"><label class="lbl">CPF</label><input class="fc" id="ncap-cpf" placeholder="000.000.000-00" maxlength="14" oninput="formatCPFInput(this)"></div>
-      <div class="fld"><label class="lbl">Senha de acesso</label><input class="fc" id="ncap-senha" type="text" placeholder="Defina uma senha"></div>
+      <div class="fld"><label class="lbl">Senha de acesso</label><input class="fc" id="ncap-senha" type="text" placeholder="Mínimo 6 caracteres"></div>
       <div style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 11px">Ela(e) usará este CPF e senha para entrar no CRM clicando em "Sou corretor — entrar com CPF" na tela de login. O acesso é restrito só à aba "Visitas de Captação".</div>
     </div>
     <div class="modal-footer">
@@ -2287,7 +2302,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="modal-body">
       <div class="fld"><label class="lbl">Nome completo</label><input class="fc" id="nt-nome" placeholder="Nome do(a) SDR"></div>
       <div class="fld"><label class="lbl">CPF</label><input class="fc" id="nt-cpf" placeholder="000.000.000-00" maxlength="14" oninput="formatCPFInput(this)"></div>
-      <div class="fld"><label class="lbl">Senha de acesso</label><input class="fc" id="nt-senha" type="text" placeholder="Defina uma senha"></div>
+      <div class="fld"><label class="lbl">Senha de acesso</label><input class="fc" id="nt-senha" type="text" placeholder="Mínimo 6 caracteres"></div>
       <div style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 11px">Ela usará este CPF e senha para entrar no CRM clicando em "Sou corretor — entrar com CPF" na tela de login. O acesso terá as mesmas telas dos corretores, mais a aba de Telemarketing.</div>
     </div>
     <div class="modal-footer">
@@ -2303,6 +2318,7 @@ textarea.fc{resize:vertical;min-height:60px}
 const SB_URL = 'https://lqlhnfvvwsjdykwqmhbn.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxbGhuZnZ2d3NqZHlrd3FtaGJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0OTk2NzksImV4cCI6MjA5NTA3NTY3OX0.mZ_Ys1eUGu_VTEZHpRV5ozVlcluCHlemIBqAdJc_wjY';
 const sb = supabase.createClient(SB_URL, SB_KEY);
+sb.auth.signOut({ scope: 'local' });
 
 // O Supabase limita cada consulta a 1000 linhas por padrão. Essa função busca
 // TUDO, em lotes de 1000, pra nenhuma tabela grande (leads, telemarketing,
@@ -7473,9 +7489,13 @@ async function doLoginCorretor() {
   var btn = document.getElementById('btn-corretor-entrar');
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>Entrando...'; }
   try {
-    var r = await sb.from('corretores_login').select('*').eq('cpf', cpf).eq('senha', senha).eq('ativo', true).maybeSingle();
-    if (r.error || !r.data) {
-      toast('❌ CPF ou senha inválidos');
+    var cpfNum = cpf.replace(/\D/g, '');
+    var auth = await sb.auth.signInWithPassword({ email: cpfNum + CRM_EMAIL_DOMINIO, password: senha });
+    var r = auth.error ? { data: null } : await sb.from('corretores_login').select('id,nome,cpf,tipo,ativo').eq('user_id', auth.data.user.id).maybeSingle();
+    if (auth.error || r.error || !r.data || r.data.ativo === false) {
+      if (!auth.error) await sb.auth.signOut();
+      var banido = auth.error && /banned/i.test(auth.error.message || '');
+      toast(banido ? '🔒 Este login está desativado. Fale com a administração.' : '❌ CPF ou senha inválidos');
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-login"></i>Entrar'; }
       return;
     }
@@ -7547,26 +7567,58 @@ function applyRolePermissions() {
   }
 }
 
-// Após login de administrador (fluxo original), exige senha única e aplica permissões de admin
-var ADMIN_SENHA_UNICA = 'differi26';
+// Login de administrador: senha única, validada pelo Supabase Auth (a senha não fica no código)
+var CRM_ADMIN_EMAIL = 'admin@crm.differi.app';
+var CRM_EMAIL_DOMINIO = '@crm.differi.app';
+var trocaObrigatoria = false;
 var _origDoLoginAdmin = doLogin;
-doLogin = function() {
+doLogin = async function() {
   if (!selLoginUser) { toast('Selecione quem está acessando'); return; }
   var senhaInput = document.getElementById('admin-login-senha');
   var senha = senhaInput ? senhaInput.value : '';
-  if (senha !== ADMIN_SENHA_UNICA) { toast('❌ Senha incorreta'); return; }
+  if (!senha) { toast('Digite a senha'); return; }
+  var r = await sb.auth.signInWithPassword({ email: CRM_ADMIN_EMAIL, password: senha });
+  if (r.error) { toast(/invalid/i.test(r.error.message) ? '❌ Senha incorreta' : '❌ ' + r.error.message); return; }
+  if (senhaInput) senhaInput.value = '';
   _origDoLoginAdmin();
   if (currentUser) {
     currentUser.tipo = currentUser.tipo || 'admin';
     applyRolePermissions();
   }
-  if (senhaInput) senhaInput.value = '';
+  var meta = (r.data.user && r.data.user.user_metadata) || {};
+  if (meta.trocar_senha) openTrocarSenha(true);
 };
+
+function openTrocarSenha(obrigatoria) {
+  trocaObrigatoria = !!obrigatoria;
+  document.getElementById('ts-aviso').style.display = obrigatoria ? '' : 'none';
+  document.getElementById('ts-titulo').textContent = obrigatoria ? 'Defina a nova senha' : 'Trocar minha senha';
+  document.getElementById('ts-fechar').style.display = obrigatoria ? 'none' : '';
+  document.getElementById('ts-cancelar').style.display = obrigatoria ? 'none' : '';
+  document.getElementById('ts-senha1').value = ''; document.getElementById('ts-senha2').value = '';
+  openModal('trocar-senha');
+  setTimeout(function(){ document.getElementById('ts-senha1').focus(); }, 50);
+}
+
+async function salvarNovaSenha() {
+  var a = document.getElementById('ts-senha1').value, b = document.getElementById('ts-senha2').value;
+  if (a.length < 8) { toast('A senha precisa ter pelo menos 8 caracteres'); return; }
+  if (a !== b) { toast('As senhas não são iguais'); return; }
+  var btn = document.getElementById('ts-salvar'); btn.disabled = true;
+  var r = await sb.auth.updateUser({ password: a, data: { trocar_senha: false } });
+  btn.disabled = false;
+  if (r.error) { toast('❌ ' + (/different|same/i.test(r.error.message) ? 'Use uma senha diferente da atual' : r.error.message)); return; }
+  trocaObrigatoria = false;
+  closeModal('trocar-senha');
+  toast('✅ Senha alterada!');
+}
 
 // Logout: também reseta a tela de login de corretor
 var _origDoLogoutPerm = doLogout;
 doLogout = function() {
+  if (!currentUser) return;
   _origDoLogoutPerm();
+  if (!currentUser) sb.auth.signOut();
   var box = document.getElementById('corretor-login-box');
   if (box) box.style.display = 'none';
   var btn = document.getElementById('btn-toggle-corretor-login');
@@ -7604,7 +7656,7 @@ var corretoresLogin = [];
 
 async function loadCorretoresLogin() {
   try {
-    var r = await sb.from('corretores_login').select('*').order('created_at', {ascending:false});
+    var r = await sb.from('corretores_login').select('id,created_at,nome,cpf,tipo,ativo').order('created_at', {ascending:false});
     corretoresLogin = r.data || [];
   } catch(e) { corretoresLogin = []; }
   renderCorretoresLogin();
@@ -7667,7 +7719,8 @@ async function saveCorretorLogin() {
   var senha = document.getElementById('nc-senha').value.trim();
   if (!nome || !cpf || !senha) { toast('Preencha nome, CPF e senha'); return; }
   try {
-    await sb.from('corretores_login').insert([{nome:nome, cpf:cpf, senha:senha, ativo:true, tipo:'corretor'}]);
+    var rr = await sb.rpc('crm_criar_login', {p_nome:nome, p_cpf:cpf, p_senha:senha, p_tipo:'corretor'});
+    if (rr.error) { toast('❌ ' + rr.error.message); return; }
     toast('✅ Corretor cadastrado!');
     closeModal('new-corretor');
     ['nc-nome','nc-cpf','nc-senha'].forEach(function(id){ document.getElementById(id).value=''; });
@@ -7683,7 +7736,8 @@ async function saveTelemktLogin() {
   var senha = document.getElementById('nt-senha').value.trim();
   if (!nome || !cpf || !senha) { toast('Preencha nome, CPF e senha'); return; }
   try {
-    await sb.from('corretores_login').insert([{nome:nome, cpf:cpf, senha:senha, ativo:true, tipo:'telemarketing'}]);
+    var rr = await sb.rpc('crm_criar_login', {p_nome:nome, p_cpf:cpf, p_senha:senha, p_tipo:'telemarketing'});
+    if (rr.error) { toast('❌ ' + rr.error.message); return; }
     toast('✅ Telemarketing/SDR cadastrado!');
     closeModal('new-telemkt');
     ['nt-nome','nt-cpf','nt-senha'].forEach(function(id){ document.getElementById(id).value=''; });
@@ -7721,7 +7775,8 @@ async function saveCaptadorLogin() {
   var senha = document.getElementById('ncap-senha').value.trim();
   if (!nome || !cpf || !senha) { toast('Preencha nome, CPF e senha'); return; }
   try {
-    await sb.from('corretores_login').insert([{nome:nome, cpf:cpf, senha:senha, ativo:true, tipo:'captador'}]);
+    var rr = await sb.rpc('crm_criar_login', {p_nome:nome, p_cpf:cpf, p_senha:senha, p_tipo:'captador'});
+    if (rr.error) { toast('❌ ' + rr.error.message); return; }
     toast('✅ Captador(a) cadastrado!');
     closeModal('new-captador');
     ['ncap-nome','ncap-cpf','ncap-senha'].forEach(function(id){ document.getElementById(id).value=''; });
@@ -7732,14 +7787,16 @@ async function saveCaptadorLogin() {
 }
 
 async function toggleCorretorAtivo(id, novoStatus) {
-  await sb.from('corretores_login').update({ativo: novoStatus}).eq('id', id);
+  var rr = await sb.rpc('crm_set_ativo', {p_id: id, p_ativo: novoStatus});
+  if (rr.error) { toast('❌ ' + rr.error.message); return; }
   toast(novoStatus ? '✅ Corretor ativado!' : '🔒 Corretor desativado!');
   await loadCorretoresLogin();
 }
 
 async function deleteCorretorLogin(id) {
   if (!confirm('Remover este login de corretor?')) return;
-  await sb.from('corretores_login').delete().eq('id', id);
+  var rr = await sb.rpc('crm_remover_login', {p_id: id});
+  if (rr.error) { toast('❌ ' + rr.error.message); return; }
   toast('🗑️ Removido!');
   await loadCorretoresLogin();
 }
