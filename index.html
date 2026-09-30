@@ -5578,9 +5578,9 @@ var editVendaId = null;
 
 async function loadVendas() {
   try {
-    var r = await sb.from('controle_vendas').select('*').order('created_at', {ascending:false});
-    if (r.data && r.data.length) {
-      vendasItems = r.data;
+    var todos = await fetchAllRows('controle_vendas', 'created_at', false);
+    if (todos && todos.length) {
+      vendasItems = todos;
     } else {
       vendasItems = VENDAS_INICIAL.slice();
     }
