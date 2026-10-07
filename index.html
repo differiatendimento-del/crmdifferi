@@ -339,6 +339,7 @@ textarea.fc{resize:vertical;min-height:60px}
         <select class="filter-sel" id="fil-et" onchange="filterLeads()"><option value="">Todas as etiquetas</option><option>ENTRADA</option><option>LEADS NOVOS</option><option>EM ATENDIMENTO</option><option>QUENTE</option><option>REPESCAGEM</option><option>FANTASMA</option><option>CONTATO FUTURO</option><option>LISTA</option><option>DESISTIU</option><option>PERDIDO</option></select>
         <select class="filter-sel" id="fil-cr" onchange="filterLeads()"><option value="">Todos os corretores</option><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
         <select class="filter-sel" id="fil-or" onchange="filterLeads()"><option value="">Todas as origens</option><option>ANUNCIO</option><option>DISPARO</option><option>INTERNET</option><option>pessoalmente</option><option>LOJA</option><option>INDICAÇÃO</option><option>WASELLER</option></select>
+        <select class="filter-sel" id="fil-an" onchange="filterLeads()"><option value="">Todos os anúncios</option></select>
         <div class="chip" id="chip-sr" onclick="toggleSR(this)">⏰ +3 dias</div>
         <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="leads-count-label"></span>
       </div>
@@ -2769,17 +2770,31 @@ function filterLeads(){
       + nomes.map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('');
     if (valorAtual) selCr.value = valorAtual;
   }
+  // Rebuild fil-an from all known anúncios (ANUNCIOS list + empreendimentos usados nos leads)
+  var selAn = document.getElementById('fil-an');
+  if (selAn) {
+    var valorAtualAn = selAn.value;
+    var nomesAn = {};
+    (typeof ANUNCIOS !== 'undefined' ? ANUNCIOS : []).forEach(function(a){ if(a) nomesAn[a]=true; });
+    leads.forEach(function(l){ if(l.empreendimento) nomesAn[l.empreendimento]=true; });
+    var listaAn = Object.keys(nomesAn).sort();
+    selAn.innerHTML = '<option value="">Todos os anúncios</option>'
+      + listaAn.map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('');
+    if (valorAtualAn) selAn.value = valorAtualAn;
+  }
   var q=(document.getElementById('search-input').value||'').toLowerCase();
   var sg=document.getElementById('fil-sg').value;
   var et=document.getElementById('fil-et').value;
   var cr=document.getElementById('fil-cr').value;
   var or=document.getElementById('fil-or').value;
+  var an=document.getElementById('fil-an')?document.getElementById('fil-an').value:'';
   filteredLeads=leads.filter(function(l){
     if(filterSRActive&&getTmp(l).days<=3)return false;
     if(sg&&(l.status_geral||'').toUpperCase()!==sg)return false;
     if(et&&(l.status||'').toUpperCase()!==et)return false;
     if(cr&&l.corretor!==cr)return false;
     if(or&&(l.origem||'').toUpperCase()!==or.toUpperCase())return false;
+    if(an&&(l.empreendimento||'')!==an)return false;
     var hay=[l.nome,l.telefone,l.empreendimento,l.interesse,l.origem,l.observacoes,l.valor,l.corretor].join(' ').toLowerCase();
     return !q||hay.includes(q);
   });
@@ -4469,7 +4484,7 @@ function setCaptFilter(f, el) {
 function renderCaptacoes() {
   var tbody = document.getElementById('capt-body');
   if (!tbody) return;
-  var lista = captFilter === 'todos' ? captacoes.slice()
+  var lista = captFilter === 'todos' ? captacoes.filter(function(c){ return c.status !== 'Vendido'; })
     : captFilter === '__hoje' ? captacoes.filter(function(c){ var f = captFollow(c); return f === 'hoje' || f === 'vencido'; })
     : captFilter === '__vencidos' ? captacoes.filter(function(c){ return captFollow(c) === 'vencido'; })
     : captacoes.filter(function(c){return (c.status||'A captar')===captFilter;});
@@ -5579,11 +5594,16 @@ var editVendaId = null;
 async function loadVendas() {
   try {
     var todos = await fetchAllRows('controle_vendas', 'created_at', false);
-    if (todos && todos.length) {
-      vendasItems = todos;
-    } else {
-      vendasItems = VENDAS_INICIAL.slice();
+    // Migração única: as vendas antigas (Zito, Cristian, Valterlei) viviam só como
+    // exemplo em memória — garante que fiquem gravadas de verdade no banco, sem duplicar.
+    var faltando = VENDAS_INICIAL.filter(function(seed) {
+      return !todos.some(function(v) { return v.cliente === seed.cliente && v.data === seed.data && v.vgv === seed.vgv; });
+    });
+    if (faltando.length) {
+      await sb.from('controle_vendas').insert(faltando);
+      todos = await fetchAllRows('controle_vendas', 'created_at', false);
     }
+    vendasItems = todos.length ? todos : VENDAS_INICIAL.slice();
   } catch(e) { vendasItems = VENDAS_INICIAL.slice(); }
   renderVendas();
 }
