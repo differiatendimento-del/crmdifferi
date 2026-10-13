@@ -1367,8 +1367,7 @@ textarea.fc{resize:vertical;min-height:60px}
       </div>
       <div class="form-row">
         <div><label class="lbl">Anúncio</label>
-          <input class="fc" id="f-empr" list="f-empr-list" placeholder="De qual anúncio ele veio?" autocomplete="off">
-          <datalist id="f-empr-list"><option>HOGAR 120</option><option>MAVIE</option><option>FLOREZZA</option><option>FLAT CB</option><option>GRAN GARDEM</option><option>BREEZE</option><option>SETAI MIRAJ</option><option>BLANC</option><option>NAUT</option><option>Mio Formosa</option><option>ARTEFACTO</option><option>Bliss Navegante</option></datalist>
+          <input class="fc" id="f-empr" placeholder="De qual anúncio ele veio?" autocomplete="off">
         </div>
         <div><label class="lbl">Corretor responsável</label>
           <select class="fc" id="f-corretor"><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
@@ -3067,7 +3066,7 @@ function renderTab(l,tab){
       +'<div class="form-row"><div><label class="lbl">Origem</label><input class="fc" id="e-origem" list="lista-origens" value="'+(l.origem||'')+'"></div>'
       +'<div><label class="lbl">Canal de contato</label><input class="fc" id="e-canal" list="lista-canais" value="'+(l.canal||'')+'"></div></div>'
       +'<div><label class="lbl">Data contato inicial</label><input class="fc" id="e-data-contato" type="date" value="'+(l.data_contato||'')+'"></div></div>'
-      +'<div class="form-row"><div><label class="lbl">Anúncio</label><div style="display:flex;gap:6px"><select class="fc" id="e-empr" style="flex:1">'+ANUNCIOS.map(function(a){return '<option'+(l.empreendimento===a?' selected':'')+'>'+a+'</option>';}).join('')+'</select><button type="button" class="btn btn-sm" onclick="addNovoAnuncio(\'e-empr\')"><i class="ti ti-plus"></i></button></div></div>'
+      +'<div class="form-row"><div><label class="lbl">Anúncio</label><input class="fc" id="e-empr" autocomplete="off" value="'+escHtml(l.empreendimento||'')+'" placeholder="De qual anúncio ele veio?"></div>'
       +'<div><label class="lbl">Corretor</label><select class="fc" id="e-corretor">'+getAllEquipe().map(function(u){return '<option'+(l.corretor===u.nome?' selected':'')+'>'+u.nome+'</option>';}).join('')+'</select></div></div>'
       +'<div class="form-row"><div><label class="lbl">Data da venda</label><input class="fc" id="e-data-venda" type="date" value="'+(l.data_venda||'')+'"></div></div>'
       +'<div class="fld"><label class="lbl">Observações</label><textarea class="fc" id="e-obs">'+escHtml(l.observacoes||'')+'</textarea></div>'
@@ -3145,7 +3144,7 @@ async function saveEdit(id){
     nome:document.getElementById('e-nome').value.trim(),
     telefone:document.getElementById('e-tel').value.trim(),
     interesse:document.getElementById('e-perfil').value,
-    empreendimento:document.getElementById('e-empr').value,
+    empreendimento:document.getElementById('e-empr').value.trim(),
     status:document.getElementById('e-status').value,
     status_geral:document.getElementById('e-sg').value,
     origem:document.getElementById('e-origem').value,canal:document.getElementById('e-canal')?document.getElementById('e-canal').value.trim():'',
