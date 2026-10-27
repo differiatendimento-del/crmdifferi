@@ -340,6 +340,8 @@ textarea.fc{resize:vertical;min-height:60px}
         <select class="filter-sel" id="fil-cr" onchange="filterLeads()"><option value="">Todos os corretores</option><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
         <select class="filter-sel" id="fil-or" onchange="filterLeads()"><option value="">Todas as origens</option><option>ANUNCIO</option><option>DISPARO</option><option>INTERNET</option><option>pessoalmente</option><option>LOJA</option><option>INDICAÇÃO</option><option>WASELLER</option></select>
         <select class="filter-sel" id="fil-an" onchange="filterLeads()"><option value="">Todos os anúncios</option></select>
+        
+        <span id="fil-dt-range" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)"><input type="date" class="filter-sel" id="fil-dt-dia" title="Filtrar pela data de entrada" onchange="filterLeads()"> <a href="#" onclick="limparFiltroData();return false" style="color:var(--accent);text-decoration:none">limpar</a></span>
         <div class="chip" id="chip-sr" onclick="toggleSR(this)">⏰ +3 dias</div>
         <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="leads-count-label"></span>
       </div>
@@ -2754,6 +2756,19 @@ function filterLeadsDebounced() {
   _filterLeadsTimer = setTimeout(filterLeads, 400);
 }
 
+function ymdLocal(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function leadEntradaKey(l){
+  var v=l.data_contato;
+  if(v&&/^\d{4}-\d{2}-\d{2}/.test(v))return String(v).slice(0,10);
+  if(l.created_at){var d=new Date(l.created_at);if(!isNaN(d))return ymdLocal(d);}
+  return '';
+}
+function limparFiltroData(){
+  var e=document.getElementById('fil-dt-dia');if(e)e.value='';
+  filterLeads();
+}
+function faixaDataEntrada(){return null;}
+
 function filterLeads(){
   // Rebuild fil-cr from all known corretors (leads + equipe)
   var selCr = document.getElementById('fil-cr');
@@ -2787,6 +2802,9 @@ function filterLeads(){
   var cr=document.getElementById('fil-cr').value;
   var or=document.getElementById('fil-or').value;
   var an=document.getElementById('fil-an')?document.getElementById('fil-an').value:'';
+  var fdt=faixaDataEntrada();
+  var fDia=document.getElementById('fil-dt-dia')?document.getElementById('fil-dt-dia').value:'';
+  var fMes='',fAno='';
   filteredLeads=leads.filter(function(l){
     if(filterSRActive&&getTmp(l).days<=3)return false;
     if(sg&&(l.status_geral||'').toUpperCase()!==sg)return false;
@@ -2794,6 +2812,13 @@ function filterLeads(){
     if(cr&&l.corretor!==cr)return false;
     if(or&&(l.origem||'').toUpperCase()!==or.toUpperCase())return false;
     if(an&&(l.empreendimento||'')!==an)return false;
+    if(fdt||fDia||fMes||fAno){
+      var k=leadEntradaKey(l);if(!k)return false;
+      if(fdt&&(k<fdt[0]||k>fdt[1]))return false;
+      if(fDia&&k!==fDia)return false;
+      if(fMes&&k.slice(0,7)!==fMes)return false;
+      if(fAno&&k.slice(0,4)!==fAno)return false;
+    }
     var hay=[l.nome,l.telefone,l.empreendimento,l.interesse,l.origem,l.observacoes,l.valor,l.corretor].join(' ').toLowerCase();
     return !q||hay.includes(q);
   });
