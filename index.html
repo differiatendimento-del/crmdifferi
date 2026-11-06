@@ -262,6 +262,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="nav-item" onclick="showPanel('clientes',this)"><i class="ti ti-trophy" style="color:#f39c12"></i>Clientes Vendidos</div>
     <div class="nav-item" onclick="showPanel('telemarketing',this)"><i class="ti ti-phone-call"></i>Telemarketing</div>
     <div class="nav-item" onclick="showPanel('recontato',this)"><i class="ti ti-phone-outgoing"></i>Programação de Recontato</div>
+    <div class="nav-item" onclick="showPanel('cadencia',this)"><i class="ti ti-calendar-repeat"></i>Cadência Dia 01–05<span class="nav-badge" id="badge-cadencia" style="display:none">0</span></div>
     <div class="nav-item" onclick="showPanel('fantasmas',this)"><i class="ti ti-ghost"></i>Fantasmas<span class="nav-badge" id="badge-fantasmas">0</span></div>
     <div class="nav-item" onclick="showPanel('captacoes',this)"><i class="ti ti-home-search"></i>Captações</div>
     <div class="nav-item" onclick="showPanel('visitascapt',this)"><i class="ti ti-calendar-search"></i>Visitas de Captação</div>
@@ -416,6 +417,18 @@ textarea.fc{resize:vertical;min-height:60px}
     </div>
 
     <!-- PROGRAMAÇÃO DE RECONTATO -->
+    <div class="panel" id="panel-cadencia">
+      <div class="filters-bar" style="flex-wrap:wrap;gap:8px">
+        <div class="chip on" onclick="setCadF('hoje',this)">🔔 Para enviar hoje</div>
+        <div class="chip" onclick="setCadF('prox',this)">📅 Próximos 7 dias</div>
+        <div class="chip" onclick="setCadF('todos',this)">Todos na cadência</div>
+        <div class="chip" onclick="setCadF('fim',this)">✅ Concluídos</div>
+        <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="cad-count"></span>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin:2px 0 10px">Ao registrar <strong>Enviado D1</strong> no histórico, o lead entra aqui. Reenvio: após D1 = 7 dias · após D2 = 14 · após D3 = 30 · após D4 = 45 · após D5 = 60 — contados a partir do D1. Ao registrar o próximo Dn (ou clicar em ✅ Enviei), o prazo seguinte é calculado sozinho.</div>
+      <div class="card"><div id="cadencia-list"></div></div>
+    </div>
+
     <div class="panel" id="panel-recontato">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="display:flex;gap:7px">
@@ -1407,6 +1420,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="modal-hdr">
       <div><div class="modal-title" id="d-nome">Lead</div><div style="font-size:11px;color:var(--muted);margin-top:2px" id="d-sub"></div></div>
       <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn btn-sm" id="d-cad-btn" onclick="toggleCadenciaDetalhe()"><i class="ti ti-calendar-repeat"></i>Cadência</button>
         <button class="btn btn-wa btn-sm" id="d-wa-btn"><i class="ti ti-brand-whatsapp"></i>WhatsApp</button>
         <button class="modal-close" onclick="closeModal('detail')"><i class="ti ti-x"></i></button>
       </div>
@@ -2585,7 +2599,7 @@ async function loadAll(){
   if (typeof loadVendas === 'function') tasks.push(loadVendas());
   if (typeof loadVisitasCapt === 'function') tasks.push(loadVisitasCapt());
   await Promise.all(tasks);
-  renderDash();renderKanban();renderAg();renderImoveis();renderEquipe();renderAlertas();renderRel();renderIndicadores();renderRecontato();renderFantasmas();
+  renderDash();renderKanban();renderAg();renderImoveis();renderEquipe();renderAlertas();renderRel();renderIndicadores();renderRecontato();renderCadencia();renderFantasmas();
   // Update all corretor selects and chips after everything is loaded
   if (typeof updateCorretorSelects === 'function') updateCorretorSelects();
   if (typeof renderCorretorChips === 'function') renderCorretorChips();
@@ -2598,7 +2612,7 @@ async function loadLeads(){
     // usa ultimo_contato_tipo/data pra manter o "+3 dias sem contato" funcionando.
     // O histórico completo de cada lead é buscado à parte quando ele é aberto (garantirHistoricoCompleto).
     // Leads "adormecidos" (arquivado=true) também ficam de fora — veja panel-arquivados.
-    var COLUNAS_LEADS = 'id,nome,telefone,interesse,empreendimento,valor,status,status_geral,origem,canal,observacoes,data_contato,data_venda,corretor,criado_por,propostas,empreendimentos_enviados,created_at,ultimo_contato_tipo,ultimo_contato_data,proximo_contato,arquivado';
+    var COLUNAS_LEADS = 'id,nome,telefone,interesse,empreendimento,valor,status,status_geral,origem,canal,observacoes,data_contato,data_venda,corretor,criado_por,propostas,empreendimentos_enviados,created_at,ultimo_contato_tipo,ultimo_contato_data,proximo_contato,arquivado,cadencia_inicio,cadencia_etapa';
     var todos = await fetchAllRows('leads', 'created_at', false, COLUNAS_LEADS, function(q){
       return q.or('arquivado.eq.false,arquivado.is.null');
     });
@@ -2913,7 +2927,7 @@ function showPanel(id,el){
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   document.getElementById('panel-'+id).classList.add('active');
   if(el)el.classList.add('active');
-  var titles={dashboard:'Dashboard',leads:'Leads',arquivados:'Arquivados',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',fantasmas:'Fantasmas',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',visitascapt:'Visitas de Captação',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
+  var titles={dashboard:'Dashboard',leads:'Leads',arquivados:'Arquivados',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',cadencia:'Cadência Dia 01–05',fantasmas:'Fantasmas',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',visitascapt:'Visitas de Captação',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
   document.getElementById('page-title').textContent=titles[id]||id;
   closeMobile();
 }
@@ -2929,6 +2943,7 @@ async function openDetail(id,tab){
   document.getElementById('d-nome').textContent=l.nome||'Lead';
   document.getElementById('d-sub').textContent=(l.telefone||'')+(l.empreendimento?' · '+l.empreendimento:'')+(l.status?' · '+l.status:'');
   document.getElementById('d-wa-btn').onclick=function(){openWA(l.telefone,l.nome,l.empreendimento);};
+  atualizarBotaoCadencia(l);
   var tabIds=['lt-dados','lt-hist','lt-checklist','lt-proposta','lt-edit'];
   var tabNames=['dados','hist','checklist','proposta','edit'];
   tabIds.forEach(function(id){var el=document.getElementById(id);if(el)el.classList.remove('active');});
@@ -3139,7 +3154,7 @@ function atualizarLeadLocal(id, patch) {
   var sr=leads.filter(function(x){return getTmp(x).days>3;}).length;
   var q=leads.filter(function(x){return (x.status||'').toUpperCase()==='QUENTE';}).length;
   var al=document.getElementById('badge-alertas'); if(al) al.textContent=q+sr;
-  renderDash();renderKanban();renderAlertas();renderRecontato();renderFantasmas();renderRel();renderEquipe();
+  renderDash();renderKanban();renderAlertas();renderRecontato();renderCadencia();renderFantasmas();renderRel();renderEquipe();
   return l;
 }
 
@@ -3159,6 +3174,16 @@ async function addHist(id){
   historicosCache = null;
   l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([novoItem]);
   atualizarLeadLocal(id,{ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data});
+  // Códigos "Enviado D1..D5" do histórico alimentam a Cadência automaticamente.
+  var mDn=/^D([1-5])$/.exec(novoItem.cod||'');
+  if(mDn){
+    var nDn=parseInt(mDn[1],10);
+    if(await cadAplicar(l,nDn,null)){
+      var dd=cadDue(l);
+      toast('📅 Cadência: D'+nDn+' registrado'+(dd?' — próximo reenvio em '+dd.toLocaleDateString('pt-BR'):''));
+    }
+    atualizarBotaoCadencia(l);
+  }
   renderTab(l,'hist');
 }
 
@@ -3510,9 +3535,145 @@ function renderRecontato() {
       + '<div style="font-size:11px;color:var(--muted)">'+(l.empreendimento||'—')+' · '+(l.telefone||'—')+(isAdmin?' · '+(l.corretor||'—'):'')+'</div></div>'
       + '<span class="pill '+getPillClass(l.status)+'" style="margin-right:7px">'+(l.status||'—')+'</span>'
       + timerHtml(l)
+      + (l.cadencia_inicio ? '<span class="pill" style="margin-left:7px;background:rgba(41,128,185,.15);color:#2471a3">Na cadência</span>' : '<button class="btn btn-xs" style="margin-left:7px" title="Entrar na cadência Dia 01–05" onclick="event.stopPropagation();iniciarCadencia('+JSON.stringify(l.id)+')"><i class="ti ti-player-play"></i>Dia 01</button>')
       + '<button class="btn btn-wa btn-xs" style="margin-left:7px" onclick="event.stopPropagation();openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
       + '</div>';
   }).join('') : '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum lead para recontato no momento. ✅</div>';
+}
+
+// ═══ CADÊNCIA DIA 01–05 (reenvio de mensagem após 7/14/30/45/60 dias) ═══
+var CADENCIA_DIAS = [7,14,30,45,60];
+var cadFiltro = 'hoje';
+function cadParse(ymd){ var p=String(ymd).slice(0,10).split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+function cadDue(l){
+  if(!l.cadencia_inicio) return null;
+  var et=parseInt(l.cadencia_etapa||0,10);
+  if(et<1||et>CADENCIA_DIAS.length) return null; // 6 = concluída
+  var d=cadParse(l.cadencia_inicio); d.setDate(d.getDate()+CADENCIA_DIAS[et-1]); return d;
+}
+function cadDiasAte(l){ // negativo = atrasado
+  var d=cadDue(l); if(!d) return null;
+  var h=cadParse(ymdLocal(new Date()));
+  return Math.round((d-h)/86400000);
+}
+function cadenciaVencidos(){
+  return leads.filter(function(l){ var n=cadDiasAte(l); return n!==null && n<=0; });
+}
+function setCadF(f,el){
+  cadFiltro=f;
+  document.querySelectorAll('#panel-cadencia .chip').forEach(function(c){c.classList.remove('on');});
+  if(el) el.classList.add('on');
+  renderCadencia();
+}
+function cadPassos(l){
+  var et=parseInt(l.cadencia_etapa||0,10);
+  return CADENCIA_DIAS.map(function(d,i){
+    var ok=i<Math.min(et,5), atual=(i===et&&et<5);
+    return '<span title="Dia 0'+(i+1)+' — '+d+' dias" style="display:inline-block;min-width:22px;text-align:center;font-size:10px;font-weight:600;padding:2px 5px;border-radius:99px;margin-right:3px;'
+      +(ok?'background:#27ae60;color:#fff':atual?'background:#f39c12;color:#fff':'background:var(--surface);color:var(--muted);border:1px solid var(--border)')+'">'+(i+1)+'</span>';
+  }).join('');
+}
+function renderCadencia(){
+  var badge=document.getElementById('badge-cadencia');
+  var venc=cadenciaVencidos().length;
+  if(badge){ badge.textContent=venc; badge.style.display=venc?'':'none'; }
+  var el=document.getElementById('cadencia-list'); if(!el) return;
+  var isAdmin=!currentUser||(currentUser.tipo!=='corretor'&&currentUser.tipo!=='telemarketing');
+  var naCad=leads.filter(function(l){return !!l.cadencia_inicio;});
+  var lista=naCad.filter(function(l){
+    var n=cadDiasAte(l), fim=parseInt(l.cadencia_etapa||0,10)>CADENCIA_DIAS.length;
+    if(cadFiltro==='hoje') return n!==null&&n<=0;
+    if(cadFiltro==='prox') return n!==null&&n>0&&n<=7;
+    if(cadFiltro==='fim') return fim;
+    return true;
+  });
+  lista.sort(function(a,b){ var x=cadDiasAte(a), y=cadDiasAte(b); return (x===null?9999:x)-(y===null?9999:y); });
+  var cnt=document.getElementById('cad-count'); if(cnt) cnt.textContent=lista.length+' leads · '+naCad.length+' na cadência';
+  el.innerHTML=lista.length?lista.map(function(l){
+    var n=cadDiasAte(l), et=parseInt(l.cadencia_etapa||0,10), d=cadDue(l);
+    var quando, cor;
+    if(n===null){ quando='Cadência concluída'; cor='#27ae60'; }
+    else if(n<0){ quando='Atrasado '+(-n)+' dia'+(n===-1?'':'s')+' ('+d.toLocaleDateString('pt-BR')+')'; cor='#c0392b'; }
+    else if(n===0){ quando='Enviar HOJE'; cor='#e67e22'; }
+    else { quando='Em '+n+' dia'+(n===1?'':'s')+' ('+d.toLocaleDateString('pt-BR')+')'; cor='#7f8c8d'; }
+    var id=JSON.stringify(l.id);
+    return '<div class="agenda-item" style="cursor:pointer" onclick="openDetail('+id+')">'
+      +'<div class="avatar av-sm">'+ini(l.nome)+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+escHtml(l.nome||'')+'</div>'
+      +'<div style="font-size:11px;color:var(--muted)">'+escHtml(l.empreendimento||'—')+' · '+escHtml(l.telefone||'—')+(isAdmin?' · '+escHtml(l.corretor||'—'):'')+'</div>'
+      +'<div style="margin-top:4px">'+cadPassos(l)+'</div></div>'
+      +(n===null?'':'<span class="pill" style="margin-right:7px;background:rgba(0,0,0,.05);color:var(--text)">'+(et<5?'Enviar D'+(et+1):'Mensagem final')+' · dia '+CADENCIA_DIAS[et-1]+'</span>')
+      +'<span style="font-size:12px;font-weight:600;color:'+cor+';margin-right:8px;white-space:nowrap">'+quando+'</span>'
+      +'<button class="btn btn-wa btn-xs" onclick="event.stopPropagation();openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
+      +(n===null?'':'<button class="btn btn-primary btn-xs" style="margin-left:6px" title="Marcar mensagem enviada" onclick="event.stopPropagation();marcarCadenciaEnviada('+id+')"><i class="ti ti-check"></i>Enviei</button>')
+      +'<button class="btn btn-xs" style="margin-left:6px" title="Tirar da cadência" onclick="event.stopPropagation();sairCadencia('+id+')"><i class="ti ti-x"></i></button>'
+      +'</div>';
+  }).join(''):'<div style="color:var(--muted);font-size:13px;padding:10px 0">'+(cadFiltro==='hoje'?'Nenhuma mensagem para enviar hoje. ✅':'Nenhum lead nesta lista.')+'</div>';
+}
+async function cadSalvar(id, patch){
+  var r=await sb.from('leads').update(patch).eq('id',id);
+  if(r.error){ toast('Erro: '+r.error.message); return false; }
+  atualizarLeadLocal(id, patch);
+  return true;
+}
+// Registra "Enviado Dn" no histórico e posiciona o lead na cadência.
+// n=6 => mensagem final (60 dias) enviada, cadência concluída.
+async function cadRegistrar(l, n, textoExtra){
+  var cod = n<=5 ? 'D'+n : null;
+  var item={tipo:'env',cod:cod||'FIM',texto:(cod?cod:'Cadência concluída')+(textoExtra?' — '+textoExtra:''),data:nowStr(),autor:currentUser?currentUser.nome:''};
+  var r=await sb.rpc('historico_append',{p_id:l.id,p_item:item,p_tipo:item.tipo,p_data:item.data});
+  if(r.error){ toast('Erro: '+r.error.message); return false; }
+  historicosCache=null;
+  l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([item]);
+  return cadAplicar(l, n, item);
+}
+// Atualiza só os campos da cadência (usado também pelo botão "Enviado Dn" do histórico).
+async function cadAplicar(l, n, item){
+  var hoje=ymdLocal(new Date());
+  var inicio=l.cadencia_inicio;
+  if(n===1 || !inicio){
+    // D1 = entrada na cadência. Se o lead chega direto em D2..D5, assume que o envio
+    // aconteceu no prazo da etapa anterior.
+    var d=new Date(); if(n>=2 && n<=5) d.setDate(d.getDate()-CADENCIA_DIAS[n-2]);
+    inicio = (n===1) ? hoje : ymdLocal(d);
+  }
+  var patch={cadencia_inicio:inicio,cadencia_etapa:n};
+  if(item){ patch.ultimo_contato_tipo=item.tipo; patch.ultimo_contato_data=item.data; }
+  return await cadSalvar(l.id, patch);
+}
+async function iniciarCadencia(id){
+  var l=leads.find(function(x){return String(x.id)===String(id);}); if(!l) return;
+  if(l.cadencia_inicio && !confirm('Este lead já está na cadência. Reiniciar do D1 a partir de hoje?')) return;
+  if(await cadRegistrar(l,1,'mensagem enviada (entrou na cadência)')){
+    toast('📅 Enviado D1 registrado — próximo reenvio em 7 dias');
+    atualizarBotaoCadencia(l);
+  }
+}
+async function marcarCadenciaEnviada(id){
+  var l=leads.find(function(x){return String(x.id)===String(id);}); if(!l) return;
+  var et=parseInt(l.cadencia_etapa||0,10); if(et<1||et>5) return;
+  var prox=et+1;
+  if(await cadRegistrar(l,prox,prox<=5?'mensagem de recontato enviada':'mensagem final enviada (60 dias)')){
+    var d=cadDue(l);
+    toast(prox<=5?'✅ Enviado D'+prox+' — próximo reenvio em '+d.toLocaleDateString('pt-BR'):'✅ Cadência concluída');
+  }
+}
+async function sairCadencia(id){
+  var l=leads.find(function(x){return String(x.id)===String(id);}); if(!l) return;
+  if(!confirm('Tirar "'+(l.nome||'este lead')+'" da cadência?')) return;
+  if(await cadSalvar(id,{cadencia_inicio:null,cadencia_etapa:0})){ toast('Lead removido da cadência'); atualizarBotaoCadencia(l); }
+}
+function atualizarBotaoCadencia(l){
+  var b=document.getElementById('d-cad-btn'); if(!b||!l) return;
+  if(l.cadencia_inicio){
+    var et=parseInt(l.cadencia_etapa||0,10);
+    b.innerHTML='<i class="ti ti-calendar-repeat"></i>'+(et>5?'Cadência concluída':'Cadência: em D'+et);
+  } else b.innerHTML='<i class="ti ti-player-play"></i>Iniciar cadência (D1)';
+}
+function toggleCadenciaDetalhe(){
+  var l=leads.find(function(x){return String(x.id)===String(currentLeadId);}); if(!l) return;
+  if(!l.cadencia_inicio) iniciarCadencia(l.id);
+  else { showPanel('cadencia',document.querySelector('[onclick*="showPanel(\'cadencia\'"]')); closeModal('detail'); }
 }
 
 // ═══ FANTASMAS (pós-Telemarketing, recontato a cada 30 dias) ═══
@@ -3604,7 +3765,9 @@ function renderAlertas(){
   var sr=leads.filter(function(l){return getTmp(l).days>3;}).length;
   var agP=agendamentos.filter(function(a){return !a.confirmado&&a.data>=todayStr();}).length;
   var pr=leads.filter(function(l){return JSON.parse(l.propostas||'[]').some(function(p){return p.resultado==='Pendente';});}).length;
+  var cadV=(typeof cadenciaVencidos==='function')?cadenciaVencidos().length:0;
   var al=[
+    {tipo:'danger',icon:'ti-calendar-repeat',msg:cadV+' leads na Cadência Dia 01–05 com mensagem para reenviar hoje'},
     {tipo:'danger',icon:'ti-flame',msg:q+' leads QUENTES aguardando contato — prioridade máxima'},
     {tipo:'danger',icon:'ti-clock',msg:sr+' leads com mais de 3 dias sem contato — follow-up urgente'},
     {tipo:'warn',icon:'ti-calendar-x',msg:agP+' visitas agendadas sem confirmação'},
@@ -7269,8 +7432,8 @@ showPanel = function(id, el) {
    — Bloco 100% adicional. Nenhuma função/elemento existente foi
    removido ou alterado em seu comportamento original. ════════════ */
 
-var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','telemarketing','documentacao','fantasmas','visitascapt'];
-var ALLOWED_PANELS_TELEMARKETING = ['leads','agenda','script','catalogo','textos','recontato','telemarketing','captacoes','visitascapt'];
+var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','cadencia','telemarketing','documentacao','fantasmas','visitascapt'];
+var ALLOWED_PANELS_TELEMARKETING = ['leads','agenda','script','catalogo','textos','recontato','cadencia','telemarketing','captacoes','visitascapt'];
 var ALLOWED_PANELS_CAPTADOR = ['visitascapt'];
 
 /* ════════════ CHECKLIST DE DOCUMENTAÇÃO (admin cria/edita, corretor só visualiza) ════════════ */
