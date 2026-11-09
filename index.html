@@ -423,6 +423,7 @@ textarea.fc{resize:vertical;min-height:60px}
         <div class="chip" onclick="setCadF('prox',this)">📅 Próximos 7 dias</div>
         <div class="chip" onclick="setCadF('todos',this)">Todos na cadência</div>
         <div class="chip" onclick="setCadF('fim',this)">✅ Concluídos</div>
+        <select class="filter-sel" id="cad-corretor" onchange="renderCadencia()"><option value="">Todos os corretores</option></select>
         <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="cad-count"></span>
       </div>
       <div style="font-size:12px;color:var(--muted);margin:2px 0 10px">Ao registrar <strong>Enviado D1</strong> no histórico, o lead entra aqui. Reenvio: após D1 = 7 dias · após D2 = 14 · após D3 = 30 · após D4 = 45 · após D5 = 60 — contados a partir do D1. Ao registrar o próximo Dn (ou clicar em ✅ Enviei), o prazo seguinte é calculado sozinho.</div>
@@ -3556,8 +3557,11 @@ function cadDiasAte(l){ // negativo = atrasado
   var h=cadParse(ymdLocal(new Date()));
   return Math.round((d-h)/86400000);
 }
+// Corretor só enxerga os próprios leads na cadência; admin vê todos (e filtra por corretor).
+function cadEhAdmin(){ return !currentUser || (currentUser.tipo!=='corretor' && currentUser.tipo!=='telemarketing'); }
+function cadNoEscopo(l){ return cadEhAdmin() || l.corretor===(currentUser?currentUser.nome:null); }
 function cadenciaVencidos(){
-  return leads.filter(function(l){ var n=cadDiasAte(l); return n!==null && n<=0; });
+  return leads.filter(function(l){ if(!cadNoEscopo(l)) return false; var n=cadDiasAte(l); return n!==null && n<=0; });
 }
 function setCadF(f,el){
   cadFiltro=f;
@@ -3579,8 +3583,17 @@ function renderCadencia(){
   if(badge){ badge.textContent=venc; badge.style.display=venc?'':'none'; }
   var el=document.getElementById('cadencia-list'); if(!el) return;
   var isAdmin=!currentUser||(currentUser.tipo!=='corretor'&&currentUser.tipo!=='telemarketing');
-  var naCad=leads.filter(function(l){return !!l.cadencia_inicio;});
+  var naCad=leads.filter(function(l){return !!l.cadencia_inicio && cadNoEscopo(l);});
+  var selCor=document.getElementById('cad-corretor'), fCor='';
+  if(selCor && !cadEhAdmin()){ selCor.style.display='none'; }
+  else if(selCor){
+    fCor=selCor.value;
+    var nomesC={}; naCad.forEach(function(l){ nomesC[l.corretor||'(sem corretor)']=true; });
+    selCor.innerHTML='<option value="">Todos os corretores</option>'+Object.keys(nomesC).sort().map(function(n){return '<option value="'+escHtml(n)+'">'+escHtml(n)+'</option>';}).join('');
+    selCor.value=fCor; if(selCor.value!==fCor) fCor='';
+  }
   var lista=naCad.filter(function(l){
+    if(fCor && (l.corretor||'(sem corretor)')!==fCor) return false;
     var n=cadDiasAte(l), fim=parseInt(l.cadencia_etapa||0,10)>CADENCIA_DIAS.length;
     if(cadFiltro==='hoje') return n!==null&&n<=0;
     if(cadFiltro==='prox') return n!==null&&n>0&&n<=7;
@@ -3600,7 +3613,7 @@ function renderCadencia(){
     return '<div class="agenda-item" style="cursor:pointer" onclick="openDetail('+id+')">'
       +'<div class="avatar av-sm">'+ini(l.nome)+'</div>'
       +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+escHtml(l.nome||'')+'</div>'
-      +'<div style="font-size:11px;color:var(--muted)">'+escHtml(l.empreendimento||'—')+' · '+escHtml(l.telefone||'—')+(isAdmin?' · '+escHtml(l.corretor||'—'):'')+'</div>'
+      +'<div style="font-size:11px;color:var(--muted)">'+escHtml(l.empreendimento||'—')+' · '+escHtml(l.telefone||'—')+' · '+escHtml(l.corretor||'sem corretor')+'</div>'
       +'<div style="margin-top:4px">'+cadPassos(l)+'</div></div>'
       +(n===null?'':'<span class="pill" style="margin-right:7px;background:rgba(0,0,0,.05);color:var(--text)">'+(et<5?'Enviar D'+(et+1):'Mensagem final')+' · dia '+CADENCIA_DIAS[et-1]+'</span>')
       +'<span style="font-size:12px;font-weight:600;color:'+cor+';margin-right:8px;white-space:nowrap">'+quando+'</span>'
@@ -3629,15 +3642,17 @@ async function cadRegistrar(l, n, textoExtra){
 }
 // Atualiza só os campos da cadência (usado também pelo botão "Enviado Dn" do histórico).
 async function cadAplicar(l, n, item){
-  var hoje=ymdLocal(new Date());
-  var inicio=l.cadencia_inicio;
-  if(n===1 || !inicio){
-    // D1 = entrada na cadência. Se o lead chega direto em D2..D5, assume que o envio
-    // aconteceu no prazo da etapa anterior.
-    var d=new Date(); if(n>=2 && n<=5) d.setDate(d.getDate()-CADENCIA_DIAS[n-2]);
-    inicio = (n===1) ? hoje : ymdLocal(d);
+  var etAtual=parseInt(l.cadencia_etapa||0,10);
+  // Registrar de novo um Dn que já foi feito (ou anterior) não mexe no prazo.
+  if(n>1 && l.cadencia_inicio && n<=etAtual){
+    toast('ℹ️ D'+n+' já estava registrado — prazo mantido');
+    return true;
   }
-  var patch={cadencia_inicio:inicio,cadencia_etapa:n};
+  // O envio de hoje é o marco: o próximo prazo conta a partir de HOJE,
+  // com o intervalo da etapa (não da data antiga do D1). Assim o lead sai da lista
+  // do dia assim que você registra, mesmo que o envio estivesse atrasado.
+  var d=new Date(); if(n>=2 && n<=5) d.setDate(d.getDate()-CADENCIA_DIAS[n-2]);
+  var patch={cadencia_inicio:ymdLocal(d),cadencia_etapa:n};
   if(item){ patch.ultimo_contato_tipo=item.tipo; patch.ultimo_contato_data=item.data; }
   return await cadSalvar(l.id, patch);
 }
@@ -7433,7 +7448,7 @@ showPanel = function(id, el) {
    removido ou alterado em seu comportamento original. ════════════ */
 
 var ALLOWED_PANELS_CORRETOR = ['leads','captacoes','agenda','script','catalogo','clientes','textos','recontato','cadencia','telemarketing','documentacao','fantasmas','visitascapt'];
-var ALLOWED_PANELS_TELEMARKETING = ['leads','agenda','script','catalogo','textos','recontato','cadencia','telemarketing','captacoes','visitascapt'];
+var ALLOWED_PANELS_TELEMARKETING = ['leads','agenda','script','catalogo','textos','recontato','telemarketing','captacoes','visitascapt'];
 var ALLOWED_PANELS_CAPTADOR = ['visitascapt'];
 
 /* ════════════ CHECKLIST DE DOCUMENTAÇÃO (admin cria/edita, corretor só visualiza) ════════════ */
