@@ -426,7 +426,7 @@ textarea.fc{resize:vertical;min-height:60px}
         <select class="filter-sel" id="cad-corretor" onchange="renderCadencia()"><option value="">Todos os corretores</option></select>
         <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="cad-count"></span>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin:2px 0 10px">Ao registrar <strong>Enviado D1</strong> no histórico, o lead entra aqui. Reenvio: após D1 = 7 dias · após D2 = 14 · após D3 = 30 · após D4 = 45 · após D5 = 60 — contados a partir do D1. Ao registrar o próximo Dn (ou clicar em ✅ Enviei), o prazo seguinte é calculado sozinho.</div>
+      <div style="font-size:12px;color:var(--muted);margin:2px 0 10px">Ao registrar <strong>Enviado D1</strong> no histórico, o lead entra aqui. Reenvio: após D1 = 7 dias · após D2 = 14 · após D3 = 30 · após D4 = 45 — contados a partir do D1. Depois do <strong>D5</strong>, o lead fica aqui com o botão <strong>Telemarketing</strong>: ao encaminhar (ou registrar <strong>TT</strong> no histórico) ele sai da cadência. Ao registrar o próximo Dn (ou clicar em ✅ Enviei), o prazo seguinte é calculado sozinho.</div>
       <div class="card"><div id="cadencia-list"></div></div>
     </div>
 
@@ -3176,12 +3176,18 @@ async function addHist(id){
   l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([novoItem]);
   atualizarLeadLocal(id,{ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data});
   // Códigos "Enviado D1..D5" do histórico alimentam a Cadência automaticamente.
+  if(novoItem.cod==='TT' && l.cadencia_inicio){
+    if(await cadSalvar(id,{cadencia_inicio:null,cadencia_etapa:0})){
+      toast('📞 Transferido ao Telemarketing — saiu da cadência');
+      atualizarBotaoCadencia(l);
+    }
+  }
   var mDn=/^D([1-5])$/.exec(novoItem.cod||'');
   if(mDn){
     var nDn=parseInt(mDn[1],10);
     if(await cadAplicar(l,nDn,null)){
       var dd=cadDue(l);
-      toast('📅 Cadência: D'+nDn+' registrado'+(dd?' — próximo reenvio em '+dd.toLocaleDateString('pt-BR'):''));
+      toast(nDn===5?'📅 D5 registrado — encaminhe ao Telemarketing (aba Cadência)':'📅 Cadência: D'+nDn+' registrado'+(dd?' — próximo reenvio em '+dd.toLocaleDateString('pt-BR'):''));
     }
     atualizarBotaoCadencia(l);
   }
@@ -3550,6 +3556,7 @@ function cadDue(l){
   if(!l.cadencia_inicio) return null;
   var et=parseInt(l.cadencia_etapa||0,10);
   if(et<1||et>CADENCIA_DIAS.length) return null; // 6 = concluída
+  if(et===5) return cadParse(ymdLocal(new Date())); // D5 enviado: encaminhar ao telemarketing já
   var d=cadParse(l.cadencia_inicio); d.setDate(d.getDate()+CADENCIA_DIAS[et-1]); return d;
 }
 function cadDiasAte(l){ // negativo = atrasado
@@ -3607,7 +3614,7 @@ function renderCadencia(){
     var quando, cor;
     if(n===null){ quando='Cadência concluída'; cor='#27ae60'; }
     else if(n<0){ quando='Atrasado '+(-n)+' dia'+(n===-1?'':'s')+' ('+d.toLocaleDateString('pt-BR')+')'; cor='#c0392b'; }
-    else if(n===0){ quando='Enviar HOJE'; cor='#e67e22'; }
+    else if(n===0){ quando=(et===5?'Encaminhar ao Telemarketing':'Enviar HOJE'); cor='#e67e22'; }
     else { quando='Em '+n+' dia'+(n===1?'':'s')+' ('+d.toLocaleDateString('pt-BR')+')'; cor='#7f8c8d'; }
     var id=JSON.stringify(l.id);
     return '<div class="agenda-item" style="cursor:pointer" onclick="openDetail('+id+')">'
@@ -3615,10 +3622,10 @@ function renderCadencia(){
       +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+escHtml(l.nome||'')+'</div>'
       +'<div style="font-size:11px;color:var(--muted)">'+escHtml(l.empreendimento||'—')+' · '+escHtml(l.telefone||'—')+' · '+escHtml(l.corretor||'sem corretor')+'</div>'
       +'<div style="margin-top:4px">'+cadPassos(l)+'</div></div>'
-      +(n===null?'':'<span class="pill" style="margin-right:7px;background:rgba(0,0,0,.05);color:var(--text)">'+(et<5?'Enviar D'+(et+1):'Mensagem final')+' · dia '+CADENCIA_DIAS[et-1]+'</span>')
+      +(n===null?'':(et<5?'<span class="pill" style="margin-right:7px;background:rgba(0,0,0,.05);color:var(--text)">Enviar D'+(et+1)+' · dia '+CADENCIA_DIAS[et-1]+'</span>':'<span class="pill" style="margin-right:7px;background:rgba(231,76,60,.12);color:#c0392b">D5 enviado · encaminhar</span>'))
       +'<span style="font-size:12px;font-weight:600;color:'+cor+';margin-right:8px;white-space:nowrap">'+quando+'</span>'
       +'<button class="btn btn-wa btn-xs" onclick="event.stopPropagation();openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
-      +(n===null?'':'<button class="btn btn-primary btn-xs" style="margin-left:6px" title="Marcar mensagem enviada" onclick="event.stopPropagation();marcarCadenciaEnviada('+id+')"><i class="ti ti-check"></i>Enviei</button>')
+      +(n===null?'':(et<5?'<button class="btn btn-primary btn-xs" style="margin-left:6px" title="Marcar mensagem enviada" onclick="event.stopPropagation();marcarCadenciaEnviada('+id+')"><i class="ti ti-check"></i>Enviei</button>':'<button class="btn btn-primary btn-xs" style="margin-left:6px" title="Enviar ao Telemarketing e tirar da cadência" onclick="event.stopPropagation();encaminharTelemarketingCadencia('+id+')"><i class="ti ti-phone-outgoing"></i>Telemarketing</button>'))
       +'<button class="btn btn-xs" style="margin-left:6px" title="Tirar da cadência" onclick="event.stopPropagation();sairCadencia('+id+')"><i class="ti ti-x"></i></button>'
       +'</div>';
   }).join(''):'<div style="color:var(--muted);font-size:13px;padding:10px 0">'+(cadFiltro==='hoje'?'Nenhuma mensagem para enviar hoje. ✅':'Nenhum lead nesta lista.')+'</div>';
@@ -3666,11 +3673,24 @@ async function iniciarCadencia(id){
 }
 async function marcarCadenciaEnviada(id){
   var l=leads.find(function(x){return String(x.id)===String(id);}); if(!l) return;
-  var et=parseInt(l.cadencia_etapa||0,10); if(et<1||et>5) return;
+  var et=parseInt(l.cadencia_etapa||0,10); if(et<1||et>4) return;
   var prox=et+1;
   if(await cadRegistrar(l,prox,prox<=5?'mensagem de recontato enviada':'mensagem final enviada (60 dias)')){
     var d=cadDue(l);
-    toast(prox<=5?'✅ Enviado D'+prox+' — próximo reenvio em '+d.toLocaleDateString('pt-BR'):'✅ Cadência concluída');
+    toast(prox<5?'✅ Enviado D'+prox+' — próximo reenvio em '+d.toLocaleDateString('pt-BR'):'✅ Enviado D5 — agora encaminhe ao Telemarketing');
+  }
+}
+// Fim da cadência: manda o lead para o Telemarketing e o tira da lista.
+async function encaminharTelemarketingCadencia(id){
+  var l=leads.find(function(x){return String(x.id)===String(id);}); if(!l) return;
+  if(!confirm('Encaminhar "'+(l.nome||'este lead')+'" ao Telemarketing e tirar da cadência?')) return;
+  await autoEnviarTelemarketing(l.nome,l.telefone,l.interesse,l.corretor,'fim da Cadência (D5)');
+  var item={tipo:'ret',cod:'TT',texto:'TT — Transferido ao Telemarketing (fim da cadência D5)',data:nowStr(),autor:currentUser?currentUser.nome:''};
+  var r=await sb.rpc('historico_append',{p_id:id,p_item:item,p_tipo:item.tipo,p_data:item.data});
+  if(!r.error){ historicosCache=null; l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([item]); }
+  if(await cadSalvar(id,{cadencia_inicio:null,cadencia_etapa:0,ultimo_contato_tipo:item.tipo,ultimo_contato_data:item.data})){
+    toast('📞 Lead encaminhado ao Telemarketing e fora da cadência');
+    atualizarBotaoCadencia(l);
   }
 }
 async function sairCadencia(id){
@@ -3682,7 +3702,7 @@ function atualizarBotaoCadencia(l){
   var b=document.getElementById('d-cad-btn'); if(!b||!l) return;
   if(l.cadencia_inicio){
     var et=parseInt(l.cadencia_etapa||0,10);
-    b.innerHTML='<i class="ti ti-calendar-repeat"></i>'+(et>5?'Cadência concluída':'Cadência: em D'+et);
+    b.innerHTML='<i class="ti ti-calendar-repeat"></i>'+(et>5?'Cadência concluída':et===5?'Cadência: D5 · encaminhar':'Cadência: em D'+et);
   } else b.innerHTML='<i class="ti ti-player-play"></i>Iniciar cadência (D1)';
 }
 function toggleCadenciaDetalhe(){
