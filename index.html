@@ -42,6 +42,10 @@ body{font-family:"DM Sans",sans-serif;font-size:14px;color:var(--text);backgroun
 .nav-item i{font-size:17px;width:21px;text-align:center;flex-shrink:0}
 .nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;border-radius:99px;padding:2px 7px;font-weight:600}
 .nav-badge.g{background:var(--success)}
+.metric-card.click{cursor:pointer;transition:transform .12s,box-shadow .12s}
+.metric-card.click:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.10)}
+.f-bar.click{cursor:pointer;border-radius:6px}
+.f-bar.click:hover{background:rgba(0,0,0,.04)}
 .user-box{padding:13px;border-top:1px solid var(--border)}
 .avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
 .av-lg{width:36px;height:36px;font-size:13px;background:var(--accent-light);color:var(--accent)}
@@ -314,23 +318,23 @@ textarea.fc{resize:vertical;min-height:60px}
     <!-- DASHBOARD -->
     <div class="panel active" id="panel-dashboard">
       <div class="metrics-grid">
-        <div class="metric-card"><div class="metric-label">Total Leads<i class="ti ti-users" style="font-size:15px;color:var(--accent)"></i></div><div class="metric-val" id="m-total">—</div><div class="metric-sub">na base</div></div>
-        <div class="metric-card"><div class="metric-label">Em Atendimento<i class="ti ti-headset" style="font-size:15px;color:var(--warn)"></i></div><div class="metric-val" style="color:var(--warn)" id="m-atend">—</div><div class="metric-sub">ativos</div></div>
-        <div class="metric-card"><div class="metric-label">Quentes 🔥<i class="ti ti-flame" style="font-size:15px;color:var(--danger)"></i></div><div class="metric-val" style="color:var(--danger)" id="m-quente">—</div><div class="metric-sub">prioridade máxima</div></div>
-        <div class="metric-card"><div class="metric-label">+3 dias sem contato<i class="ti ti-clock" style="font-size:15px;color:var(--muted)"></i></div><div class="metric-val" style="color:var(--muted)" id="m-semret">—</div><div class="metric-sub">follow-up urgente</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({})"><div class="metric-label">Total Leads<i class="ti ti-users" style="font-size:15px;color:var(--accent)"></i></div><div class="metric-val" id="m-total">—</div><div class="metric-sub">na base</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({et:'EM ATENDIMENTO'})"><div class="metric-label">Em Atendimento<i class="ti ti-headset" style="font-size:15px;color:var(--warn)"></i></div><div class="metric-val" style="color:var(--warn)" id="m-atend">—</div><div class="metric-sub">ativos</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="dashQuentes()"><div class="metric-label">Quentes 🔥<i class="ti ti-flame" style="font-size:15px;color:var(--danger)"></i></div><div class="metric-val" style="color:var(--danger)" id="m-quente">—</div><div class="metric-sub">prioridade máxima</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sr:true})"><div class="metric-label">+3 dias sem contato<i class="ti ti-clock" style="font-size:15px;color:var(--muted)"></i></div><div class="metric-val" style="color:var(--muted)" id="m-semret">—</div><div class="metric-sub">follow-up urgente</div></div>
       </div>
       <div class="metrics-grid">
-        <div class="metric-card" style="border-left:4px solid var(--success)"><div class="metric-label">Atendimento Ativo</div><div class="metric-val" style="color:var(--success)" id="m-ativo">—</div><div class="metric-sub">em andamento</div></div>
-        <div class="metric-card" style="border-left:4px solid var(--info)"><div class="metric-label">Mailing</div><div class="metric-val" style="color:var(--info)" id="m-mailing">—</div><div class="metric-sub">base de contatos</div></div>
-        <div class="metric-card" style="border-left:4px solid var(--danger)"><div class="metric-label">Perdidos ❌</div><div class="metric-val" style="color:var(--danger)" id="m-perdido">—</div><div class="metric-sub">sem conversão</div></div>
-        <div class="metric-card" style="border-left:4px solid var(--danger)"><div class="metric-label">Desistiu</div><div class="metric-val" style="color:var(--danger)" id="m-desistiu">—</div><div class="metric-sub">desistiram</div></div>
-        <div class="metric-card" style="border-left:4px solid var(--accent)"><div class="metric-label">Vendidos 🏆</div><div class="metric-val" style="color:var(--accent)" id="m-vendido">—</div><div class="metric-sub">conversões</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sg:'ATENDIMENTO ATIVO'})" style="border-left:4px solid var(--success)"><div class="metric-label">Atendimento Ativo</div><div class="metric-val" style="color:var(--success)" id="m-ativo">—</div><div class="metric-sub">em andamento</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sg:'MAILING'})" style="border-left:4px solid var(--info)"><div class="metric-label">Mailing</div><div class="metric-val" style="color:var(--info)" id="m-mailing">—</div><div class="metric-sub">base de contatos</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sg:'PERDIDO'})" style="border-left:4px solid var(--danger)"><div class="metric-label">Perdidos ❌</div><div class="metric-val" style="color:var(--danger)" id="m-perdido">—</div><div class="metric-sub">sem conversão</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sg:'DESISTIU'})" style="border-left:4px solid var(--danger)"><div class="metric-label">Desistiu</div><div class="metric-val" style="color:var(--danger)" id="m-desistiu">—</div><div class="metric-sub">desistiram</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sg:'VENDIDO'})" style="border-left:4px solid var(--accent)"><div class="metric-label">Vendidos 🏆</div><div class="metric-val" style="color:var(--accent)" id="m-vendido">—</div><div class="metric-sub">conversões</div></div>
       </div>
       <div class="two-col">
         <div class="card"><div class="sec-hdr"><div class="sec-title">Funil por etiqueta</div></div><div id="funnel-chart"></div></div>
         <div class="card"><div class="sec-hdr"><div class="sec-title">Leads por origem</div></div><div id="origem-chart"></div></div>
       </div>
-      <div class="card"><div class="sec-hdr"><div class="sec-title">⚡ Leads quentes — ação imediata</div><button class="btn btn-xs" onclick="showPanel('leads',document.querySelectorAll('.nav-item')[1])">Ver todos</button></div><div id="hot-leads-list"></div></div>
+      <div class="card"><div class="sec-hdr"><div class="sec-title">⚡ Leads quentes — ação imediata</div><button class="btn btn-xs" onclick="dashQuentes()">Ver todos</button></div><div id="hot-leads-list"></div></div>
     </div>
 
     <!-- LEADS -->
@@ -344,6 +348,7 @@ textarea.fc{resize:vertical;min-height:60px}
         
         <span id="fil-dt-range" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)"><input type="date" class="filter-sel" id="fil-dt-dia" title="Filtrar pela data de entrada" onchange="filterLeads()"> <a href="#" onclick="limparFiltroData();return false" style="color:var(--accent);text-decoration:none">limpar</a></span>
         <div class="chip" id="chip-sr" onclick="toggleSR(this)">⏰ +3 dias</div>
+        <div class="chip on" id="chip-dash" style="display:none" title="Clique para remover este filtro" onclick="limparDashFiltro()"></div>
         <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="leads-count-label"></span>
       </div>
       <div class="tbl-wrap">
@@ -2822,6 +2827,7 @@ function filterLeads(){
   var fMes='',fAno='';
   filteredLeads=leads.filter(function(l){
     if(filterSRActive&&getTmp(l).days<=3)return false;
+    if(dashFiltro&&!dashFiltro.fn(l))return false;
     if(sg&&(l.status_geral||'').toUpperCase()!==sg)return false;
     if(et&&(l.status||'').toUpperCase()!==et)return false;
     if(cr&&l.corretor!==cr)return false;
@@ -3283,6 +3289,49 @@ function renderKanban(){
 }
 
 // DASHBOARD
+// ═══ DASHBOARD CLICÁVEL → abre Leads já filtrado ═══
+var dashFiltro=null, _dashNav=false;
+function atualizarChipDash(){
+  var c=document.getElementById('chip-dash'); if(!c) return;
+  if(dashFiltro){ c.textContent='📊 '+dashFiltro.label+'  ✕'; c.style.display=''; } else c.style.display='none';
+}
+function limparDashFiltro(){ dashFiltro=null; atualizarChipDash(); filterLeads(); }
+function irParaLeads(cfg){
+  cfg=cfg||{};
+  ['fil-sg','fil-et','fil-cr','fil-or','fil-an','fil-dt-dia'].forEach(function(id){var e=document.getElementById(id); if(e) e.value='';});
+  var si=document.getElementById('search-input'); if(si) si.value='';
+  filterSRActive=!!cfg.sr;
+  var chip=document.getElementById('chip-sr'); if(chip) chip.classList.toggle('on',filterSRActive);
+  if(cfg.sg){ var a=document.getElementById('fil-sg'); if(a) a.value=cfg.sg; }
+  if(cfg.et){ var b=document.getElementById('fil-et'); if(b) b.value=cfg.et; }
+  dashFiltro=cfg.fn?{fn:cfg.fn,label:cfg.label||'Filtro do dashboard'}:null;
+  atualizarChipDash();
+  _dashNav=true;
+  showPanel('leads',document.querySelectorAll('.nav-item')[1]);
+  _dashNav=false;
+  filterLeads();
+}
+// "Quentes" do dashboard não conta quem já vendeu/finalizou — o filtro segue a mesma regra.
+function dashQuentes(){
+  irParaLeads({et:'QUENTE',label:'Quentes em andamento',fn:function(l){
+    var sg=(l.status_geral||'').toUpperCase();
+    return sg!=='VENDIDO'&&sg!=='JÁ COMPROU'&&sg!=='FINALIZADO';
+  }});
+}
+function dashFunil(key){
+  if(key==='ENTRADA') irParaLeads({label:'Etiqueta: Entrada',fn:function(l){return (l.status||'ENTRADA').toUpperCase()==='ENTRADA';}});
+  else irParaLeads({et:key});
+}
+function dashOrigem(key){
+  irParaLeads({label:'Origem: '+key,fn:function(l){return (l.origem||'Outro').toUpperCase()===String(key).toUpperCase();}});
+}
+// Ao entrar em Leads pelo menu, o filtro vindo do dashboard é removido.
+var _showPanelOrig=showPanel;
+showPanel=function(id,el){
+  if(id==='leads'&&!_dashNav&&dashFiltro){ dashFiltro=null; atualizarChipDash(); filterLeads(); }
+  return _showPanelOrig.apply(this,arguments);
+};
+
 function renderDash(){
   var total=leads.length;
   var atend=leads.filter(function(l){return (l.status||'').toUpperCase()==='EM ATENDIMENTO';}).length;
@@ -3310,15 +3359,15 @@ function renderDash(){
 
   var sc={};leads.forEach(function(l){var s=(l.status||'ENTRADA').toUpperCase();sc[s]=(sc[s]||0)+1;});
   var fd=[
-    {label:'Quente',    count:sc['QUENTE']||0,         c:'#e74c3c'},
-    {label:'Em Atend.', count:sc['EM ATENDIMENTO']||0, c:'#f39c12'},
-    {label:'Entrada',   count:sc['ENTRADA']||0,        c:'#3498db'},
-    {label:'Repescagem',count:sc['REPESCAGEM']||0,     c:'#9b59b6'},
-    {label:'C.Futuro',  count:sc['CONTATO FUTURO']||0, c:'#1a6b4a'}
+    {key:'QUENTE', label:'Quente',    count:sc['QUENTE']||0,         c:'#e74c3c'},
+    {key:'EM ATENDIMENTO', label:'Em Atend.', count:sc['EM ATENDIMENTO']||0, c:'#f39c12'},
+    {key:'ENTRADA', label:'Entrada',   count:sc['ENTRADA']||0,        c:'#3498db'},
+    {key:'REPESCAGEM', label:'Repescagem',count:sc['REPESCAGEM']||0,     c:'#9b59b6'},
+    {key:'CONTATO FUTURO', label:'C.Futuro',  count:sc['CONTATO FUTURO']||0, c:'#1a6b4a'}
   ];
   var mf=Math.max.apply(null,fd.map(function(f){return f.count;}).concat([1]));
   document.getElementById('funnel-chart').innerHTML=fd.map(function(f){
-    return '<div class="f-bar"><div class="f-lbl">'+f.label+'</div><div class="f-track"><div class="f-fill" style="width:'+Math.round(f.count/mf*100)+'%;background:'+f.c+'"></div></div><div class="f-cnt">'+f.count+'</div></div>';
+    return '<div class="f-bar click" title="Ver esses leads" onclick="dashFunil('+qa(f.key)+')"><div class="f-lbl">'+f.label+'</div><div class="f-track"><div class="f-fill" style="width:'+Math.round(f.count/mf*100)+'%;background:'+f.c+'"></div></div><div class="f-cnt">'+f.count+'</div></div>';
   }).join('');
 
   var oc={};leads.forEach(function(l){var o=(l.origem||'Outro').toUpperCase();oc[o]=(oc[o]||0)+1;});
@@ -3326,7 +3375,7 @@ function renderDash(){
   var mo=Math.max.apply(null,od.map(function(e){return e[1];}).concat([1]));
   var oc2=['#1a6b4a','#3498db','#f39c12','#9b59b6','#e74c3c'];
   document.getElementById('origem-chart').innerHTML=od.map(function(e,i){
-    return '<div class="f-bar"><div class="f-lbl" style="font-size:11px">'+e[0].substring(0,10)+'</div><div class="f-track"><div class="f-fill" style="width:'+Math.round(e[1]/mo*100)+'%;background:'+oc2[i%5]+'"></div></div><div class="f-cnt">'+e[1]+'</div></div>';
+    return '<div class="f-bar click" title="Ver esses leads" onclick="dashOrigem('+qa(e[0])+')"><div class="f-lbl" style="font-size:11px">'+e[0].substring(0,10)+'</div><div class="f-track"><div class="f-fill" style="width:'+Math.round(e[1]/mo*100)+'%;background:'+oc2[i%5]+'"></div></div><div class="f-cnt">'+e[1]+'</div></div>';
   }).join('');
 
   var excludeSG = ['VENDIDO','JÁ COMPROU','FINALIZADO'];
