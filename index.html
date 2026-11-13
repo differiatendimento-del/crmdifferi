@@ -1049,6 +1049,12 @@ textarea.fc{resize:vertical;min-height:60px}
         </div>
       </div>
 
+      <!-- GRÁFICO: VENDAS POR MÊS -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="sec-hdr"><div class="sec-title">Vendas por mês</div><span id="vd-chart-sub" style="font-size:12px;color:var(--muted)"></span></div>
+        <div id="vd-chart" style="overflow-x:auto"></div>
+      </div>
+
       <!-- FILTROS -->
       <div class="filters-bar" style="margin-bottom:13px">
         <div class="chip on" onclick="setClienteFilter('todos',this)">Todos</div>
@@ -1417,6 +1423,15 @@ textarea.fc{resize:vertical;min-height:60px}
       <button class="btn btn-wa" onclick="saveLead(true)"><i class="ti ti-brand-whatsapp"></i>Salvar + WhatsApp</button>
       <button class="btn btn-primary" onclick="saveLead(false)"><i class="ti ti-check"></i>Salvar Lead</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL RESUMO DE ABERTURA -->
+<div class="modal-overlay" id="modal-resumo" style="display:none" onclick="if(event.target===this)closeModal('resumo')">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-hdr"><div class="modal-title">📣 Como estamos hoje</div><button class="modal-close" onclick="closeModal('resumo')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body" id="resumo-body"></div>
+    <div style="display:flex;justify-content:flex-end;padding:0 20px 18px"><button class="btn btn-primary btn-sm" onclick="closeModal('resumo')">Entendi</button></div>
   </div>
 </div>
 
@@ -2459,8 +2474,8 @@ var STATUS_GERAL= ['ATENDIMENTO ATIVO','MAILING','DESISTIU','PERDIDO','VENDIDO',
 
 // Status "encerrados" que não devem contar como pendência de atendimento nos Leads
 // (viram tarefa do Telemarketing em vez de ficarem vermelhos aqui)
-var STATUS_ENCERRADOS_SG = ['MAILING','DESISTIU','PERDIDO','JÁ COMPROU'];
-var ETIQUETAS_ENCERRADAS = ['FANTASMA','DESISTIU','PERDIDO'];
+var STATUS_ENCERRADOS_SG = ['MAILING','DESISTIU','PERDIDO','JÁ COMPROU','VENDIDO','FINALIZADO'];
+var ETIQUETAS_ENCERRADAS = ['FANTASMA','DESISTIU','PERDIDO','VENDIDO','JÁ COMPROU','FINALIZADO'];
 function isEncerrado(l) {
   var sg=(l.status_geral||'').toUpperCase();
   var et=(l.status||'').toUpperCase();
@@ -2596,7 +2611,7 @@ function doLogin(){
 }
 function doLogout(){if(!confirm('Sair?'))return;currentUser=null;selLoginUser=null;document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='flex';document.querySelectorAll('.user-opt').forEach(function(o){o.classList.remove('sel');});}
 
-async function initApp(){setLoading(true);await loadAll();setLoading(false);}
+async function initApp(){setLoading(true);await loadAll();setLoading(false);try{mostrarResumoAbertura();}catch(e){console.error(e);}}
 async function loadAll(){
   var tasks = [loadLeads(),loadAgs(),loadImoveis(),loadTele(),loadCaptacoes()];
   if (typeof loadCorretoresLogin === 'function') tasks.push(loadCorretoresLogin());
@@ -3034,11 +3049,11 @@ function renderTab(l,tab){
       {cod:'TT', label:'Transferido ao Telemarketing', cor:'#e74c3c', tipo:'ret'},
       {cod:'EC', label:'Contato encaminhado para corretor', cor:'#16a085', tipo:'env'},
     ];
-    var tlHtml=hist.length?hist.slice().reverse().map(function(h){
+    var tlHtml=hist.length?hist.map(function(h,i){return {h:h,i:i};}).reverse().map(function(o){var h=o.h,hi=o.i;
       var cfg=TIPO_CFG[h.tipo]||TIPO_CFG.env;
       var cor=cores[h.tipo]||'#95a5a6';
       return '<div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:'+cor+'"><i class="ti '+cfg.icon+'" style="font-size:12px;color:#fff"></i></div><div class="tl-line"></div></div>'
-        +'<div class="tl-body"><div class="tl-acao">'+(h.texto||'')+'</div>'
+        +'<div class="tl-body"><div class="tl-acao">'+(h.texto||'')+'<button title="Apagar este registro" onclick="delHist(\''+l.id+'\','+hi+')" style="float:right;background:none;border:none;color:#c0392b;cursor:pointer;font-size:14px;padding:0 4px">🗑</button></div>'
         +'<div class="tl-meta">'
         +'<span style="font-size:10px;font-weight:700;background:'+cor+'22;color:'+cor+';border-radius:99px;padding:1px 7px;border:1px solid '+cor+'44">'+(h.cod||cfg.label.split(' ')[0].toUpperCase())+'</span>'
         +'<span><i class="ti ti-clock" style="font-size:11px"></i>'+(h.data||'—')+'</span>'
@@ -3165,6 +3180,42 @@ function atualizarLeadLocal(id, patch) {
   return l;
 }
 
+
+function cadRecalcDeHist(h){
+  var inicio=null, etapa=0;
+  (h||[]).forEach(function(it){
+    var c=it.cod||'';
+    if(c==='TT'){inicio=null;etapa=0;return;}
+    var m=/^D([1-5])$/.exec(c); if(!m) return;
+    var n=parseInt(m[1],10);
+    if(n>1 && inicio && n<=etapa) return;
+    var p=(it.data||'').split(' ')[0].split('/');
+    var d=p.length===3?new Date(+p[2],+p[1]-1,+p[0]):new Date();
+    if(n>=2) d.setDate(d.getDate()-CADENCIA_DIAS[n-2]);
+    inicio=ymdLocal(d); etapa=n;
+  });
+  return {cadencia_inicio:inicio,cadencia_etapa:etapa};
+}
+async function delHist(id,idx){
+  var l=leads.find(function(x){return String(x.id)===String(id);});if(!l)return;
+  var h=await garantirHistoricoCompleto(id);
+  var it=h[idx]; if(!it) return;
+  if(!confirm('Apagar este registro do histórico?\n\n'+(it.texto||'')+'\n'+(it.data||'')+(it.autor?' — '+it.autor:''))) return;
+  var r=await sb.rpc('historico_remove',{p_id:id,p_item:it});
+  if(r.error){toast('Erro: '+r.error.message);return;}
+  var novo=Array.isArray(r.data)?r.data:h.filter(function(_,k){return k!==idx;});
+  historicosCache=null;
+  l.historico=novo;
+  var ult=novo.length?novo[novo.length-1]:null;
+  var patch={ultimo_contato_tipo:ult?ult.tipo:null,ultimo_contato_data:ult?ult.data:null};
+  if(/^(D[1-5]|TT)$/.test(it.cod||'')){
+    var cd=cadRecalcDeHist(novo);
+    if(await cadSalvar(id,cd)){ atualizarBotaoCadencia(l); }
+  }
+  atualizarLeadLocal(id,patch);
+  toast('🗑 Registro apagado');
+  renderTab(l,'hist');
+}
 async function addHist(id){
   var txt=document.getElementById('hist-txt').value.trim();
   if(!selectedCod&&!txt){toast('Selecione um código e descreva o atendimento');return;}
@@ -5862,6 +5913,91 @@ var vendasItems = VENDAS_INICIAL.slice();
 var vendasFilter = 'todos';
 var editVendaId = null;
 
+// ═══ VENDAS: datas/valores, gráfico por mês e resumo de abertura ═══
+// As datas vêm em formatos misturados (2026-07-14, 20/05/2026, 08/04) e os valores também
+// ("R$ 1.040.000,00", "259.772,00", "200000.0"); estas funções entendem todos.
+function vendaParseData(v){
+  var s=String(v||'').trim(); if(!s) return null;
+  var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s); if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  m=/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(s);
+  if(m){var y=+m[3]; if(y<100) y+=2000; return new Date(y,+m[2]-1,+m[1]);}
+  m=/^(\d{1,2})\/(\d{1,2})$/.exec(s);
+  if(m){var h=new Date(); var d=new Date(h.getFullYear(),+m[2]-1,+m[1]); if(d>h) d=new Date(h.getFullYear()-1,+m[2]-1,+m[1]); return d;}
+  return null;
+}
+function vendaParseValor(x){
+  var t=String(x==null?'':x).replace(/R\$|\s/g,''); if(!t) return 0;
+  if(t.indexOf(',')!==-1) t=t.replace(/\./g,'').replace(',','.');
+  else if(!/^\d+\.\d{1,2}$/.test(t)) t=t.replace(/\./g,'');
+  var n=parseFloat(t); return isNaN(n)?0:n;
+}
+function vgvCurto(v){
+  if(v>=1000000) return 'R$ '+(Math.round(v/100000)/10).toLocaleString('pt-BR')+' mi';
+  if(v>=1000) return 'R$ '+Math.round(v/1000).toLocaleString('pt-BR')+' mil';
+  return v>0?'R$ '+Math.round(v).toLocaleString('pt-BR'):'—';
+}
+function diasDesde(d){
+  var h=new Date(); var h0=new Date(h.getFullYear(),h.getMonth(),h.getDate());
+  var d0=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  return Math.round((h0-d0)/86400000);
+}
+function renderGraficoVendasMes(){
+  var el=document.getElementById('vd-chart'); if(!el) return;
+  var MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  var hoje=new Date(), meses=[];
+  for(var i=11;i>=0;i--){ var d=new Date(hoje.getFullYear(),hoje.getMonth()-i,1); meses.push({y:d.getFullYear(),m:d.getMonth(),n:0,un:0,vgv:0}); }
+  var semData=0, foraJanela=0;
+  (vendasItems||[]).forEach(function(v){
+    var d=vendaParseData(v.data);
+    if(!d){ semData++; return; }
+    var alvo=meses.filter(function(x){return x.y===d.getFullYear()&&x.m===d.getMonth();})[0];
+    if(!alvo){ foraJanela++; return; }
+    alvo.n++; alvo.un+=(parseInt(v.qtde)||1); alvo.vgv+=vendaParseValor(v.vgv);
+  });
+  var max=Math.max.apply(null,meses.map(function(x){return x.n;}).concat([1]));
+  var melhor=meses.reduce(function(a,b){return b.n>a.n?b:a;},meses[0]);
+  el.innerHTML='<div style="display:flex;align-items:flex-end;gap:10px;min-width:560px;padding:6px 4px 0">'
+    +meses.map(function(x){
+      var h=x.n?Math.max(8,Math.round(x.n/max*130)):3, best=(x.n>0&&x.n===melhor.n&&x===melhor);
+      var tip=MES[x.m]+'/'+String(x.y).slice(2)+': '+x.n+' venda'+(x.n===1?'':'s')+' · '+x.un+' un. · VGV '+vgvCurto(x.vgv);
+      return '<div style="flex:1;min-width:38px;text-align:center" title="'+tip+'">'
+        +'<div style="font-size:12px;font-weight:600;height:16px;color:'+(x.n?'var(--text)':'var(--muted)')+'">'+(x.n||'')+'</div>'
+        +'<div style="height:130px;display:flex;align-items:flex-end;justify-content:center"><div style="width:70%;height:'+h+'px;border-radius:6px 6px 2px 2px;background:'+(x.n?(best?'var(--accent)':'#7fb89f'):'var(--border)')+'"></div></div>'
+        +'<div style="font-size:11px;margin-top:6px;font-weight:'+(best?'700':'500')+'">'+MES[x.m]+'/'+String(x.y).slice(2)+'</div>'
+        +'<div style="font-size:10px;color:var(--muted);height:13px">'+(x.n?vgvCurto(x.vgv):'')+'</div>'
+        +'</div>';
+    }).join('')+'</div>';
+  var sub=document.getElementById('vd-chart-sub');
+  if(sub){
+    var total=meses.reduce(function(a,b){return a+b.n;},0);
+    sub.textContent=total?('Últimos 12 meses · melhor mês: 🏆 '+MES[melhor.m]+'/'+String(melhor.y).slice(2)+' ('+melhor.n+')'+(semData?' · '+semData+' sem data':'')):'Nenhuma venda registrada nos últimos 12 meses';
+  }
+}
+function mostrarResumoAbertura(){
+  var body=document.getElementById('resumo-body'); if(!body) return;
+  // Última venda (Controle de Vendas)
+  var ult=null;
+  (vendasItems||[]).forEach(function(v){ var d=vendaParseData(v.data); if(d&&d<=new Date()&&(!ult||d>ult.d)) ult={d:d,v:v}; });
+  // Último lead que entrou (data de criação no CRM)
+  var ul=null;
+  leads.forEach(function(l){ if(!l.created_at) return; var d=new Date(l.created_at); if(isNaN(d)||d>new Date()) return; if(!ul||d>ul.d) ul={d:d,l:l}; });
+  function bloco(titulo,obj,ok,txtDias,txtNunca,det){
+    var dias=obj?diasDesde(obj.d):null;
+    var cor=dias===null?'var(--muted)':dias===0?'var(--success)':dias<=7?'var(--warn)':'var(--danger)';
+    return '<div style="border:1px solid var(--border);border-left:4px solid '+cor+';border-radius:var(--radius);padding:12px 14px;margin-bottom:10px">'
+      +'<div style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">'+titulo+'</div>'
+      +(dias===null?'<div style="font-size:14px;margin-top:4px;color:var(--muted)">'+txtNunca+'</div>'
+        :'<div style="display:flex;align-items:baseline;gap:8px;margin-top:2px"><span style="font-size:32px;font-weight:700;color:'+cor+'">'+dias+'</span><span style="font-size:14px">'+(dias===0?ok:(dias===1?'dia '+txtDias:'dias '+txtDias))+'</span></div>'
+        +'<div style="font-size:12px;color:var(--muted)">'+det+'</div>')
+      +'</div>';
+  }
+  var f=function(d){return d.toLocaleDateString('pt-BR');};
+  body.innerHTML=
+    bloco('Vendas',ult,'Vendemos hoje! 🎉','sem vender','Nenhuma venda registrada',ult?('Última: '+escHtml(ult.v.cliente||'—')+(ult.v.empr?' · '+escHtml(ult.v.empr):'')+' · '+f(ult.d)):'')
+    +bloco('Novos leads',ul,'Entrou lead hoje ✅','sem novo lead','Nenhum lead encontrado',ul?('Último: '+escHtml(ul.l.nome||'—')+' · '+f(ul.d)):'');
+  openModal('resumo');
+}
+
 async function loadVendas() {
   try {
     var todos = await fetchAllRows('controle_vendas', 'created_at', false);
@@ -5887,6 +6023,7 @@ function setVendasFilter(f, el) {
 }
 
 function renderVendas() {
+  try{renderGraficoVendasMes();}catch(e){console.error(e);}
   var tbody = document.getElementById('vendas-body');
   if (!tbody) return;
   var now = new Date();
@@ -5903,7 +6040,7 @@ function renderVendas() {
   });
 
   // Metrics
-  var vgvTotal = lista.reduce(function(s,v){ var n=parseFloat((v.vgv||'').replace(/[^0-9.]/g,'')); return s+(isNaN(n)?0:n); }, 0);
+  var vgvTotal = lista.reduce(function(s,v){ return s+vendaParseValor(v.vgv); }, 0);
   var unidades = lista.reduce(function(s,v){ return s+(parseInt(v.qtde)||1); }, 0);
   var ticket = lista.length ? vgvTotal/lista.length : 0;
   var parceiros = lista.filter(function(v){return (v.parceiro||'').toUpperCase()==='SIM';}).length;
@@ -7189,6 +7326,7 @@ function confirmarDelete(id, nome) {
 
 // ═══ CLIENTES VENDIDOS ═══
 function renderClientesVendidos() {
+  try{renderGraficoVendasMes();}catch(e){console.error(e);}
   var el = document.getElementById('vendidos-list');
   if (!el) return;
   var clienteFilter = window._clienteFilter || 'todos';
