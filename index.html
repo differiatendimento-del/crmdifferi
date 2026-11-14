@@ -2529,7 +2529,7 @@ function getLastHist(l) {
   }
   // Histórico completo ainda não foi carregado (lista principal, pra ficar leve) —
   // usa os campos-resumo mantidos em paralelo pra não perder o "+3 dias sem contato".
-  if (l.ultimo_contato_data) return { tipo: l.ultimo_contato_tipo || 'ok', data: l.ultimo_contato_data };
+  if (l.ultimo_contato_data) return { tipo: l.ultimo_contato_tipo || 'ok', data: l.ultimo_contato_data, cod: l.ultimo_contato_cod || '' };
   return null;
 }
 
@@ -2552,7 +2552,7 @@ async function garantirHistoricoCompleto(id) {
 function getTmp(l) {
   if (isEncerrado(l)) return {score:100,cls:'cold',days:0,semRet:false,encerrado:true};
   var last=getLastHist(l);
-  if(!last) return {score:0,cls:'cold',days:999,semRet:false,encerrado:false};
+  if(!last) return {score:0,cls:'cold',days:999,semRet:false,encerrado:false,atrasado:true,limite:3};
   var semRet=last.tipo==='ret'||last.tipo==='sem';
   var days=0;
   try {
@@ -2564,13 +2564,20 @@ function getTmp(l) {
   if((l.status||'').toUpperCase()==='QUENTE')score+=20;
   score=Math.max(0,Math.min(100,score));
   var cls=score>=70?'hot':score>=40?'warm':'cold';
-  return {score:score,cls:cls,days:days,semRet:semRet,encerrado:false};
+  // Após o Recontato 3 (R3) o prazo é de 7 dias (depois entra no D1 da cadência); nos demais, 3 dias.
+  var r3=(last.cod||'')==='R3';
+  var limite=r3?7:3;
+  return {score:score,cls:cls,days:days,semRet:semRet,encerrado:false,limite:limite,atrasado:days>limite,r3:r3};
 }
 
 function timerHtml(l) {
   var t=getTmp(l);
   if (t.encerrado) return '<span class="follow-timer" style="background:rgba(100,116,139,.12);color:#64748b"><i class="ti ti-archive-off" style="font-size:10px"></i>Encerrado</span>';
   if(t.days===0) return '<span class="follow-timer ok"><i class="ti ti-check" style="font-size:10px"></i>Hoje</span>';
+  if(t.r3){
+    if(t.days<7) return '<span class="follow-timer ok" title="Recontato 3 — aguardar 7 dias para o D1"><i class="ti ti-clock" style="font-size:10px"></i>R3 · '+t.days+'d/7</span>';
+    return '<span class="follow-timer danger" title="Recontato 3 há 7+ dias — iniciar cadência D1"><i class="ti ti-alert-circle" style="font-size:10px"></i>→ D1 · '+t.days+'d</span>';
+  }
   if(t.days<=3)  return '<span class="follow-timer ok"><i class="ti ti-clock" style="font-size:10px"></i>'+t.days+'d</span>';
   if(t.days<=7)  return '<span class="follow-timer warn"><i class="ti ti-alert-triangle" style="font-size:10px"></i>'+t.days+'d</span>';
   return '<span class="follow-timer danger"><i class="ti ti-alert-circle" style="font-size:10px"></i>'+t.days+'d</span>';
@@ -2633,7 +2640,7 @@ async function loadLeads(){
     // usa ultimo_contato_tipo/data pra manter o "+3 dias sem contato" funcionando.
     // O histórico completo de cada lead é buscado à parte quando ele é aberto (garantirHistoricoCompleto).
     // Leads "adormecidos" (arquivado=true) também ficam de fora — veja panel-arquivados.
-    var COLUNAS_LEADS = 'id,nome,telefone,interesse,empreendimento,valor,status,status_geral,origem,canal,observacoes,data_contato,data_venda,corretor,criado_por,propostas,empreendimentos_enviados,created_at,ultimo_contato_tipo,ultimo_contato_data,proximo_contato,arquivado,cadencia_inicio,cadencia_etapa';
+    var COLUNAS_LEADS = 'id,nome,telefone,interesse,empreendimento,valor,status,status_geral,origem,canal,observacoes,data_contato,data_venda,corretor,criado_por,propostas,empreendimentos_enviados,created_at,ultimo_contato_tipo,ultimo_contato_data,ultimo_contato_cod,proximo_contato,arquivado,cadencia_inicio,cadencia_etapa';
     var todos = await fetchAllRows('leads', 'created_at', false, COLUNAS_LEADS, function(q){
       return q.or('arquivado.eq.false,arquivado.is.null');
     });
@@ -2642,7 +2649,7 @@ async function loadLeads(){
     filterLeads();
     document.getElementById('badge-leads').textContent=leads.length;
     document.getElementById('ag-leads-list').innerHTML=leads.map(function(l){return '<option value="'+l.nome+'">'+l.nome+' — '+l.telefone+'</option>';}).join('');
-    var sr=leads.filter(function(l){return getTmp(l).days>3;}).length;
+    var sr=leads.filter(function(l){return getTmp(l).atrasado;}).length;
     var q=leads.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
     document.getElementById('badge-alertas').textContent=q+sr;
     if (currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing' && currentUser.tipo !== 'captador') {
@@ -2739,7 +2746,7 @@ async function saveLead(andWA){
   var histTxt=document.getElementById('f-hist').value.trim();
   var primeiroItem = {tipo:'env',texto:histTxt||'Lead cadastrado no CRM',data:nowStr(),autor:currentUser.nome};
   var hist=[primeiroItem];
-  var lead={nome:nome,telefone:tel,interesse:perfil,empreendimento:document.getElementById('f-empr').value.trim(),origem:document.getElementById('f-origem').value,canal:document.getElementById('f-canal')?document.getElementById('f-canal').value.trim():'',status:etiq,status_geral:document.getElementById('f-sg').value,valor:faixa,corretor:document.getElementById('f-corretor').value,observacoes:document.getElementById('f-obs').value.trim(),data_contato:document.getElementById('f-data-contato').value,historico:JSON.stringify(hist),ultimo_contato_tipo:primeiroItem.tipo,ultimo_contato_data:primeiroItem.data,criado_por:currentUser.nome,propostas:'[]',empreendimentos_enviados:enviados};
+  var lead={nome:nome,telefone:tel,interesse:perfil,empreendimento:document.getElementById('f-empr').value.trim(),origem:document.getElementById('f-origem').value,canal:document.getElementById('f-canal')?document.getElementById('f-canal').value.trim():'',status:etiq,status_geral:document.getElementById('f-sg').value,valor:faixa,corretor:document.getElementById('f-corretor').value,observacoes:document.getElementById('f-obs').value.trim(),data_contato:document.getElementById('f-data-contato').value,historico:JSON.stringify(hist),ultimo_contato_tipo:primeiroItem.tipo,ultimo_contato_data:primeiroItem.data, ultimo_contato_cod:primeiroItem.cod||null,criado_por:currentUser.nome,propostas:'[]',empreendimentos_enviados:enviados};
   var r=await sb.from('leads').insert([lead]);
   if(r.error){toast('Erro: '+r.error.message);return;}
   toast('Lead salvo!');
@@ -2841,7 +2848,7 @@ function filterLeads(){
   var fDia=document.getElementById('fil-dt-dia')?document.getElementById('fil-dt-dia').value:'';
   var fMes='',fAno='';
   filteredLeads=leads.filter(function(l){
-    if(filterSRActive&&getTmp(l).days<=3)return false;
+    if(filterSRActive&&!getTmp(l).atrasado)return false;
     if(dashFiltro&&!dashFiltro.fn(l))return false;
     if(sg&&(l.status_geral||'').toUpperCase()!==sg)return false;
     if(et&&(l.status||'').toUpperCase()!==et)return false;
@@ -2920,7 +2927,7 @@ function renderTable(){
 
   tbody.innerHTML=paginaAtual.map(function(l){
     var tmp=getTmp(l);
-    var blink=tmp.days>3?'row-blink':'';
+    var blink=tmp.atrasado?'row-blink':'';
     var cor=getStatusColor(l.status);
     var dEntry=l.data_contato?new Date(l.data_contato).toLocaleDateString('pt-BR'):(l.created_at?new Date(l.created_at).toLocaleDateString('pt-BR'):'—');
     return '<tr class="'+blink+'" onclick="openDetail('+JSON.stringify(l.id)+')">'
@@ -3173,7 +3180,7 @@ function atualizarLeadLocal(id, patch) {
   var l = leads.find(function(x){ return String(x.id)===String(id); });
   if (l && patch) Object.assign(l, patch);
   filterLeads();
-  var sr=leads.filter(function(x){return getTmp(x).days>3;}).length;
+  var sr=leads.filter(function(x){return getTmp(x).atrasado;}).length;
   var q=leads.filter(function(x){return (x.status||'').toUpperCase()==='QUENTE';}).length;
   var al=document.getElementById('badge-alertas'); if(al) al.textContent=q+sr;
   renderDash();renderKanban();renderAlertas();renderRecontato();renderCadencia();renderFantasmas();renderRel();renderEquipe();
@@ -3207,7 +3214,7 @@ async function delHist(id,idx){
   historicosCache=null;
   l.historico=novo;
   var ult=novo.length?novo[novo.length-1]:null;
-  var patch={ultimo_contato_tipo:ult?ult.tipo:null,ultimo_contato_data:ult?ult.data:null};
+  var patch={ultimo_contato_tipo:ult?ult.tipo:null,ultimo_contato_data:ult?ult.data:null,ultimo_contato_cod:ult?(ult.cod||null):null};
   if(/^(D[1-5]|TT)$/.test(it.cod||'')){
     var cd=cadRecalcDeHist(novo);
     if(await cadSalvar(id,cd)){ atualizarBotaoCadencia(l); }
@@ -3231,7 +3238,7 @@ async function addHist(id){
   toast('✅ Atendimento registrado!');
   historicosCache = null;
   l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([novoItem]);
-  atualizarLeadLocal(id,{ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data});
+  atualizarLeadLocal(id,{ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data, ultimo_contato_cod:novoItem.cod||null});
   // Códigos "Enviado D1..D5" do histórico alimentam a Cadência automaticamente.
   if(novoItem.cod==='TT' && l.cadencia_inicio){
     if(await cadSalvar(id,{cadencia_inicio:null,cadencia_etapa:0})){
@@ -3275,7 +3282,7 @@ async function saveEdit(id){
   toast('Atualizado!');
   historicosCache = null;
   l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([novoItem]);
-  atualizarLeadLocal(id, Object.assign({}, campos, {ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data}));
+  atualizarLeadLocal(id, Object.assign({}, campos, {ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data, ultimo_contato_cod:novoItem.cod||null}));
   document.getElementById('d-nome').textContent=l.nome;renderTab(l,'dados');document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});document.querySelectorAll('.tab-btn')[0].classList.add('active');
 }
 
@@ -3291,7 +3298,7 @@ async function saveProposta(id){
   var novoItem = {tipo:'pro',texto:'Proposta de '+valor+' — '+resultado,data:nowStr(),autor:currentUser.nome};
   var rh = await sb.rpc('historico_append', {p_id:id, p_item:novoItem, p_tipo:novoItem.tipo, p_data:novoItem.data});
   if(rh.error){ console.error(rh.error); }
-  var patch={ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data};
+  var patch={ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data, ultimo_contato_cod:novoItem.cod||null};
   if(resultado==='Aceita'){
     patch.status_geral='VENDIDO'; if(dataVenda)patch.data_venda=dataVenda;
     await sb.from('leads').update({status_geral:'VENDIDO', data_venda:dataVenda||null}).eq('id',id);
@@ -3391,7 +3398,7 @@ function renderDash(){
     var sg=(l.status_geral||'').toUpperCase();
     return sg!=='VENDIDO'&&sg!=='JÁ COMPROU'&&sg!=='FINALIZADO';
   }).length;
-  var semRet=leads.filter(function(l){return getTmp(l).days>3;}).length;
+  var semRet=leads.filter(function(l){return getTmp(l).atrasado;}).length;
   var ativo=leads.filter(function(l){return (l.status_geral||'').toUpperCase()==='ATENDIMENTO ATIVO';}).length;
   var mailing=leads.filter(function(l){return (l.status_geral||'').toUpperCase()==='MAILING';}).length;
   var perdido=leads.filter(function(l){return (l.status_geral||'').toUpperCase()==='PERDIDO';}).length;
@@ -3479,7 +3486,7 @@ function renderRel(){
     +Object.keys(USERS).map(function(nome){
       var meus=leads.filter(function(l){return l.corretor===nome;});
       var q2=meus.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
-      var sr=meus.filter(function(l){return getTmp(l).days>3;}).length;
+      var sr=meus.filter(function(l){return getTmp(l).atrasado;}).length;
       var pr2=meus.filter(function(l){return JSON.parse(l.propostas||'[]').length>0;}).length;
       var vd2=meus.filter(function(l){return (l.status_geral||'').toUpperCase()==='VENDIDO';}).length;
       var u=USERS[nome];
@@ -3494,7 +3501,7 @@ function renderEquipe(){
     +getAllEquipe().map(function(u){
       var meus=leads.filter(function(l){return l.corretor===u.nome;});
       var q=meus.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
-      var sr=meus.filter(function(l){return getTmp(l).days>3;}).length;
+      var sr=meus.filter(function(l){return getTmp(l).atrasado;}).length;
       var vd=meus.filter(function(l){return (l.status_geral||'').toUpperCase()==='VENDIDO';}).length;
       var meusTele=(typeof teleContatos!=='undefined'?teleContatos:[]).filter(function(t){return (t.atendente||'').trim()===u.nome;});
       var ligacoes=meusTele.reduce(function(s,t){return s+(t.tentativas||0);},0);
@@ -3608,7 +3615,7 @@ function renderAg(){
         }).join('')+'</div></div>';
     }).join('');
   }
-  var fu=leads.filter(function(l){return getTmp(l).days>3;}).slice(0,8);
+  var fu=leads.filter(function(l){return getTmp(l).atrasado;}).slice(0,8);
   document.getElementById('followups-list').innerHTML=fu.length?fu.map(function(l){
     return '<div class="agenda-item"><div class="avatar av-sm">'+ini(l.nome)+'</div>'
       +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">'+l.nome+'</div><div style="font-size:11px;color:var(--muted)">'+(l.empreendimento||'—')+' · '+l.telefone+'</div></div>'
@@ -3760,7 +3767,7 @@ async function cadAplicar(l, n, item){
   // do dia assim que você registra, mesmo que o envio estivesse atrasado.
   var d=new Date(); if(n>=2 && n<=5) d.setDate(d.getDate()-CADENCIA_DIAS[n-2]);
   var patch={cadencia_inicio:ymdLocal(d),cadencia_etapa:n};
-  if(item){ patch.ultimo_contato_tipo=item.tipo; patch.ultimo_contato_data=item.data; }
+  if(item){ patch.ultimo_contato_tipo=item.tipo; patch.ultimo_contato_data=item.data; patch.ultimo_contato_cod=item.cod||null; }
   return await cadSalvar(l.id, patch);
 }
 async function iniciarCadencia(id){
@@ -3788,7 +3795,7 @@ async function encaminharTelemarketingCadencia(id){
   var item={tipo:'ret',cod:'TT',texto:'TT — Transferido ao Telemarketing (fim da cadência D5)',data:nowStr(),autor:currentUser?currentUser.nome:''};
   var r=await sb.rpc('historico_append',{p_id:id,p_item:item,p_tipo:item.tipo,p_data:item.data});
   if(!r.error){ historicosCache=null; l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([item]); }
-  if(await cadSalvar(id,{cadencia_inicio:null,cadencia_etapa:0,ultimo_contato_tipo:item.tipo,ultimo_contato_data:item.data})){
+  if(await cadSalvar(id,{cadencia_inicio:null,cadencia_etapa:0,ultimo_contato_tipo:item.tipo,ultimo_contato_data:item.data, ultimo_contato_cod:item.cod||null})){
     toast('📞 Lead encaminhado ao Telemarketing e fora da cadência');
     atualizarBotaoCadencia(l);
   }
@@ -3897,7 +3904,7 @@ function filterByEmpr(nome){document.getElementById('search-input').value=nome;f
 // ALERTAS
 function renderAlertas(){
   var q=leads.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
-  var sr=leads.filter(function(l){return getTmp(l).days>3;}).length;
+  var sr=leads.filter(function(l){return getTmp(l).atrasado;}).length;
   var agP=agendamentos.filter(function(a){return !a.confirmado&&a.data>=todayStr();}).length;
   var pr=leads.filter(function(l){return JSON.parse(l.propostas||'[]').some(function(p){return p.resultado==='Pendente';});}).length;
   var cadV=(typeof cadenciaVencidos==='function')?cadenciaVencidos().length:0;
@@ -4215,7 +4222,7 @@ async function marcarSelecionadosComoFantasma() {
       corretor: t.atendente || currentUser.nome,
       proximo_contato: proximoStr,
       historico: JSON.stringify([itemHist]),
-      ultimo_contato_tipo: itemHist.tipo, ultimo_contato_data: itemHist.data,
+      ultimo_contato_tipo: itemHist.tipo, ultimo_contato_data:itemHist.data, ultimo_contato_cod:itemHist.cod||null,
       criado_por: currentUser.nome, propostas: '[]'
     };
   });
@@ -4359,7 +4366,7 @@ async function registrarAtendimento() {
       corretor: upd.atendente || currentUser.nome,
       proximo_contato: proximoStr,
       historico: JSON.stringify([itemHistFantasma]),
-      ultimo_contato_tipo: itemHistFantasma.tipo, ultimo_contato_data: itemHistFantasma.data,
+      ultimo_contato_tipo: itemHistFantasma.tipo, ultimo_contato_data:itemHistFantasma.data, ultimo_contato_cod:itemHistFantasma.cod||null,
       criado_por: currentUser.nome, propostas: '[]'
     };
     await sb.from('leads').insert([leadFantasma]);
@@ -4388,7 +4395,7 @@ async function registrarAtendimento() {
         origem: 'TELEMARKETING', status: 'ENTRADA', status_geral: 'ATENDIMENTO ATIVO',
         corretor: visita.corretor, valor: q.faixa_valor || null,
         historico: JSON.stringify([itemHistVis]),
-        ultimo_contato_tipo: itemHistVis.tipo, ultimo_contato_data: itemHistVis.data,
+        ultimo_contato_tipo: itemHistVis.tipo, ultimo_contato_data:itemHistVis.data, ultimo_contato_cod:itemHistVis.cod||null,
         criado_por: currentUser.nome, propostas: '[]'
       }]);
     } else {
@@ -4415,7 +4422,7 @@ async function registrarAtendimento() {
       origem: 'TELEMARKETING', status: 'ENTRADA', status_geral: 'ATENDIMENTO ATIVO',
       corretor: upd.atendente || currentUser.nome,
       historico: JSON.stringify([itemHistConv]),
-      ultimo_contato_tipo: itemHistConv.tipo, ultimo_contato_data: itemHistConv.data,
+      ultimo_contato_tipo: itemHistConv.tipo, ultimo_contato_data:itemHistConv.data, ultimo_contato_cod:itemHistConv.cod||null,
       criado_por: currentUser.nome, propostas: '[]'
     };
     await sb.from('leads').insert([novoLead]);
@@ -5127,7 +5134,7 @@ function renderIndicadores() {
   var visitas = agendamentos.filter(function(a){return a.confirmado;}).length;
   var propostas = filteredL.reduce(function(s,l){return s+JSON.parse(l.propostas||'[]').length;},0);
   var quentes = filteredL.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
-  var semRet = filteredL.filter(function(l){return getTmp(l).days>3;}).length;
+  var semRet = filteredL.filter(function(l){return getTmp(l).atrasado;}).length;
 
   // Update cards
   var updates = {
@@ -5315,7 +5322,7 @@ renderAg = function() {
     var listEl = document.getElementById('ag-list');
     if (listEl) listEl.innerHTML = renderAgGrade();
     // Still render followups
-    var fu = leads.filter(function(l){return getTmp(l).days>3;}).slice(0,8);
+    var fu = leads.filter(function(l){return getTmp(l).atrasado;}).slice(0,8);
     var fuEl = document.getElementById('followups-list');
     if (fuEl) fuEl.innerHTML = fu.length ? fu.map(function(l){
       return '<div class="agenda-item"><div class="avatar av-sm">'+ini(l.nome)+'</div>'
@@ -6574,7 +6581,7 @@ async function importarLeadsArquivo() {
       status_geral: 'ATENDIMENTO ATIVO',
       corretor: corretorEscolhido || null,
       historico: JSON.stringify([itemHistImport]),
-      ultimo_contato_tipo: itemHistImport.tipo, ultimo_contato_data: itemHistImport.data,
+      ultimo_contato_tipo: itemHistImport.tipo, ultimo_contato_data:itemHistImport.data, ultimo_contato_cod:itemHistImport.cod||null,
       criado_por: currentUser ? currentUser.nome : 'Sistema',
       propostas: '[]'
     });
