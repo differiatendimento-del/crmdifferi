@@ -3233,6 +3233,23 @@ async function delHist(id,idx){
   toast('🗑 Registro apagado');
   renderTab(l,'hist');
 }
+
+// Etiqueta/Status geral automáticos conforme o código registrado no histórico:
+// R1–R3 → etiqueta REPESCAGEM + status geral MAILING; D1 (entrada na cadência) → etiqueta FANTASMA + status geral MAILING.
+async function aplicarEtiquetaPorCodigo(l,cod){
+  var alvo=null;
+  if(/^R[1-3]$/.test(cod)) alvo='REPESCAGEM'; else if(cod==='D1') alvo='FANTASMA';
+  if(!alvo||!l) return;
+  var fin=['DESISTIU','PERDIDO','VENDIDO','FINALIZADO','JÁ COMPROU'];
+  if(fin.indexOf((l.status||'').toUpperCase())!==-1||fin.indexOf((l.status_geral||'').toUpperCase())!==-1) return;
+  if(alvo==='REPESCAGEM'&&(l.status||'').toUpperCase()==='FANTASMA') return;
+  if((l.status||'').toUpperCase()===alvo&&(l.status_geral||'').toUpperCase()==='MAILING') return;
+  var patch={status:alvo,status_geral:'MAILING'};
+  var r=await sb.from('leads').update(patch).eq('id',l.id);
+  if(r.error){toast('Erro ao atualizar etiqueta: '+r.error.message);return;}
+  atualizarLeadLocal(l.id,patch);
+  toast('🏷 Etiqueta → '+alvo+' · Status geral → MAILING');
+}
 async function addHist(id){
   var txt=document.getElementById('hist-txt').value.trim();
   if(!selectedCod&&!txt){toast('Selecione um código e descreva o atendimento');return;}
@@ -3256,13 +3273,15 @@ async function addHist(id){
       atualizarBotaoCadencia(l);
     }
   }
+  await aplicarEtiquetaPorCodigo(l,novoItem.cod);
   var mDn=/^D([1-5])$/.exec(novoItem.cod||'');
   if(mDn){
     var nDn=parseInt(mDn[1],10);
     if(await cadAplicar(l,nDn,null)){
       var dd=cadDue(l);
-      toast(nDn===5?'📅 D5 registrado — encaminhe ao Telemarketing (aba Cadência)':'📅 Cadência: D'+nDn+' registrado'+(dd?' — próximo reenvio em '+dd.toLocaleDateString('pt-BR'):''));
+      toast(nDn===5?'📅 D5 registrado — encaminhando ao Telemarketing':'📅 Cadência: D'+nDn+' registrado'+(dd?' — próximo reenvio em '+dd.toLocaleDateString('pt-BR'):''));
     }
+    if(nDn===5) await encaminharTelemarketingCadencia(id,true);
     atualizarBotaoCadencia(l);
   }
   renderTab(l,'hist');
@@ -3762,7 +3781,10 @@ async function cadRegistrar(l, n, textoExtra){
   if(r.error){ toast('Erro: '+r.error.message); return false; }
   historicosCache=null;
   l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([item]);
-  return cadAplicar(l, n, item);
+  var okc=await cadAplicar(l, n, item);
+  if(n===1) await aplicarEtiquetaPorCodigo(l,'D1');
+  if(n===5 && okc) await encaminharTelemarketingCadencia(l.id,true);
+  return okc;
 }
 // Atualiza só os campos da cadência (usado também pelo botão "Enviado Dn" do histórico).
 async function cadAplicar(l, n, item){
@@ -3794,13 +3816,13 @@ async function marcarCadenciaEnviada(id){
   var prox=et+1;
   if(await cadRegistrar(l,prox,prox<=5?'mensagem de recontato enviada':'mensagem final enviada (60 dias)')){
     var d=cadDue(l);
-    toast(prox<5?'✅ Enviado D'+prox+' — próximo reenvio em '+d.toLocaleDateString('pt-BR'):'✅ Enviado D5 — agora encaminhe ao Telemarketing');
+    toast(prox<5?'✅ Enviado D'+prox+' — próximo reenvio em '+d.toLocaleDateString('pt-BR'):'✅ Enviado D5 — encaminhado ao Telemarketing');
   }
 }
 // Fim da cadência: manda o lead para o Telemarketing e o tira da lista.
-async function encaminharTelemarketingCadencia(id){
+async function encaminharTelemarketingCadencia(id,auto){
   var l=leads.find(function(x){return String(x.id)===String(id);}); if(!l) return;
-  if(!confirm('Encaminhar "'+(l.nome||'este lead')+'" ao Telemarketing e tirar da cadência?')) return;
+  if(!auto && !confirm('Encaminhar "'+(l.nome||'este lead')+'" ao Telemarketing e tirar da cadência?')) return;
   await autoEnviarTelemarketing(l.nome,l.telefone,l.interesse,l.corretor,'fim da Cadência (D5)');
   var item={tipo:'ret',cod:'TT',texto:'TT — Transferido ao Telemarketing (fim da cadência D5)',data:nowStr(),autor:currentUser?currentUser.nome:''};
   var r=await sb.rpc('historico_append',{p_id:id,p_item:item,p_tipo:item.tipo,p_data:item.data});
