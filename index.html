@@ -2661,7 +2661,7 @@ async function loadLeads(){
     document.getElementById('ag-leads-list').innerHTML=leads.map(function(l){return '<option value="'+l.nome+'">'+l.nome+' — '+l.telefone+'</option>';}).join('');
     var sr=leads.filter(function(l){return getTmp(l).atrasado;}).length;
     var q=leads.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
-    document.getElementById('badge-alertas').textContent=q+sr;
+    document.getElementById('badge-alertas').textContent=q+sr+cadVN();
     if (currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing' && currentUser.tipo !== 'captador') {
       arquivarLeadsInativos(); // roda em segundo plano, só pra admin
     }
@@ -3192,7 +3192,7 @@ function atualizarLeadLocal(id, patch) {
   filterLeads();
   var sr=leads.filter(function(x){return getTmp(x).atrasado;}).length;
   var q=leads.filter(function(x){return (x.status||'').toUpperCase()==='QUENTE';}).length;
-  var al=document.getElementById('badge-alertas'); if(al) al.textContent=q+sr;
+  var al=document.getElementById('badge-alertas'); if(al) al.textContent=q+sr+cadVN();
   renderDash();renderKanban();renderAlertas();renderRecontato();renderCadencia();renderFantasmas();renderRel();renderEquipe();
   return l;
 }
@@ -3934,9 +3934,11 @@ function renderImoveis(){
 function filterByEmpr(nome){document.getElementById('search-input').value=nome;filterLeads();showPanel('leads',document.querySelectorAll('.nav-item')[1]);}
 
 // ALERTAS
+function cadVN(){ try{return (typeof cadenciaVencidos==='function')?cadenciaVencidos().length:0;}catch(e){return 0;} }
 function renderAlertas(){
   var q=leads.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
-  var sr=leads.filter(function(l){return getTmp(l).atrasado;}).length;
+  var sr=leads.filter(function(l){var t=getTmp(l);return t.atrasado&&!t.r3;}).length;
+  var r3n=leads.filter(function(l){var t=getTmp(l);return t.atrasado&&t.r3;}).length;
   var agP=agendamentos.filter(function(a){return !a.confirmado&&a.data>=todayStr();}).length;
   var pr=leads.filter(function(l){return JSON.parse(l.propostas||'[]').some(function(p){return p.resultado==='Pendente';});}).length;
   var cadV=(typeof cadenciaVencidos==='function')?cadenciaVencidos().length:0;
@@ -3944,10 +3946,11 @@ function renderAlertas(){
     {tipo:'danger',icon:'ti-calendar-repeat',msg:cadV+' leads na Cadência Dia 01–05 com mensagem para reenviar hoje'},
     {tipo:'danger',icon:'ti-flame',msg:q+' leads QUENTES aguardando contato — prioridade máxima'},
     {tipo:'danger',icon:'ti-clock',msg:sr+' leads com mais de 3 dias sem contato — follow-up urgente'},
+    {tipo:'danger',icon:'ti-player-play',msg:r3n+' leads em Recontato 3 há mais de 7 dias — iniciar cadência (D1)'},
     {tipo:'warn',icon:'ti-calendar-x',msg:agP+' visitas agendadas sem confirmação'},
     {tipo:'warn',icon:'ti-file-invoice',msg:pr+' propostas ativas aguardando resposta'}
   ].filter(function(a){return parseInt(a.msg)>0;});
-  document.getElementById('badge-alertas').textContent=q+sr;
+  document.getElementById('badge-alertas').textContent=q+sr+r3n+cadV;
   document.getElementById('alerta-ts').textContent='Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('alertas-list').innerHTML=al.length
     ?al.map(function(a){return '<div class="alert-row '+a.tipo+'"><i class="ti '+a.icon+'"></i><span style="font-size:13px;flex:1">'+a.msg+'</span></div>';}).join('')
