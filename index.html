@@ -267,7 +267,7 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="nav-item" onclick="showPanel('telemarketing',this)"><i class="ti ti-phone-call"></i>Telemarketing</div>
     <div class="nav-item" onclick="showPanel('recontato',this)"><i class="ti ti-phone-outgoing"></i>Programação de Recontato</div>
     <div class="nav-item" onclick="showPanel('cadencia',this)"><i class="ti ti-calendar-repeat"></i>Cadência Dia 01–05<span class="nav-badge" id="badge-cadencia" style="display:none">0</span></div>
-    <div class="nav-item" onclick="showPanel('fantasmas',this)"><i class="ti ti-ghost"></i>Fantasmas<span class="nav-badge" id="badge-fantasmas">0</span></div>
+    <div class="nav-item" onclick="showPanel('fantasmas',this)"><i class="ti ti-speakerphone"></i>Disparos<span class="nav-badge" id="badge-fantasmas">0</span></div>
     <div class="nav-item" onclick="showPanel('captacoes',this)"><i class="ti ti-home-search"></i>Captações</div>
     <div class="nav-item" onclick="showPanel('visitascapt',this)"><i class="ti ti-calendar-search"></i>Visitas de Captação</div>
     <div class="nav-item" onclick="showPanel('parcerias',this)"><i class="ti ti-users-group"></i>Parcerias</div>
@@ -319,29 +319,29 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="panel active" id="panel-dashboard">
       <div class="metrics-grid">
         <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({})"><div class="metric-label">Total Leads<i class="ti ti-users" style="font-size:15px;color:var(--accent)"></i></div><div class="metric-val" id="m-total">—</div><div class="metric-sub">na base</div></div>
-        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({et:'EM ATENDIMENTO'})"><div class="metric-label">Em Atendimento<i class="ti ti-headset" style="font-size:15px;color:var(--warn)"></i></div><div class="metric-val" style="color:var(--warn)" id="m-atend">—</div><div class="metric-sub">ativos</div></div>
-        <div class="metric-card click" title="Ver esses leads" onclick="dashQuentes()"><div class="metric-label">Quentes 🔥<i class="ti ti-flame" style="font-size:15px;color:var(--danger)"></i></div><div class="metric-val" style="color:var(--danger)" id="m-quente">—</div><div class="metric-sub">prioridade máxima</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({et:'ATENDIMENTO CORRETOR'})"><div class="metric-label">Atend. Corretor<i class="ti ti-headset" style="font-size:15px;color:var(--warn)"></i></div><div class="metric-val" style="color:var(--warn)" id="m-atend">—</div><div class="metric-sub">ativos</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="dashQuentes()"><div class="metric-label">Em negociação 🔥<i class="ti ti-flame" style="font-size:15px;color:var(--danger)"></i></div><div class="metric-val" style="color:var(--danger)" id="m-quente">—</div><div class="metric-sub">fase de fechamento</div></div>
         <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sr:true})"><div class="metric-label">+3 dias sem contato<i class="ti ti-clock" style="font-size:15px;color:var(--muted)"></i></div><div class="metric-val" style="color:var(--muted)" id="m-semret">—</div><div class="metric-sub">follow-up urgente</div></div>
       </div>
       <div class="metrics-grid">
-        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sg:'ATENDIMENTO ATIVO'})" style="border-left:4px solid var(--success)"><div class="metric-label">Atendimento Ativo</div><div class="metric-val" style="color:var(--success)" id="m-ativo">—</div><div class="metric-sub">em andamento</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sg:'ATIVO'})" style="border-left:4px solid var(--success)"><div class="metric-label">Ativos</div><div class="metric-val" style="color:var(--success)" id="m-ativo">—</div><div class="metric-sub">em andamento</div></div>
         <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sg:'MAILING'})" style="border-left:4px solid var(--info)"><div class="metric-label">Mailing</div><div class="metric-val" style="color:var(--info)" id="m-mailing">—</div><div class="metric-sub">base de contatos</div></div>
-        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sg:'PERDIDO'})" style="border-left:4px solid var(--danger)"><div class="metric-label">Perdidos ❌</div><div class="metric-val" style="color:var(--danger)" id="m-perdido">—</div><div class="metric-sub">sem conversão</div></div>
-        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sg:'DESISTIU'})" style="border-left:4px solid var(--danger)"><div class="metric-label">Desistiu</div><div class="metric-val" style="color:var(--danger)" id="m-desistiu">—</div><div class="metric-sub">desistiram</div></div>
-        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({sg:'VENDIDO'})" style="border-left:4px solid var(--accent)"><div class="metric-label">Vendidos 🏆</div><div class="metric-val" style="color:var(--accent)" id="m-vendido">—</div><div class="metric-sub">conversões</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({et:'PERDIDO'})" style="border-left:4px solid var(--danger)"><div class="metric-label">Perdidos ❌</div><div class="metric-val" style="color:var(--danger)" id="m-perdido">—</div><div class="metric-sub">sem conversão</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({et:'DESISTIU'})" style="border-left:4px solid var(--danger)"><div class="metric-label">Desistiu</div><div class="metric-val" style="color:var(--danger)" id="m-desistiu">—</div><div class="metric-sub">desistiram</div></div>
+        <div class="metric-card click" title="Ver esses leads" onclick="irParaLeads({label:'Vendidos',fn:function(l){return (l.fechamento||'').toUpperCase()==='VENDIDO';}})" style="border-left:4px solid var(--accent)"><div class="metric-label">Vendidos 🏆</div><div class="metric-val" style="color:var(--accent)" id="m-vendido">—</div><div class="metric-sub">conversões</div></div>
       </div>
       <div class="two-col">
         <div class="card"><div class="sec-hdr"><div class="sec-title">Funil por etiqueta</div></div><div id="funnel-chart"></div></div>
         <div class="card"><div class="sec-hdr"><div class="sec-title">Leads por origem</div></div><div id="origem-chart"></div></div>
       </div>
-      <div class="card"><div class="sec-hdr"><div class="sec-title">⚡ Leads quentes — ação imediata</div><button class="btn btn-xs" onclick="dashQuentes()">Ver todos</button></div><div id="hot-leads-list"></div></div>
+      <div class="card"><div class="sec-hdr"><div class="sec-title">⚡ Em negociação — ação imediata</div><button class="btn btn-xs" onclick="dashQuentes()">Ver todos</button></div><div id="hot-leads-list"></div></div>
     </div>
 
     <!-- LEADS -->
     <div class="panel" id="panel-leads">
       <div class="filters-bar">
-        <select class="filter-sel" id="fil-sg" onchange="filterLeads()"><option value="">Todos os status</option><option>ATENDIMENTO ATIVO</option><option>MAILING</option><option>DESISTIU</option><option>PERDIDO</option><option>VENDIDO</option><option>JÁ COMPROU</option><option>FINALIZADO</option></select>
-        <select class="filter-sel" id="fil-et" onchange="filterLeads()"><option value="">Todas as etiquetas</option><option>ENTRADA</option><option>LEADS NOVOS</option><option>EM ATENDIMENTO</option><option>QUENTE</option><option>REPESCAGEM</option><option>FANTASMA</option><option>CONTATO FUTURO</option><option>LISTA</option><option>DESISTIU</option><option>PERDIDO</option></select>
+        <select class="filter-sel" id="fil-sg" onchange="filterLeads()"><option value="">Todos os status</option><option>ATIVO</option><option>MAILING</option><option>INATIVO</option></select>
+        <select class="filter-sel" id="fil-et" onchange="filterLeads()"><option value="">Todas as etiquetas</option><option>EM QUALIFICAÇÃO</option><option>ATENDIMENTO CORRETOR</option><option>EM NEGOCIAÇÃO</option><option>PARA AQUECER</option><option>REPESCAGEM</option><option>FECHADO</option><option>PERDIDO</option><option>DESISTIU</option><option>DISPAROS DE FECHAMENTO</option></select>
         <select class="filter-sel" id="fil-cr" onchange="filterLeads()"><option value="">Todos os corretores</option><option>Sandryne</option><option>Diogo</option><option>Fernanda</option><option>Renata</option></select>
         <select class="filter-sel" id="fil-or" onchange="filterLeads()"><option value="">Todas as origens</option><option>ANUNCIO</option><option>DISPARO</option><option>INTERNET</option><option>pessoalmente</option><option>LOJA</option><option>INDICAÇÃO</option><option>WASELLER</option></select>
         <select class="filter-sel" id="fil-an" onchange="filterLeads()"><option value="">Todos os anúncios</option></select>
@@ -440,7 +440,7 @@ textarea.fc{resize:vertical;min-height:60px}
         <div style="display:flex;gap:7px">
           <div class="chip on" onclick="setRecontatoF('todos',this)">Todos</div>
           <div class="chip" onclick="setRecontatoF('REPESCAGEM',this)">Repescagem</div>
-          <div class="chip" onclick="setRecontatoF('CONTATO FUTURO',this)">Contato Futuro</div>
+          <div class="chip" onclick="setRecontatoF('PARA AQUECER',this)">Para aquecer</div>
         </div>
         <div style="font-size:12px;color:var(--muted)">Leads prontos para recontato, do mais parado pro mais recente</div>
       </div>
@@ -455,7 +455,7 @@ textarea.fc{resize:vertical;min-height:60px}
           <div class="chip" onclick="setFantasmaF('aguardando',this)">⏳ Aguardando os 30 dias</div>
           <div class="chip" onclick="setFantasmaF('todos',this)">Todos</div>
         </div>
-        <div style="font-size:12px;color:var(--muted)">Contatos que já passaram pelo Telemarketing e vão sendo recontatados a cada 30 dias</div>
+        <div style="font-size:12px;color:var(--muted)">Leads em Disparos de fechamento (fim da cadência D5 ou vindos do Telemarketing), recontatados a cada 30 dias</div>
       </div>
       <div class="card"><div id="fantasmas-list"></div></div>
     </div>
@@ -1332,7 +1332,7 @@ textarea.fc{resize:vertical;min-height:60px}
       </div>
       <!-- ROW 3: pipeline -->
       <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
-        <div class="metric-card"><div class="metric-label">Quentes 🔥</div><div class="metric-val" style="color:var(--danger)" id="ind-quentes">—</div><div class="metric-sub">prioridade máxima</div></div>
+        <div class="metric-card"><div class="metric-label">Em negociação 🔥</div><div class="metric-val" style="color:var(--danger)" id="ind-quentes">—</div><div class="metric-sub">prioridade máxima</div></div>
         <div class="metric-card"><div class="metric-label">Sem retorno ⏰</div><div class="metric-val" style="color:var(--muted)" id="ind-semret">—</div><div class="metric-sub">+3 dias</div></div>
         <div class="metric-card"><div class="metric-label">Telemarketing</div><div class="metric-val" style="color:var(--info)" id="ind-tele">—</div><div class="metric-sub">na fila</div></div>
         <div class="metric-card"><div class="metric-label">Captações ativas</div><div class="metric-val" style="color:var(--accent)" id="ind-capt">—</div><div class="metric-sub">imóveis captados</div></div>
@@ -1373,10 +1373,10 @@ textarea.fc{resize:vertical;min-height:60px}
       </div>
       <div class="form-row">
         <div><label class="lbl">Etiqueta <span style="color:var(--danger)">*</span></label>
-          <select class="fc" id="f-status"><option value="">Selecione...</option><option>ENTRADA</option><option>LEADS NOVOS</option><option>EM ATENDIMENTO</option><option>QUENTE</option><option>REPESCAGEM</option><option>FANTASMA</option><option>CONTATO FUTURO</option><option>LISTA</option><option>DESISTIU</option><option>PERDIDO</option><option>VENDIDO</option><option>JÁ COMPROU</option><option>FINALIZADO</option></select>
+          <select class="fc" id="f-status"><option value="">Selecione...</option><option>EM QUALIFICAÇÃO</option><option>ATENDIMENTO CORRETOR</option><option>EM NEGOCIAÇÃO</option><option>PARA AQUECER</option><option>REPESCAGEM</option><option>FECHADO</option><option>PERDIDO</option><option>DESISTIU</option><option>DISPAROS DE FECHAMENTO</option></select>
         </div>
         <div><label class="lbl">Status geral</label>
-          <select class="fc" id="f-sg"><option>ATENDIMENTO ATIVO</option><option>MAILING</option><option>DESISTIU</option><option>PERDIDO</option><option>VENDIDO</option><option>JÁ COMPROU</option><option>FINALIZADO</option></select>
+          <select class="fc" id="f-sg"><option>ATIVO</option><option>MAILING</option><option>INATIVO</option></select>
         </div>
       </div>
       <div class="form-row">
@@ -2450,32 +2450,28 @@ var TIPO_CFG = {
 };
 
 var ROTEIROS = {
-  'ENTRADA':        ['Ligar em até 2h após o contato','Identificar perfil e necessidade','Enviar material inicial','Qualificar faixa de valor'],
-  'LEADS NOVOS':    ['Ligar em até 2h após o contato','Identificar perfil e necessidade','Enviar material inicial','Qualificar faixa de valor'],
-  'EM ATENDIMENTO': ['Confirmar recebimento do material','Tirar dúvidas','Apresentar simulação financeira','Convidar para visita'],
-  'QUENTE':         ['Ligar imediatamente','Enviar tabela e plantas','Propor visita','Confirmar próximo passo'],
-  'REPESCAGEM':     ['Enviar mensagem de recontato','Tentar ligação 2x','Verificar interesse','Registrar retorno'],
-  'FANTASMA':       ['Tentar contato por outro canal','Enviar última tentativa','Registrar como inativo'],
-  'CONTATO FUTURO': ['Registrar data de retorno','Criar lembrete','Enviar mensagem próximo à data'],
-  'LISTA':          ['Verificar atualização de interesse','Apresentar novidade','Convidar para visita']
-,
-  'DESISTIU':  ['Verificar motivo da desistência','Registrar feedback','Enviar mensagem de recontato futuro'],
-  'PERDIDO':   ['Registrar motivo da perda','Arquivar lead','Avaliar possibilidade de recontato'],
-  'VENDIDO':   ['Gerar contrato de venda','Solicitar documentação','Registrar data da venda'],
-  'JÁ COMPROU':['Verificar satisfação','Solicitar indicação','Manter relacionamento'],
-  'FINALIZADO':['Arquivar processo','Solicitar feedback','Registrar no controle de vendas']
+  'EM QUALIFICAÇÃO':      ['Ligar em até 2h após o contato','Identificar perfil e necessidade','Enviar material inicial','Qualificar faixa de valor'],
+  'ATENDIMENTO CORRETOR': ['Entender a necessidade do cliente','Apresentar imóveis','Confirmar recebimento do material','Direcionar para Negociação, Para aquecer ou Repescagem em até 48h'],
+  'EM NEGOCIAÇÃO':        ['Enviar tabela e plantas','Apresentar simulação financeira','Propor visita / proposta','Confirmar próximo passo'],
+  'PARA AQUECER':         ['Manter contato a cada 15 dias','Apresentar novidades','Verificar atualização de interesse','Convidar para visita'],
+  'REPESCAGEM':           ['Enviar mensagem de recontato (R1, R2, R3)','Seguir a cadência D1–D5','Verificar interesse','Devolver ao atendimento se houver resposta'],
+  'FECHADO':              ['Registrar data e tipo do fechamento','Solicitar indicação','Manter relacionamento'],
+  'PERDIDO':              ['Registrar motivo da perda','Avaliar possibilidade de recontato'],
+  'DESISTIU':             ['Verificar motivo da desistência','Registrar feedback','Enviar mensagem de recontato futuro'],
+  'DISPAROS DE FECHAMENTO':['Manter na lista de campanhas','Incluir nos disparos de fechamento']
 };
 
-var ETIQUETAS   = ['ENTRADA','LEADS NOVOS','EM ATENDIMENTO','QUENTE','REPESCAGEM','FANTASMA','CONTATO FUTURO','LISTA','DESISTIU','PERDIDO','VENDIDO','JÁ COMPROU','FINALIZADO'];
+var ETIQUETAS   = ['EM QUALIFICAÇÃO','ATENDIMENTO CORRETOR','EM NEGOCIAÇÃO','PARA AQUECER','REPESCAGEM','FECHADO','PERDIDO','DESISTIU','DISPAROS DE FECHAMENTO'];
+var FECHAMENTOS = ['VENDIDO','JÁ COMPROU','FINALIZADO'];
 var FAIXAS      = ['Até R$ 300 mil','R$ 300 mil - R$ 400 mil','R$ 400 mil - R$ 500 mil','R$ 500 mil - R$ 600 mil','R$ 600 mil - R$ 700 mil','R$ 700 mil - R$ 800 mil','R$ 800 mil - R$ 900 mil','R$ 900 mil - R$ 1 milhão','R$ 1 milhão - R$ 2 milhões','R$ 2 milhões - R$ 3 milhões','R$ 3 milhões - R$ 4 milhões','R$ 4 milhões - R$ 5 milhões','Acima de R$ 5 milhões'];
 var PERFIS      = ['FLAT PLANTA','FLAT PRONTO','APTO PLANTA','APTO PRONTO','MCMV','ALTO PADRÃO','ALUGUEL','CASA CONDOMÍNIO'];
 var ANUNCIOS    = ['HOGAR 120','MAVIE','FLOREZZA','FLAT CB','GRAN GARDEM','BREEZE','SETAI MIRAJ','BLANC','NAUT','Mio Formosa','ARTEFACTO','Bliss Navegante'];
-var STATUS_GERAL= ['ATENDIMENTO ATIVO','MAILING','DESISTIU','PERDIDO','VENDIDO','JÁ COMPROU','FINALIZADO'];
+var STATUS_GERAL= ['ATIVO','MAILING','INATIVO'];
 
 // Status "encerrados" que não devem contar como pendência de atendimento nos Leads
 // (viram tarefa do Telemarketing em vez de ficarem vermelhos aqui)
-var STATUS_ENCERRADOS_SG = ['MAILING','DESISTIU','PERDIDO','JÁ COMPROU','VENDIDO','FINALIZADO'];
-var ETIQUETAS_ENCERRADAS = ['FANTASMA','DESISTIU','PERDIDO','VENDIDO','JÁ COMPROU','FINALIZADO'];
+var STATUS_ENCERRADOS_SG = ['MAILING','INATIVO'];
+var ETIQUETAS_ENCERRADAS = ['FECHADO','PERDIDO','DESISTIU','DISPAROS DE FECHAMENTO'];
 function isEncerrado(l) {
   var sg=(l.status_geral||'').toUpperCase();
   var et=(l.status||'').toUpperCase();
@@ -2484,16 +2480,23 @@ function isEncerrado(l) {
 
 // HELPERS
 function getPillClass(s) {
-  var m = {'ENTRADA':'pill-entrada','LEADS NOVOS':'pill-leadsnovos','EM ATENDIMENTO':'pill-atendimento','QUENTE':'pill-quente','REPESCAGEM':'pill-repescagem','FANTASMA':'pill-fantasma','CONTATO FUTURO':'pill-futuro','LISTA':'pill-lista','DESISTIU':'pill-desistiu','PERDIDO':'pill-perdido-et','VENDIDO':'pill-vendido-et','JÁ COMPROU':'pill-jacomprou','FINALIZADO':'pill-finalizado'};
+  var m = {'EM QUALIFICAÇÃO':'pill-entrada','ATENDIMENTO CORRETOR':'pill-atendimento','EM NEGOCIAÇÃO':'pill-quente','PARA AQUECER':'pill-futuro','REPESCAGEM':'pill-repescagem','FECHADO':'pill-vendido-et','PERDIDO':'pill-perdido-et','DESISTIU':'pill-desistiu','DISPAROS DE FECHAMENTO':'pill-fantasma'};
   return m[(s||'').toUpperCase()] || 'pill-default';
 }
 function getSGClass(s) {
-  var m = {'ATENDIMENTO ATIVO':'pill-ativo','MAILING':'pill-mailing','DESISTIU':'pill-desistiu','PERDIDO':'pill-perdido','VENDIDO':'pill-vendido','JÁ COMPROU':'pill-jacomprou','FINALIZADO':'pill-finalizado'};
+  var m = {'ATIVO':'pill-ativo','MAILING':'pill-mailing','INATIVO':'pill-perdido','VENDIDO':'pill-vendido','JÁ COMPROU':'pill-jacomprou','FINALIZADO':'pill-finalizado'};
   return m[(s||'').toUpperCase()] || 'pill-default';
 }
 function getStatusColor(s) {
-  var m = {'QUENTE':'#e74c3c','EM ATENDIMENTO':'#f39c12','ENTRADA':'#3498db','LEADS NOVOS':'#27ae60','REPESCAGEM':'#9b59b6','FANTASMA':'#95a5a6','CONTATO FUTURO':'#1a6b4a','LISTA':'#2c3e50'};
+  var m = {'EM NEGOCIAÇÃO':'#e74c3c','ATENDIMENTO CORRETOR':'#f39c12','EM QUALIFICAÇÃO':'#3498db','PARA AQUECER':'#1a6b4a','REPESCAGEM':'#9b59b6','DISPAROS DE FECHAMENTO':'#95a5a6','FECHADO':'#27ae60','PERDIDO':'#7f8c8d','DESISTIU':'#c0392b'};
   return m[(s||'').toUpperCase()] || '#e5e7eb';
+}
+// Mantém no cliente a mesma regra do banco: etiquetas finais → INATIVO, Disparos → MAILING.
+function harmonizarSG(c){
+  var st=(c.status||'').toUpperCase();
+  if(['FECHADO','PERDIDO','DESISTIU'].indexOf(st)!==-1) c.status_geral='INATIVO';
+  else if(st==='DISPAROS DE FECHAMENTO') c.status_geral='MAILING';
+  return c;
 }
 function ini(n) { return (n||'?').trim().split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase(); }
 function nowStr() { var d=new Date(); return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
@@ -2561,15 +2564,24 @@ function getTmp(l) {
   } catch(e){}
   var score=100;
   if(semRet)score-=30; if(days>3)score-=15; if(days>7)score-=20; if(days>14)score-=20; if(days>30)score-=15;
-  if((l.status||'').toUpperCase()==='QUENTE')score+=20;
+  if((l.status||'').toUpperCase()==='EM NEGOCIAÇÃO')score+=20;
   score=Math.max(0,Math.min(100,score));
   var cls=score>=70?'hot':score>=40?'warm':'cold';
   // Após o Recontato 3 (R3) o prazo é de 7 dias (depois entra no D1 da cadência); nos demais, 3 dias.
+  // Lead importado do Waseller ainda em Em qualificação (ninguém atendeu): não conta como "sem atendimento".
+  if((l.origem||'').toUpperCase()==='WASELLER' && (l.status||'').toUpperCase()==='EM QUALIFICAÇÃO' && !(l.cadencia_inicio)){
+    return {score:score,cls:cls,days:days,semRet:semRet,encerrado:false,limite:999,atrasado:false,r3:false,waseller:true};
+  }
   // Lead na cadência Dia 01–05: o prazo é o da cadência (painel próprio), não o de 3 dias.
   if(l.cadencia_inicio && parseInt(l.cadencia_etapa||0,10)>=1){
     return {score:score,cls:cls,days:days,semRet:semRet,encerrado:false,limite:999,atrasado:false,r3:false,cad:true};
   }
+  var et=(l.status||'').toUpperCase();
   var r3=(last.cod||'')==='R3';
+  // Atendimento corretor: a cada 48h o corretor precisa direcionar o lead para outra etiqueta.
+  if(et==='ATENDIMENTO CORRETOR') return {score:score,cls:cls,days:days,semRet:semRet,encerrado:false,limite:2,atrasado:days>=2,r3:false,ac:true};
+  // Para aquecer: alerta a cada 15 dias.
+  if(et==='PARA AQUECER') return {score:score,cls:cls,days:days,semRet:semRet,encerrado:false,limite:15,atrasado:days>=15,r3:false,pa:true};
   var limite=r3?7:3;
   return {score:score,cls:cls,days:days,semRet:semRet,encerrado:false,limite:limite,atrasado:days>limite,r3:r3};
 }
@@ -2578,12 +2590,15 @@ function timerHtml(l) {
   var t=getTmp(l);
   if (t.encerrado) return '<span class="follow-timer" style="background:rgba(100,116,139,.12);color:#64748b"><i class="ti ti-archive-off" style="font-size:10px"></i>Encerrado</span>';
   if(t.days===0) return '<span class="follow-timer ok"><i class="ti ti-check" style="font-size:10px"></i>Hoje</span>';
+  if(t.waseller) return '<span class="follow-timer" style="background:rgba(100,116,139,.12);color:#64748b" title="Importado do Waseller — aguardando triagem"><i class="ti ti-inbox" style="font-size:10px"></i>Waseller</span>';
   if(t.cad){
     var et=parseInt(l.cadencia_etapa||0,10), dd=(typeof cadDiasAte==='function')?cadDiasAte(l):null;
     var txt='D'+et+(dd===null?'':(dd<0?' · reenvio atrasado '+(-dd)+'d':dd===0?' · reenviar hoje':' · reenvio em '+dd+'d'));
     var venc=dd!==null&&dd<=0;
     return '<span class="follow-timer '+(venc?'danger':'ok')+'" title="Na cadência Dia 01–05"><i class="ti ti-calendar-event" style="font-size:10px"></i>'+txt+'</span>';
   }
+  if(t.ac) return '<span class="follow-timer '+(t.atrasado?'danger':'ok')+'" title="Atendimento corretor — direcionar a cada 48h"><i class="ti ti-user-check" style="font-size:10px"></i>'+(t.atrasado?'48h+ · '+t.days+'d':t.days+'d/2')+'</span>';
+  if(t.pa) return '<span class="follow-timer '+(t.atrasado?'danger':'ok')+'" title="Para aquecer — contato a cada 15 dias"><i class="ti ti-flame" style="font-size:10px"></i>'+(t.atrasado?'15d+ · '+t.days+'d':t.days+'d/15')+'</span>';
   if(t.r3){
     if(t.days<7) return '<span class="follow-timer ok" title="Recontato 3 — aguardar 7 dias para o D1"><i class="ti ti-clock" style="font-size:10px"></i>R3 · '+t.days+'d/7</span>';
     return '<span class="follow-timer danger" title="Recontato 3 há 7+ dias — iniciar cadência D1"><i class="ti ti-alert-circle" style="font-size:10px"></i>→ D1 · '+t.days+'d</span>';
@@ -2650,7 +2665,7 @@ async function loadLeads(){
     // usa ultimo_contato_tipo/data pra manter o "+3 dias sem contato" funcionando.
     // O histórico completo de cada lead é buscado à parte quando ele é aberto (garantirHistoricoCompleto).
     // Leads "adormecidos" (arquivado=true) também ficam de fora — veja panel-arquivados.
-    var COLUNAS_LEADS = 'id,nome,telefone,interesse,empreendimento,valor,status,status_geral,origem,canal,observacoes,data_contato,data_venda,corretor,criado_por,propostas,empreendimentos_enviados,created_at,ultimo_contato_tipo,ultimo_contato_data,ultimo_contato_cod,proximo_contato,arquivado,cadencia_inicio,cadencia_etapa';
+    var COLUNAS_LEADS = 'id,nome,telefone,interesse,empreendimento,valor,status,status_geral,origem,canal,observacoes,data_contato,data_venda,corretor,criado_por,propostas,empreendimentos_enviados,created_at,ultimo_contato_tipo,ultimo_contato_data,ultimo_contato_cod,fechamento,etapa_desde,proximo_contato,arquivado,cadencia_inicio,cadencia_etapa';
     var todos = await fetchAllRows('leads', 'created_at', false, COLUNAS_LEADS, function(q){
       return q.or('arquivado.eq.false,arquivado.is.null');
     });
@@ -2660,7 +2675,7 @@ async function loadLeads(){
     document.getElementById('badge-leads').textContent=leads.length;
     document.getElementById('ag-leads-list').innerHTML=leads.map(function(l){return '<option value="'+l.nome+'">'+l.nome+' — '+l.telefone+'</option>';}).join('');
     var sr=leads.filter(function(l){return getTmp(l).atrasado;}).length;
-    var q=leads.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
+    var q=leads.filter(function(l){return (l.status||'').toUpperCase()==='EM NEGOCIAÇÃO';}).length;
     document.getElementById('badge-alertas').textContent=q+sr+cadVN();
     if (currentUser && currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing' && currentUser.tipo !== 'captador') {
       arquivarLeadsInativos(); // roda em segundo plano, só pra admin
@@ -2670,7 +2685,7 @@ async function loadLeads(){
 
 // ═══ LEADS ADORMECIDOS (arquivamento automático) ═══
 var DIAS_PARA_ADORMECER = 60;
-var STATUS_ADORMECEM = ['PERDIDO','DESISTIU','FINALIZADO','MAILING'];
+var STATUS_ADORMECEM = ['INATIVO','MAILING'];
 
 function diasSemContatoLead(l) {
   var dataRef = l.ultimo_contato_data || l.data_contato || l.created_at;
@@ -2684,7 +2699,7 @@ function diasSemContatoLead(l) {
 
 async function arquivarLeadsInativos(silencioso) {
   var candidatos = leads.filter(function(l) {
-    return STATUS_ADORMECEM.indexOf((l.status_geral||'').toUpperCase()) !== -1 && diasSemContatoLead(l) > DIAS_PARA_ADORMECER;
+    return STATUS_ADORMECEM.indexOf((l.status_geral||'').toUpperCase()) !== -1 && (l.status||'').toUpperCase() !== 'FECHADO' && diasSemContatoLead(l) > DIAS_PARA_ADORMECER;
   });
   if (!candidatos.length) { if (!silencioso) toast('Nenhum lead inativo o suficiente pra adormecer.'); return; }
   var ids = candidatos.map(function(l){ return l.id; });
@@ -2966,7 +2981,7 @@ function showPanel(id,el){
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   document.getElementById('panel-'+id).classList.add('active');
   if(el)el.classList.add('active');
-  var titles={dashboard:'Dashboard',leads:'Leads',arquivados:'Arquivados',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',cadencia:'Cadência Dia 01–05',fantasmas:'Fantasmas',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',visitascapt:'Visitas de Captação',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
+  var titles={dashboard:'Dashboard',leads:'Leads',arquivados:'Arquivados',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',cadencia:'Cadência Dia 01–05',fantasmas:'Disparos de fechamento',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',visitascapt:'Visitas de Captação',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
   document.getElementById('page-title').textContent=titles[id]||id;
   closeMobile();
 }
@@ -3096,8 +3111,8 @@ function renderTab(l,tab){
   }
 
   else if(tab==='checklist'){
-    var status=(l.status||'ENTRADA').toUpperCase();
-    var items=ROTEIROS[status]||ROTEIROS['ENTRADA'];
+    var status=(l.status||'EM QUALIFICAÇÃO').toUpperCase();
+    var items=ROTEIROS[status]||ROTEIROS['EM QUALIFICAÇÃO'];
     var key='chk_'+l.id;
     var checked=JSON.parse(localStorage.getItem(key)||'[]');
     cont.innerHTML='<div style="background:var(--surface);border-radius:var(--radius);padding:12px;border:1px solid var(--border);margin-bottom:12px">'
@@ -3142,6 +3157,7 @@ function renderTab(l,tab){
       +'<div><label class="lbl">Faixa de valor</label><select class="fc" id="e-valor">'+FAIXAS.map(function(o){return '<option'+(l.valor===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div></div>'
       +'<div class="form-row"><div><label class="lbl">Etiqueta</label><select class="fc" id="e-status">'+ETIQUETAS.map(function(o){return '<option'+(l.status===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div>'
       +'<div><label class="lbl">Status Geral</label><select class="fc" id="e-sg">'+STATUS_GERAL.map(function(o){return '<option'+(l.status_geral===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div></div>'
+      +'<div class="form-row"><div><label class="lbl">Tipo de fechamento (se Fechado)</label><select class="fc" id="e-fech"><option value="">—</option>'+FECHAMENTOS.map(function(o){return '<option'+(l.fechamento===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></div><div></div></div>'
       +'<div class="form-row"><div><label class="lbl">Origem</label><input class="fc" id="e-origem" list="lista-origens" value="'+(l.origem||'')+'"></div>'
       +'<div><label class="lbl">Canal de contato</label><input class="fc" id="e-canal" list="lista-canais" value="'+(l.canal||'')+'"></div></div>'
       +'<div><label class="lbl">Data contato inicial</label><input class="fc" id="e-data-contato" type="date" value="'+(l.data_contato||'')+'"></div></div>'
@@ -3191,7 +3207,7 @@ function atualizarLeadLocal(id, patch) {
   if (l && patch) Object.assign(l, patch);
   filterLeads();
   var sr=leads.filter(function(x){return getTmp(x).atrasado;}).length;
-  var q=leads.filter(function(x){return (x.status||'').toUpperCase()==='QUENTE';}).length;
+  var q=leads.filter(function(x){return (x.status||'').toUpperCase()==='EM NEGOCIAÇÃO';}).length;
   var al=document.getElementById('badge-alertas'); if(al) al.textContent=q+sr+cadVN();
   renderDash();renderKanban();renderAlertas();renderRecontato();renderCadencia();renderFantasmas();renderRel();renderEquipe();
   return l;
@@ -3234,22 +3250,32 @@ async function delHist(id,idx){
   renderTab(l,'hist');
 }
 
-// Etiqueta/Status geral automáticos conforme o código registrado no histórico:
-// R1–R3 → etiqueta REPESCAGEM + status geral MAILING; D1 (entrada na cadência) → etiqueta FANTASMA + status geral MAILING.
+// Etiqueta/Status automáticos conforme o código registrado no histórico (funil Differi):
+// EC → ATENDIMENTO CORRETOR · R1–R3 e D1–D4 → REPESCAGEM (status ATIVO) · D5 → DISPAROS DE FECHAMENTO (status MAILING).
 async function aplicarEtiquetaPorCodigo(l,cod){
   var alvo=null;
-  if(/^R[1-3]$/.test(cod)) alvo='REPESCAGEM'; else if(cod==='D1') alvo='FANTASMA';
+  if(cod==='EC') alvo='ATENDIMENTO CORRETOR';
+  else if(/^R[1-3]$/.test(cod)||/^D[1-4]$/.test(cod)) alvo='REPESCAGEM';
   if(!alvo||!l) return;
-  var fin=['DESISTIU','PERDIDO','VENDIDO','FINALIZADO','JÁ COMPROU'];
-  if(fin.indexOf((l.status||'').toUpperCase())!==-1||fin.indexOf((l.status_geral||'').toUpperCase())!==-1) return;
-  if(alvo==='REPESCAGEM'&&(l.status||'').toUpperCase()==='FANTASMA') return;
-  if((l.status||'').toUpperCase()===alvo&&(l.status_geral||'').toUpperCase()==='MAILING') return;
-  var patch={status:alvo,status_geral:'MAILING'};
+  var atual=(l.status||'').toUpperCase();
+  if(['FECHADO','PERDIDO','DESISTIU'].indexOf(atual)!==-1) return;
+  if(atual===alvo&&(l.status_geral||'').toUpperCase()==='ATIVO') return;
+  var patch={status:alvo,status_geral:'ATIVO'};
   var r=await sb.from('leads').update(patch).eq('id',l.id);
   if(r.error){toast('Erro ao atualizar etiqueta: '+r.error.message);return;}
   atualizarLeadLocal(l.id,patch);
-  toast('🏷 Etiqueta → '+alvo+' · Status geral → MAILING');
+  toast('🏷 Etiqueta → '+alvo);
 }
+// Fim da cadência (D5 enviado): lead vai direto para Disparos de fechamento e sai da cadência.
+async function cadConcluirDisparos(id){
+  var l=leads.find(function(x){return String(x.id)===String(id);}); if(!l) return;
+  var item={tipo:'ok',cod:'DISP',texto:'DISP — Fim da cadência (D5): enviado para Disparos de fechamento',data:nowStr(),autor:currentUser?currentUser.nome:''};
+  var r=await sb.rpc('historico_append',{p_id:id,p_item:item,p_tipo:item.tipo,p_data:item.data});
+  if(!r.error){ historicosCache=null; l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([item]); }
+  var patch={cadencia_inicio:null,cadencia_etapa:0,status:'DISPAROS DE FECHAMENTO',status_geral:'MAILING',ultimo_contato_tipo:item.tipo,ultimo_contato_data:item.data,ultimo_contato_cod:item.cod};
+  if(await cadSalvar(id,patch)){ toast('📣 Cadência concluída — lead enviado para Disparos de fechamento'); atualizarBotaoCadencia(l); }
+}
+
 async function addHist(id){
   var txt=document.getElementById('hist-txt').value.trim();
   if(!selectedCod&&!txt){toast('Selecione um código e descreva o atendimento');return;}
@@ -3279,9 +3305,9 @@ async function addHist(id){
     var nDn=parseInt(mDn[1],10);
     if(await cadAplicar(l,nDn,null)){
       var dd=cadDue(l);
-      toast(nDn===5?'📅 D5 registrado — encaminhando ao Telemarketing':'📅 Cadência: D'+nDn+' registrado'+(dd?' — próximo reenvio em '+dd.toLocaleDateString('pt-BR'):''));
+      toast(nDn===5?'📅 D5 registrado — enviando para Disparos de fechamento':'📅 Cadência: D'+nDn+' registrado'+(dd?' — próximo reenvio em '+dd.toLocaleDateString('pt-BR'):''));
     }
-    if(nDn===5) await encaminharTelemarketingCadencia(id,true);
+    if(nDn===5) await cadConcluirDisparos(id);
     atualizarBotaoCadencia(l);
   }
   renderTab(l,'hist');
@@ -3297,6 +3323,7 @@ async function saveEdit(id){
     empreendimento:document.getElementById('e-empr').value.trim(),
     status:document.getElementById('e-status').value,
     status_geral:document.getElementById('e-sg').value,
+    fechamento:(document.getElementById('e-fech')?document.getElementById('e-fech').value:'')||null,
     origem:document.getElementById('e-origem').value,canal:document.getElementById('e-canal')?document.getElementById('e-canal').value.trim():'',
     valor:document.getElementById('e-valor').value,
     corretor:document.getElementById('e-corretor').value,
@@ -3304,6 +3331,8 @@ async function saveEdit(id){
     data_contato:document.getElementById('e-data-contato').value||null,
     data_venda:document.getElementById('e-data-venda').value||null
   };
+  if((campos.status||'').toUpperCase()==='FECHADO' && !campos.fechamento) campos.fechamento='VENDIDO';
+  harmonizarSG(campos);
   var r=await sb.from('leads').update(campos).eq('id',id);
   if(r.error){toast('Erro: '+r.error.message);return;}
   var rh = await sb.rpc('historico_append', {p_id:id, p_item:novoItem, p_tipo:novoItem.tipo, p_data:novoItem.data});
@@ -3329,8 +3358,8 @@ async function saveProposta(id){
   if(rh.error){ console.error(rh.error); }
   var patch={ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data, ultimo_contato_cod:novoItem.cod||null};
   if(resultado==='Aceita'){
-    patch.status_geral='VENDIDO'; if(dataVenda)patch.data_venda=dataVenda;
-    await sb.from('leads').update({status_geral:'VENDIDO', data_venda:dataVenda||null}).eq('id',id);
+    patch.status='FECHADO'; patch.status_geral='INATIVO'; patch.fechamento='VENDIDO'; if(dataVenda)patch.data_venda=dataVenda;
+    await sb.from('leads').update({status:'FECHADO', status_geral:'INATIVO', fechamento:'VENDIDO', data_venda:dataVenda||null}).eq('id',id);
   }
   toast('Proposta salva!');
   historicosCache = null;
@@ -3343,21 +3372,21 @@ async function saveProposta(id){
 
 // KANBAN
 var K_STAGES=[
-  {label:'Entrada',color:'#3498db'},{label:'Repescagem',color:'#9b59b6'},
-  {label:'Em Atendimento',color:'#f39c12'},{label:'Quente',color:'#e74c3c'},
-  {label:'Proposta',color:'#e67e22'},{label:'Negociação',color:'#1a6b4a'},
-  {label:'Vendido',color:'#27ae60'},{label:'Perdido',color:'#95a5a6'}
+  {label:'Em qualificação',color:'#3498db'},{label:'Atendimento corretor',color:'#f39c12'},
+  {label:'Em negociação',color:'#e74c3c'},{label:'Para aquecer',color:'#1a6b4a'},
+  {label:'Repescagem',color:'#9b59b6'},{label:'Fechado',color:'#27ae60'},
+  {label:'Perdido',color:'#95a5a6'},{label:'Desistiu',color:'#c0392b'},
+  {label:'Disparos',color:'#64748b'}
 ];
 function getKIdx(l){
-  var sg=(l.status_geral||'').toUpperCase();
-  if(sg==='VENDIDO')return 6; if(sg==='PERDIDO')return 7;
-  var m={'ENTRADA':0,'LEADS NOVOS':0,'REPESCAGEM':1,'EM ATENDIMENTO':2,'QUENTE':3,'CONTATO FUTURO':1,'FANTASMA':7,'LISTA':1};
-  return m[(l.status||'').toUpperCase()]||0;
+  var m={'EM QUALIFICAÇÃO':0,'ATENDIMENTO CORRETOR':1,'EM NEGOCIAÇÃO':2,'PARA AQUECER':3,'REPESCAGEM':4,'FECHADO':5,'PERDIDO':6,'DESISTIU':7,'DISPAROS DE FECHAMENTO':8};
+  var v=m[(l.status||'').toUpperCase()];
+  return v===undefined?0:v;
 }
 function renderKanban(){
   var board=document.getElementById('kanban-board');
   var byS=K_STAGES.map(function(){return [];});
-  leads.forEach(function(l){var si=getKIdx(l);byS[Math.max(0,Math.min(si,7))].push(l);});
+  leads.forEach(function(l){var si=getKIdx(l);byS[Math.max(0,Math.min(si,8))].push(l);});
   board.innerHTML=K_STAGES.map(function(s,si){
     return '<div class="k-col"><div class="k-hdr"><div class="k-hdr-l"><div class="dot" style="background:'+s.color+'"></div>'+s.label+'</div><span class="k-cnt">'+byS[si].length+'</span></div>'
       +byS[si].slice(0,5).map(function(l){
@@ -3400,14 +3429,10 @@ function irParaLeads(cfg){
 }
 // "Quentes" do dashboard não conta quem já vendeu/finalizou — o filtro segue a mesma regra.
 function dashQuentes(){
-  irParaLeads({et:'QUENTE',label:'Quentes em andamento',fn:function(l){
-    var sg=(l.status_geral||'').toUpperCase();
-    return sg!=='VENDIDO'&&sg!=='JÁ COMPROU'&&sg!=='FINALIZADO';
-  }});
+  irParaLeads({et:'EM NEGOCIAÇÃO'});
 }
 function dashFunil(key){
-  if(key==='ENTRADA') irParaLeads({label:'Etiqueta: Entrada',fn:function(l){return (l.status||'ENTRADA').toUpperCase()==='ENTRADA';}});
-  else irParaLeads({et:key});
+  irParaLeads({et:key});
 }
 function dashOrigem(key){
   irParaLeads({label:'Origem: '+key,fn:function(l){return (l.origem||'Outro').toUpperCase()===String(key).toUpperCase();}});
@@ -3421,18 +3446,18 @@ showPanel=function(id,el){
 
 function renderDash(){
   var total=leads.length;
-  var atend=leads.filter(function(l){return (l.status||'').toUpperCase()==='EM ATENDIMENTO';}).length;
+  var atend=leads.filter(function(l){return (l.status||'').toUpperCase()==='ATENDIMENTO CORRETOR';}).length;
   var quente=leads.filter(function(l){
-    if((l.status||'').toUpperCase()!=='QUENTE') return false;
+    if((l.status||'').toUpperCase()!=='EM NEGOCIAÇÃO') return false;
     var sg=(l.status_geral||'').toUpperCase();
     return sg!=='VENDIDO'&&sg!=='JÁ COMPROU'&&sg!=='FINALIZADO';
   }).length;
   var semRet=leads.filter(function(l){return getTmp(l).atrasado;}).length;
-  var ativo=leads.filter(function(l){return (l.status_geral||'').toUpperCase()==='ATENDIMENTO ATIVO';}).length;
+  var ativo=leads.filter(function(l){return (l.status_geral||'').toUpperCase()==='ATIVO';}).length;
   var mailing=leads.filter(function(l){return (l.status_geral||'').toUpperCase()==='MAILING';}).length;
-  var perdido=leads.filter(function(l){return (l.status_geral||'').toUpperCase()==='PERDIDO';}).length;
-  var desistiu=leads.filter(function(l){return (l.status_geral||'').toUpperCase()==='DESISTIU';}).length;
-  var vendido=leads.filter(function(l){return (l.status_geral||'').toUpperCase()==='VENDIDO';}).length;
+  var perdido=leads.filter(function(l){return (l.status||'').toUpperCase()==='PERDIDO';}).length;
+  var desistiu=leads.filter(function(l){return (l.status||'').toUpperCase()==='DESISTIU';}).length;
+  var vendido=leads.filter(function(l){return (l.fechamento||'').toUpperCase()==='VENDIDO';}).length;
   document.getElementById('m-total').textContent=total;
   document.getElementById('m-atend').textContent=atend;
   document.getElementById('m-quente').textContent=quente;
@@ -3444,13 +3469,14 @@ function renderDash(){
   document.getElementById('m-vendido').textContent=vendido;
   document.getElementById('badge-leads').textContent=total;
 
-  var sc={};leads.forEach(function(l){var s=(l.status||'ENTRADA').toUpperCase();sc[s]=(sc[s]||0)+1;});
+  var sc={};leads.forEach(function(l){var s=(l.status||'EM QUALIFICAÇÃO').toUpperCase();sc[s]=(sc[s]||0)+1;});
   var fd=[
-    {key:'QUENTE', label:'Quente',    count:sc['QUENTE']||0,         c:'#e74c3c'},
-    {key:'EM ATENDIMENTO', label:'Em Atend.', count:sc['EM ATENDIMENTO']||0, c:'#f39c12'},
-    {key:'ENTRADA', label:'Entrada',   count:sc['ENTRADA']||0,        c:'#3498db'},
-    {key:'REPESCAGEM', label:'Repescagem',count:sc['REPESCAGEM']||0,     c:'#9b59b6'},
-    {key:'CONTATO FUTURO', label:'C.Futuro',  count:sc['CONTATO FUTURO']||0, c:'#1a6b4a'}
+    {key:'EM QUALIFICAÇÃO', label:'Qualificação',count:sc['EM QUALIFICAÇÃO']||0, c:'#3498db'},
+    {key:'ATENDIMENTO CORRETOR', label:'Atend. corretor', count:sc['ATENDIMENTO CORRETOR']||0, c:'#f39c12'},
+    {key:'EM NEGOCIAÇÃO', label:'Negociação', count:sc['EM NEGOCIAÇÃO']||0, c:'#e74c3c'},
+    {key:'PARA AQUECER', label:'Aquecer', count:sc['PARA AQUECER']||0, c:'#1a6b4a'},
+    {key:'REPESCAGEM', label:'Repescagem',count:sc['REPESCAGEM']||0, c:'#9b59b6'},
+    {key:'DISPAROS DE FECHAMENTO', label:'Disparos', count:sc['DISPAROS DE FECHAMENTO']||0, c:'#64748b'}
   ];
   var mf=Math.max.apply(null,fd.map(function(f){return f.count;}).concat([1]));
   document.getElementById('funnel-chart').innerHTML=fd.map(function(f){
@@ -3467,7 +3493,7 @@ function renderDash(){
 
   var excludeSG = ['VENDIDO','JÁ COMPROU','FINALIZADO'];
   var hot=leads.filter(function(l){
-    if((l.status||'').toUpperCase()!=='QUENTE') return false;
+    if((l.status||'').toUpperCase()!=='EM NEGOCIAÇÃO') return false;
     if(excludeSG.indexOf((l.status_geral||'').toUpperCase())>=0) return false;
     return true;
   });
@@ -3486,7 +3512,7 @@ function renderDash(){
 // RELATÓRIOS
 function renderRel(){
   var total=leads.length||1;
-  var q=leads.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
+  var q=leads.filter(function(l){return (l.status||'').toUpperCase()==='EM NEGOCIAÇÃO';}).length;
   var pr=leads.filter(function(l){return JSON.parse(l.propostas||'[]').length>0;}).length;
   var vd=leads.filter(function(l){return JSON.parse(l.propostas||'[]').some(function(p){return p.resultado==='Aceita';});}).length;
   document.getElementById('conv-cards').innerHTML=
@@ -3496,7 +3522,7 @@ function renderRel(){
 
   var stages=[
     {label:'Total',    count:leads.length,c:'#3498db'},
-    {label:'Ativos',   count:leads.filter(function(l){return (l.status_geral||'').toUpperCase()==='ATENDIMENTO ATIVO';}).length,c:'#27ae60'},
+    {label:'Ativos',   count:leads.filter(function(l){return (l.status_geral||'').toUpperCase()==='ATIVO';}).length,c:'#27ae60'},
     {label:'Quentes',  count:q,c:'#e74c3c'},
     {label:'Propostas',count:pr,c:'#e67e22'},
     {label:'Vendidos', count:vd,c:'#1a6b4a'}
@@ -3514,10 +3540,10 @@ function renderRel(){
   document.getElementById('conv-corretor').innerHTML='<div style="overflow-x:auto"><table style="min-width:500px"><thead><tr><th>Corretor</th><th>Leads</th><th>Quentes</th><th>+3 dias</th><th>Propostas</th><th>Vendas</th></tr></thead><tbody>'
     +Object.keys(USERS).map(function(nome){
       var meus=leads.filter(function(l){return l.corretor===nome;});
-      var q2=meus.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
+      var q2=meus.filter(function(l){return (l.status||'').toUpperCase()==='EM NEGOCIAÇÃO';}).length;
       var sr=meus.filter(function(l){return getTmp(l).atrasado;}).length;
       var pr2=meus.filter(function(l){return JSON.parse(l.propostas||'[]').length>0;}).length;
-      var vd2=meus.filter(function(l){return (l.status_geral||'').toUpperCase()==='VENDIDO';}).length;
+      var vd2=meus.filter(function(l){return (l.fechamento||'').toUpperCase()==='VENDIDO';}).length;
       var u=USERS[nome];
       return '<tr><td><div style="display:flex;align-items:center;gap:7px"><div class="avatar av-xs" style="background:'+u.cor+'22;color:'+u.cor+'">'+u.av+'</div>'+nome+'</div></td>'
         +'<td><strong>'+meus.length+'</strong></td><td style="color:var(--danger)">'+q2+'</td><td style="color:var(--warn)">'+sr+'</td><td style="color:var(--info)">'+pr2+'</td><td style="color:var(--accent);font-weight:600">'+vd2+'</td></tr>';
@@ -3529,9 +3555,9 @@ function renderEquipe(){
   document.getElementById('equipe-cards').innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'
     +getAllEquipe().map(function(u){
       var meus=leads.filter(function(l){return l.corretor===u.nome;});
-      var q=meus.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
+      var q=meus.filter(function(l){return (l.status||'').toUpperCase()==='EM NEGOCIAÇÃO';}).length;
       var sr=meus.filter(function(l){return getTmp(l).atrasado;}).length;
-      var vd=meus.filter(function(l){return (l.status_geral||'').toUpperCase()==='VENDIDO';}).length;
+      var vd=meus.filter(function(l){return (l.fechamento||'').toUpperCase()==='VENDIDO';}).length;
       var meusTele=(typeof teleContatos!=='undefined'?teleContatos:[]).filter(function(t){return (t.atendente||'').trim()===u.nome;});
       var ligacoes=meusTele.reduce(function(s,t){return s+(t.tentativas||0);},0);
       var convTele=meusTele.filter(function(t){return t.status==='Convertido';}).length;
@@ -3666,7 +3692,7 @@ function renderRecontato() {
   var isAdmin = !currentUser || (currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing');
   var lista = leads.filter(function(l) {
     var et = (l.status||'').toUpperCase();
-    if (et !== 'REPESCAGEM' && et !== 'CONTATO FUTURO') return false;
+    if (et !== 'REPESCAGEM' && et !== 'PARA AQUECER') return false;
     if (recontatoFiltro !== 'todos' && et !== recontatoFiltro) return false;
     return true;
   });
@@ -3783,7 +3809,7 @@ async function cadRegistrar(l, n, textoExtra){
   l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([item]);
   var okc=await cadAplicar(l, n, item);
   if(n===1) await aplicarEtiquetaPorCodigo(l,'D1');
-  if(n===5 && okc) await encaminharTelemarketingCadencia(l.id,true);
+  if(n===5 && okc) await cadConcluirDisparos(l.id);
   return okc;
 }
 // Atualiza só os campos da cadência (usado também pelo botão "Enviado Dn" do histórico).
@@ -3816,7 +3842,7 @@ async function marcarCadenciaEnviada(id){
   var prox=et+1;
   if(await cadRegistrar(l,prox,prox<=5?'mensagem de recontato enviada':'mensagem final enviada (60 dias)')){
     var d=cadDue(l);
-    toast(prox<5?'✅ Enviado D'+prox+' — próximo reenvio em '+d.toLocaleDateString('pt-BR'):'✅ Enviado D5 — encaminhado ao Telemarketing');
+    toast(prox<5?'✅ Enviado D'+prox+' — próximo reenvio em '+d.toLocaleDateString('pt-BR'):'✅ Enviado D5 — enviado para Disparos de fechamento');
   }
 }
 // Fim da cadência: manda o lead para o Telemarketing e o tira da lista.
@@ -3868,7 +3894,7 @@ function renderFantasmas() {
   var el = document.getElementById('fantasmas-list');
   if (!el) return;
   var isAdmin = !currentUser || (currentUser.tipo !== 'corretor' && currentUser.tipo !== 'telemarketing');
-  var todos = leads.filter(function(l) { return (l.status||'').toUpperCase() === 'FANTASMA'; });
+  var todos = leads.filter(function(l) { return (l.status||'').toUpperCase() === 'DISPAROS DE FECHAMENTO'; });
   var badge = document.getElementById('badge-fantasmas');
   var prontosCount = todos.filter(function(l){ var d = diasParaContato(l); return d === null || d <= 0; }).length;
   if (badge) badge.textContent = prontosCount;
@@ -3900,7 +3926,7 @@ function renderFantasmas() {
   }).join('');
 }
 async function renovarFantasma(id) {
-  if (!confirm('Tentou recontatar e ainda não deu certo? Isso agenda mais 30 dias e mantém como Fantasma.')) return;
+  if (!confirm('Tentou recontatar e ainda não deu certo? Isso agenda mais 30 dias e mantém em Disparos de fechamento.')) return;
   var proximo = new Date(); proximo.setDate(proximo.getDate() + 30);
   var proximoStr = proximo.toISOString().split('T')[0];
   await sb.from('leads').update({proximo_contato: proximoStr}).eq('id', id);
@@ -3922,7 +3948,7 @@ function renderImoveis(){
   var sc={'Disponível':'var(--success)','Lançamento':'var(--info)','Pré-lançamento':'var(--warn)','Esgotado':'var(--danger)'};
   el.innerHTML='<div class="card" style="padding:0">'+imoveis.map(function(im){
     var cnt=leads.filter(function(l){return (l.empreendimento||'').toUpperCase()===(im.nome||'').toUpperCase();}).length;
-    var hot=leads.filter(function(l){return (l.empreendimento||'').toUpperCase()===(im.nome||'').toUpperCase()&&(l.status||'').toUpperCase()==='QUENTE';}).length;
+    var hot=leads.filter(function(l){return (l.empreendimento||'').toUpperCase()===(im.nome||'').toUpperCase()&&(l.status||'').toUpperCase()==='EM NEGOCIAÇÃO';}).length;
     return '<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)">'
       +'<div style="width:38px;height:38px;border-radius:var(--radius);background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0">'+im.nome.substring(0,2)+'</div>'
       +'<div style="flex:1"><div style="font-size:14px;font-weight:500">'+im.nome+'</div><div style="font-size:11px;color:var(--muted)">'+(im.tipo||'—')+' · '+(im.bairro||'—')+(im.valor_partir?' · a partir de '+im.valor_partir:'')+'</div></div>'
@@ -3936,21 +3962,25 @@ function filterByEmpr(nome){document.getElementById('search-input').value=nome;f
 // ALERTAS
 function cadVN(){ try{return (typeof cadenciaVencidos==='function')?cadenciaVencidos().length:0;}catch(e){return 0;} }
 function renderAlertas(){
-  var q=leads.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
-  var sr=leads.filter(function(l){var t=getTmp(l);return t.atrasado&&!t.r3;}).length;
+  var q=leads.filter(function(l){return (l.status||'').toUpperCase()==='EM NEGOCIAÇÃO';}).length;
+  var sr=leads.filter(function(l){var t=getTmp(l);return t.atrasado&&!t.r3&&!t.ac&&!t.pa;}).length;
   var r3n=leads.filter(function(l){var t=getTmp(l);return t.atrasado&&t.r3;}).length;
+  var acn=leads.filter(function(l){var t=getTmp(l);return t.atrasado&&t.ac;}).length;
+  var pan=leads.filter(function(l){var t=getTmp(l);return t.atrasado&&t.pa;}).length;
   var agP=agendamentos.filter(function(a){return !a.confirmado&&a.data>=todayStr();}).length;
   var pr=leads.filter(function(l){return JSON.parse(l.propostas||'[]').some(function(p){return p.resultado==='Pendente';});}).length;
   var cadV=(typeof cadenciaVencidos==='function')?cadenciaVencidos().length:0;
   var al=[
     {tipo:'danger',icon:'ti-calendar-repeat',msg:cadV+' leads na Cadência Dia 01–05 com mensagem para reenviar hoje'},
-    {tipo:'danger',icon:'ti-flame',msg:q+' leads QUENTES aguardando contato — prioridade máxima'},
+    {tipo:'danger',icon:'ti-user-check',msg:acn+' leads em Atendimento corretor há mais de 48h — o corretor precisa direcioná-los para outra etiqueta'},
+    {tipo:'warn',icon:'ti-flame',msg:pan+' leads em Para aquecer há 15 dias ou mais sem contato — hora de reaquecer'},
+    {tipo:'warn',icon:'ti-briefcase',msg:q+' leads em negociação — acompanhe o fechamento'},
     {tipo:'danger',icon:'ti-clock',msg:sr+' leads com mais de 3 dias sem contato — follow-up urgente'},
     {tipo:'danger',icon:'ti-player-play',msg:r3n+' leads em Recontato 3 há mais de 7 dias — iniciar cadência (D1)'},
     {tipo:'warn',icon:'ti-calendar-x',msg:agP+' visitas agendadas sem confirmação'},
     {tipo:'warn',icon:'ti-file-invoice',msg:pr+' propostas ativas aguardando resposta'}
   ].filter(function(a){return parseInt(a.msg)>0;});
-  document.getElementById('badge-alertas').textContent=q+sr+r3n+cadV;
+  document.getElementById('badge-alertas').textContent=q+sr+r3n+acn+pan+cadV;
   document.getElementById('alerta-ts').textContent='Atualizado '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('alertas-list').innerHTML=al.length
     ?al.map(function(a){return '<div class="alert-row '+a.tipo+'"><i class="ti '+a.icon+'"></i><span style="font-size:13px;flex:1">'+a.msg+'</span></div>';}).join('')
@@ -4253,7 +4283,7 @@ async function marcarSelecionadosComoFantasma() {
     var itemHist = {tipo:'lig', texto:'Veio do Telemarketing sem prosseguir (marcação em massa). Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome};
     return {
       nome: t.nome, telefone: t.telefone, interesse: t.interesse,
-      origem: 'TELEMARKETING', status: 'FANTASMA', status_geral: 'MAILING',
+      origem: 'TELEMARKETING', status: 'DISPAROS DE FECHAMENTO', status_geral: 'MAILING',
       corretor: t.atendente || currentUser.nome,
       proximo_contato: proximoStr,
       historico: JSON.stringify([itemHist]),
@@ -4397,7 +4427,7 @@ async function registrarAtendimento() {
     var itemHistFantasma = {tipo:'lig', texto:'Veio do Telemarketing sem prosseguir. ' + (obs||'') + ' Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome};
     var leadFantasma = {
       nome: upd.nome, telefone: t.telefone, interesse: upd.interesse,
-      origem: 'TELEMARKETING', status: 'FANTASMA', status_geral: 'MAILING',
+      origem: 'TELEMARKETING', status: 'DISPAROS DE FECHAMENTO', status_geral: 'MAILING',
       corretor: upd.atendente || currentUser.nome,
       proximo_contato: proximoStr,
       historico: JSON.stringify([itemHistFantasma]),
@@ -4427,7 +4457,7 @@ async function registrarAtendimento() {
     if (!jaLead) {
       await sb.from('leads').insert([{
         nome: upd.nome, telefone: t.telefone, interesse: upd.interesse,
-        origem: 'TELEMARKETING', status: 'ENTRADA', status_geral: 'ATENDIMENTO ATIVO',
+        origem: 'TELEMARKETING', status: 'EM QUALIFICAÇÃO', status_geral: 'ATIVO',
         corretor: visita.corretor, valor: q.faixa_valor || null,
         historico: JSON.stringify([itemHistVis]),
         ultimo_contato_tipo: itemHistVis.tipo, ultimo_contato_data:itemHistVis.data, ultimo_contato_cod:itemHistVis.cod||null,
@@ -4454,7 +4484,7 @@ async function registrarAtendimento() {
     var itemHistConv = {tipo:'lig', texto:'Convertido do Telemarketing. ' + (obs||''), data:nowStr(), autor:currentUser.nome};
     var novoLead = {
       nome: upd.nome, telefone: t.telefone, interesse: upd.interesse,
-      origem: 'TELEMARKETING', status: 'ENTRADA', status_geral: 'ATENDIMENTO ATIVO',
+      origem: 'TELEMARKETING', status: 'EM QUALIFICAÇÃO', status_geral: 'ATIVO',
       corretor: upd.atendente || currentUser.nome,
       historico: JSON.stringify([itemHistConv]),
       ultimo_contato_tipo: itemHistConv.tipo, ultimo_contato_data:itemHistConv.data, ultimo_contato_cod:itemHistConv.cod||null,
@@ -5150,7 +5180,7 @@ function renderIndicadores() {
     return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
   });
 
-  var vendas = filteredL.filter(function(l){return (l.status_geral||'').toUpperCase()==='VENDIDO';}).length;
+  var vendas = filteredL.filter(function(l){return (l.fechamento||'').toUpperCase()==='VENDIDO';}).length;
   var conversao = filteredL.length ? Math.round(vendas/filteredL.length*100) : 0;
 
   // Ticket médio das propostas aceitas
@@ -5168,7 +5198,7 @@ function renderIndicadores() {
   var lig = filteredL.reduce(function(s,l){return s+((historicosCache && historicosCache[l.id])||[]).filter(function(h){return h.tipo==='lig'||h.tipo==='sem';}).length;},0);
   var visitas = agendamentos.filter(function(a){return a.confirmado;}).length;
   var propostas = filteredL.reduce(function(s,l){return s+JSON.parse(l.propostas||'[]').length;},0);
-  var quentes = filteredL.filter(function(l){return (l.status||'').toUpperCase()==='QUENTE';}).length;
+  var quentes = filteredL.filter(function(l){return (l.status||'').toUpperCase()==='EM NEGOCIAÇÃO';}).length;
   var semRet = filteredL.filter(function(l){return getTmp(l).atrasado;}).length;
 
   // Update cards
@@ -5205,15 +5235,14 @@ function renderIndicadores() {
 
   // Funil chart
   var sc = {};
-  filteredL.forEach(function(l){var s=(l.status||'ENTRADA').toUpperCase();sc[s]=(sc[s]||0)+1;});
+  filteredL.forEach(function(l){var s=(l.status||'EM QUALIFICAÇÃO').toUpperCase();sc[s]=(sc[s]||0)+1;});
   var fd = [
-    {label:'Quente',count:sc['QUENTE']||0,c:'#e74c3c'},
-    {label:'Em Atend.',count:sc['EM ATENDIMENTO']||0,c:'#f39c12'},
-    {label:'Entrada',count:sc['ENTRADA']||0,c:'#3498db'},
+    {label:'Qualificação',count:sc['EM QUALIFICAÇÃO']||0,c:'#3498db'},
+    {label:'Atend. corretor',count:sc['ATENDIMENTO CORRETOR']||0,c:'#f39c12'},
+    {label:'Negociação',count:sc['EM NEGOCIAÇÃO']||0,c:'#e74c3c'},
+    {label:'Aquecer',count:sc['PARA AQUECER']||0,c:'#1a6b4a'},
     {label:'Repescagem',count:sc['REPESCAGEM']||0,c:'#9b59b6'},
-    {label:'C.Futuro',count:sc['CONTATO FUTURO']||0,c:'#1a6b4a'},
-    {label:'Fantasma',count:sc['FANTASMA']||0,c:'#95a5a6'},
-    {label:'Lista',count:sc['LISTA']||0,c:'#2c3e50'},
+    {label:'Disparos',count:sc['DISPAROS DE FECHAMENTO']||0,c:'#64748b'},
   ];
   var mf = Math.max.apply(null, fd.map(function(f){return f.count;}).concat([1]));
   var funil = document.getElementById('ind-funil-chart');
@@ -5232,7 +5261,7 @@ function renderIndicadores() {
         var atd = meus.reduce(function(s,l){return s+((historicosCache && historicosCache[l.id])||[]).length;},0);
         var ligs = meus.reduce(function(s,l){return s+((historicosCache && historicosCache[l.id])||[]).filter(function(h){return h.tipo==='lig'||h.tipo==='sem';}).length;},0);
         var props = meus.reduce(function(s,l){return s+JSON.parse(l.propostas||'[]').length;},0);
-        var vds = meus.filter(function(l){return (l.status_geral||'').toUpperCase()==='VENDIDO';}).length;
+        var vds = meus.filter(function(l){return (l.fechamento||'').toUpperCase()==='VENDIDO';}).length;
         var conv = meus.length ? Math.round(vds/meus.length*100) : 0;
         return '<tr><td><div style="display:flex;align-items:center;gap:7px"><div class="avatar av-xs" style="background:'+u.cor+'22;color:'+u.cor+'">'+u.av+'</div>'+nome+'</div></td>'
           +'<td><strong>'+meus.length+'</strong></td><td>'+atd+'</td><td style="color:var(--info)">'+ligs+'</td>'
@@ -5393,13 +5422,10 @@ async function autoEnviarTelemarketing(nome, telefone, interesse, atendente, mot
 }
 function motivoParaTelemarketing(statusNovo, statusAntigo, sgNovo, sgAntigo) {
   if (statusNovo === 'REPESCAGEM' && statusAntigo !== 'REPESCAGEM') return 'Repescagem';
-  if (statusNovo === 'FANTASMA' && statusAntigo !== 'FANTASMA') return 'Fantasma';
+  if (statusNovo === 'DISPAROS DE FECHAMENTO' && statusAntigo !== 'DISPAROS DE FECHAMENTO') return 'Disparos de fechamento';
   if (sgNovo === 'MAILING' && sgAntigo !== 'MAILING') return 'Mailing';
   if (statusNovo === 'DESISTIU' && statusAntigo !== 'DESISTIU') return 'Desistiu';
-  if (sgNovo === 'DESISTIU' && sgAntigo !== 'DESISTIU') return 'Desistiu';
   if (statusNovo === 'PERDIDO' && statusAntigo !== 'PERDIDO') return 'Perdido';
-  if (sgNovo === 'PERDIDO' && sgAntigo !== 'PERDIDO') return 'Perdido';
-  if (sgNovo === 'JÁ COMPROU' && sgAntigo !== 'JÁ COMPROU') return 'Já Comprou (outro imóvel)';
   return null;
 }
 
@@ -6612,8 +6638,8 @@ async function importarLeadsArquivo() {
       telefone: ct.telefone,
       interesse: perfilDestino || ct.interesse || '',
       origem: origem,
-      status: 'ENTRADA',
-      status_geral: 'ATENDIMENTO ATIVO',
+      status: 'EM QUALIFICAÇÃO',
+      status_geral: 'ATIVO',
       corretor: corretorEscolhido || null,
       historico: JSON.stringify([itemHistImport]),
       ultimo_contato_tipo: itemHistImport.tipo, ultimo_contato_data:itemHistImport.data, ultimo_contato_cod:itemHistImport.cod||null,
@@ -7374,7 +7400,7 @@ function renderClientesVendidos() {
   var clienteFilter = window._clienteFilter || 'todos';
   var clienteCorretor = document.getElementById('fil-vd-corretor') ? document.getElementById('fil-vd-corretor').value : '';
   var vendidos = leads.filter(function(l){
-    var sg = (l.status_geral||'').toUpperCase();
+    var sg = (l.fechamento||'').toUpperCase();
     var isVendido = sg==='VENDIDO'||sg==='FINALIZADO';
     if (!isVendido) return false;
     if (clienteFilter !== 'todos' && sg !== clienteFilter) return false;
@@ -7387,7 +7413,7 @@ function renderClientesVendidos() {
   }
   // Metrics
   var totalVendidos = vendidos.length;
-  var finalizados = vendidos.filter(function(l){return (l.status_geral||'').toUpperCase()==='FINALIZADO';}).length;
+  var finalizados = vendidos.filter(function(l){return (l.fechamento||'').toUpperCase()==='FINALIZADO';}).length;
   var elM1=document.getElementById('vd-m-total'); if(elM1) elM1.textContent=totalVendidos;
   var elM3=document.getElementById('vd-m-final'); if(elM3) elM3.textContent=finalizados;
 
@@ -7396,7 +7422,7 @@ function renderClientesVendidos() {
     +'<th>Status</th><th>Data venda</th><th>Corretor</th><th>Ação</th>'
     +'</tr></thead><tbody>'
     + vendidos.map(function(l){
-        var sg = l.status_geral||'VENDIDO';
+        var sg = l.fechamento||'VENDIDO';
         var sgCls = getSGClass(sg);
         var dataVenda = l.data_venda ? new Date(l.data_venda+'T12:00:00').toLocaleDateString('pt-BR') : '—';
         return '<tr onclick="openDetail('+JSON.stringify(l.id)+')" style="cursor:pointer">'
