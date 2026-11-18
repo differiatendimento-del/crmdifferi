@@ -264,10 +264,10 @@ textarea.fc{resize:vertical;min-height:60px}
     <div class="nav-item" onclick="showPanel('leads',this)"><i class="ti ti-users"></i>Leads<span class="nav-badge" id="badge-leads">0</span></div>
     <div class="nav-item" onclick="showPanel('arquivados',this)"><i class="ti ti-archive"></i>Arquivados<span class="nav-badge" id="badge-arquivados">0</span></div>
     <div class="nav-item" onclick="showPanel('clientes',this)"><i class="ti ti-trophy" style="color:#f39c12"></i>Clientes Vendidos</div>
-    <div class="nav-item" onclick="showPanel('telemarketing',this)"><i class="ti ti-phone-call"></i>Telemarketing</div>
+    <div class="nav-item" onclick="showPanel('telemarketing',this)"><i class="ti ti-phone-call"></i>Disparos de fechamento</div>
     <div class="nav-item" onclick="showPanel('recontato',this)"><i class="ti ti-phone-outgoing"></i>Programação de Recontato</div>
     <div class="nav-item" onclick="showPanel('cadencia',this)"><i class="ti ti-calendar-repeat"></i>Cadência Dia 01–05<span class="nav-badge" id="badge-cadencia" style="display:none">0</span></div>
-    <div class="nav-item" onclick="showPanel('fantasmas',this)"><i class="ti ti-speakerphone"></i>Disparos<span class="nav-badge" id="badge-fantasmas">0</span></div>
+    <div class="nav-item" onclick="showPanel('fantasmas',this)"><i class="ti ti-speakerphone"></i>Recontato 30 dias<span class="nav-badge" id="badge-fantasmas">0</span></div>
     <div class="nav-item" onclick="showPanel('captacoes',this)"><i class="ti ti-home-search"></i>Captações</div>
     <div class="nav-item" onclick="showPanel('visitascapt',this)"><i class="ti ti-calendar-search"></i>Visitas de Captação</div>
     <div class="nav-item" onclick="showPanel('parcerias',this)"><i class="ti ti-users-group"></i>Parcerias</div>
@@ -431,7 +431,7 @@ textarea.fc{resize:vertical;min-height:60px}
         <select class="filter-sel" id="cad-corretor" onchange="renderCadencia()"><option value="">Todos os corretores</option></select>
         <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="cad-count"></span>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin:2px 0 10px">Ao registrar <strong>Enviado D1</strong> no histórico, o lead entra aqui. Reenvio: após D1 = 7 dias · após D2 = 14 · após D3 = 30 · após D4 = 45 — contados a partir do D1. Depois do <strong>D5</strong>, o lead fica aqui com o botão <strong>Telemarketing</strong>: ao encaminhar (ou registrar <strong>TT</strong> no histórico) ele sai da cadência. Ao registrar o próximo Dn (ou clicar em ✅ Enviei), o prazo seguinte é calculado sozinho.</div>
+      <div style="font-size:12px;color:var(--muted);margin:2px 0 10px">Ao registrar <strong>Enviado D1</strong> no histórico, o lead entra aqui. Reenvio: após D1 = 7 dias · após D2 = 14 · após D3 = 30 · após D4 = 45 — contados a partir do D1. Depois do <strong>D5</strong>, o lead fica aqui com o botão <strong>Disparos de fechamento</strong>: ao encaminhar (ou registrar <strong>TT</strong> no histórico) ele sai da cadência. Ao registrar o próximo Dn (ou clicar em ✅ Enviei), o prazo seguinte é calculado sozinho.</div>
       <div class="card"><div id="cadencia-list"></div></div>
     </div>
 
@@ -455,7 +455,7 @@ textarea.fc{resize:vertical;min-height:60px}
           <div class="chip" onclick="setFantasmaF('aguardando',this)">⏳ Aguardando os 30 dias</div>
           <div class="chip" onclick="setFantasmaF('todos',this)">Todos</div>
         </div>
-        <div style="font-size:12px;color:var(--muted)">Leads em Disparos de fechamento (fim da cadência D5 ou vindos do Telemarketing), recontatados a cada 30 dias</div>
+        <div style="font-size:12px;color:var(--muted)">Leads em Disparos de fechamento (fim da cadência D5 ou vindos dos Disparos de fechamento), recontatados a cada 30 dias</div>
       </div>
       <div class="card"><div id="fantasmas-list"></div></div>
     </div>
@@ -492,10 +492,10 @@ textarea.fc{resize:vertical;min-height:60px}
 
       <div class="card" style="margin-top:16px">
         <div class="sec-hdr">
-          <div class="sec-title"><i class="ti ti-headset" style="margin-right:6px;color:var(--accent)"></i>Login do Telemarketing / SDR (CPF / Senha)</div>
-          <button class="btn btn-primary btn-sm" onclick="openModal('new-telemkt')"><i class="ti ti-plus"></i>Novo Telemarketing/SDR</button>
+          <div class="sec-title"><i class="ti ti-headset" style="margin-right:6px;color:var(--accent)"></i>Login do Disparos / SDR (CPF / Senha)</div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('new-telemkt')"><i class="ti ti-plus"></i>Novo SDR de Disparos</button>
         </div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Quem tem login de Telemarketing/SDR tem o mesmo acesso restrito dos corretores (Leads, Captações, Agenda, Script, Catálogo), além da aba de Telemarketing.</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Quem tem login de Disparos/SDR tem o mesmo acesso restrito dos corretores (Leads, Captações, Agenda, Script, Catálogo), além da aba de Disparos de fechamento.</div>
         <div id="telemkt-login-list"></div>
       </div>
 
@@ -1334,7 +1334,7 @@ textarea.fc{resize:vertical;min-height:60px}
       <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
         <div class="metric-card"><div class="metric-label">Em negociação 🔥</div><div class="metric-val" style="color:var(--danger)" id="ind-quentes">—</div><div class="metric-sub">prioridade máxima</div></div>
         <div class="metric-card"><div class="metric-label">Sem retorno ⏰</div><div class="metric-val" style="color:var(--muted)" id="ind-semret">—</div><div class="metric-sub">+3 dias</div></div>
-        <div class="metric-card"><div class="metric-label">Telemarketing</div><div class="metric-val" style="color:var(--info)" id="ind-tele">—</div><div class="metric-sub">na fila</div></div>
+        <div class="metric-card"><div class="metric-label">Disparos de fechamento</div><div class="metric-val" style="color:var(--info)" id="ind-tele">—</div><div class="metric-sub">na fila</div></div>
         <div class="metric-card"><div class="metric-label">Captações ativas</div><div class="metric-val" style="color:var(--accent)" id="ind-capt">—</div><div class="metric-sub">imóveis captados</div></div>
       </div>
       <!-- GRAFICOS -->
@@ -1850,7 +1850,7 @@ textarea.fc{resize:vertical;min-height:60px}
 <!-- MODAL NOVO CONTATO TELEMARKETING -->
 <div class="modal-overlay" id="modal-new-tele" style="display:none" onclick="if(event.target===this)closeModal('new-tele')">
   <div class="modal" style="max-width:480px">
-    <div class="modal-hdr"><div class="modal-title">Novo contato — Telemarketing</div><button class="modal-close" onclick="closeModal('new-tele')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-hdr"><div class="modal-title">Novo contato — Disparos de fechamento</div><button class="modal-close" onclick="closeModal('new-tele')"><i class="ti ti-x"></i></button></div>
     <div class="modal-body">
       <div class="form-row">
         <div><label class="lbl">Nome</label><input class="fc" id="tele-nome" placeholder="Nome do contato"></div>
@@ -2029,7 +2029,7 @@ textarea.fc{resize:vertical;min-height:60px}
 
 <div class="modal-overlay" id="modal-importar-tele" style="display:none" onclick="if(event.target===this)closeModal('importar-tele')">
   <div class="modal" style="max-width:540px">
-    <div class="modal-hdr"><div class="modal-title"><i class="ti ti-upload" style="color:var(--accent)"></i> Importar lista — Telemarketing</div><button class="modal-close" onclick="closeModal('importar-tele')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-hdr"><div class="modal-title"><i class="ti ti-upload" style="color:var(--accent)"></i> Importar lista — Disparos de fechamento</div><button class="modal-close" onclick="closeModal('importar-tele')"><i class="ti ti-x"></i></button></div>
     <div class="modal-body">
 
       <!-- MÉTODO -->
@@ -2336,12 +2336,12 @@ textarea.fc{resize:vertical;min-height:60px}
 <!-- MODAL NOVO TELEMARKETING/SDR (LOGIN) -->
 <div class="modal-overlay" id="modal-new-telemkt" style="display:none" onclick="if(event.target===this)closeModal('new-telemkt')">
   <div class="modal" style="max-width:420px">
-    <div class="modal-hdr"><div class="modal-title">Novo Telemarketing/SDR — Login</div><button class="modal-close" onclick="closeModal('new-telemkt')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-hdr"><div class="modal-title">Novo SDR de Disparos — Login</div><button class="modal-close" onclick="closeModal('new-telemkt')"><i class="ti ti-x"></i></button></div>
     <div class="modal-body">
       <div class="fld"><label class="lbl">Nome completo</label><input class="fc" id="nt-nome" placeholder="Nome do(a) SDR"></div>
       <div class="fld"><label class="lbl">CPF</label><input class="fc" id="nt-cpf" placeholder="000.000.000-00" maxlength="14" oninput="formatCPFInput(this)"></div>
       <div class="fld"><label class="lbl">Senha de acesso</label><input class="fc" id="nt-senha" type="text" placeholder="Mínimo 6 caracteres"></div>
-      <div style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 11px">Ela usará este CPF e senha para entrar no CRM clicando em "Sou corretor — entrar com CPF" na tela de login. O acesso terá as mesmas telas dos corretores, mais a aba de Telemarketing.</div>
+      <div style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 11px">Ela usará este CPF e senha para entrar no CRM clicando em "Sou corretor — entrar com CPF" na tela de login. O acesso terá as mesmas telas dos corretores, mais a aba de Disparos de fechamento.</div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('new-telemkt')">Cancelar</button>
@@ -2431,7 +2431,7 @@ function getAllEquipe() {
     if (c.ativo === false) return; // corretor desativado não aparece nos filtros
     if (nomesExistentes.indexOf(c.nome) !== -1) return; // já está em USERS, evita duplicar
     var iniciais = c.nome.trim().split(/\s+/).slice(0, 2).map(function(p){ return p[0].toUpperCase(); }).join('');
-    var roleLabel = c.tipo === 'telemarketing' ? 'Telemarketing/SDR' : c.tipo === 'captador' ? 'Captador(a)' : 'Corretor(a)';
+    var roleLabel = c.tipo === 'telemarketing' ? 'Disparos/SDR' : c.tipo === 'captador' ? 'Captador(a)' : 'Corretor(a)';
     var tipoFinal = c.tipo === 'telemarketing' ? 'telemarketing' : c.tipo === 'captador' ? 'captador' : 'corretor';
     lista.push({nome: c.nome, role: roleLabel, av: iniciais || '??', cor: CORES_EQUIPE_DINAMICA[idx % CORES_EQUIPE_DINAMICA.length], tipo: tipoFinal});
     nomesExistentes.push(c.nome);
@@ -2469,7 +2469,7 @@ var ANUNCIOS    = ['HOGAR 120','MAVIE','FLOREZZA','FLAT CB','GRAN GARDEM','BREEZ
 var STATUS_GERAL= ['ATIVO','MAILING','INATIVO'];
 
 // Status "encerrados" que não devem contar como pendência de atendimento nos Leads
-// (viram tarefa do Telemarketing em vez de ficarem vermelhos aqui)
+// (viram tarefa dos Disparos de fechamento em vez de ficarem vermelhos aqui)
 var STATUS_ENCERRADOS_SG = ['MAILING','INATIVO'];
 var ETIQUETAS_ENCERRADAS = ['FECHADO','PERDIDO','DESISTIU','DISPAROS DE FECHAMENTO'];
 function isEncerrado(l) {
@@ -2981,7 +2981,7 @@ function showPanel(id,el){
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   document.getElementById('panel-'+id).classList.add('active');
   if(el)el.classList.add('active');
-  var titles={dashboard:'Dashboard',leads:'Leads',arquivados:'Arquivados',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',cadencia:'Cadência Dia 01–05',fantasmas:'Disparos de fechamento',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Telemarketing',captacoes:'Captações',visitascapt:'Visitas de Captação',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
+  var titles={dashboard:'Dashboard',leads:'Leads',arquivados:'Arquivados',kanban:'Funil Kanban',agenda:'Agenda',recontato:'Programação de Recontato',cadencia:'Cadência Dia 01–05',fantasmas:'Recontato 30 dias',relatorios:'Análise de Leads',imoveis:'Imóveis',equipe:'Equipe & Metas',alertas:'Alertas',telemarketing:'Disparos de fechamento',captacoes:'Captações',visitascapt:'Visitas de Captação',indicadores:'Indicadores',disparos:'Disparos',catalogo:'Catálogo de Empreendimentos',textos:'Textos de Imóveis',fluxo:'Tabela de Fluxo',script:'Script de Qualificação',vendas:'Controle de Vendas',contratos:'Contratos',material:'Biblioteca de Material',clientes:'Clientes Vendidos 🏆',parcerias:'Parcerias com Corretores',permutas:'Permutas'};
   document.getElementById('page-title').textContent=titles[id]||id;
   closeMobile();
 }
@@ -3078,7 +3078,7 @@ function renderTab(l,tab){
       {cod:'D3', label:'Enviado D3', cor:'#1a6b4a', tipo:'env'},
       {cod:'D4', label:'Enviado D4', cor:'#1a6b4a', tipo:'env'},
       {cod:'D5', label:'Enviado D5', cor:'#1a6b4a', tipo:'env'},
-      {cod:'TT', label:'Transferido ao Telemarketing', cor:'#e74c3c', tipo:'ret'},
+      {cod:'TT', label:'Enviado para Disparos de fechamento', cor:'#e74c3c', tipo:'ret'},
       {cod:'EC', label:'Contato encaminhado para corretor', cor:'#16a085', tipo:'env'},
     ];
     var tlHtml=hist.length?hist.map(function(h,i){return {h:h,i:i};}).reverse().map(function(o){var h=o.h,hi=o.i;
@@ -3255,12 +3255,15 @@ async function delHist(id,idx){
 async function aplicarEtiquetaPorCodigo(l,cod){
   var alvo=null;
   if(cod==='EC') alvo='ATENDIMENTO CORRETOR';
+  else if(cod==='TT') alvo='DISPAROS DE FECHAMENTO';
   else if(/^R[1-3]$/.test(cod)||/^D[1-4]$/.test(cod)) alvo='REPESCAGEM';
   if(!alvo||!l) return;
   var atual=(l.status||'').toUpperCase();
   if(['FECHADO','PERDIDO','DESISTIU'].indexOf(atual)!==-1) return;
-  if(atual===alvo&&(l.status_geral||'').toUpperCase()==='ATIVO') return;
-  var patch={status:alvo,status_geral:'ATIVO'};
+  var sgAlvo=(alvo==='DISPAROS DE FECHAMENTO')?'MAILING':'ATIVO';
+  if(atual===alvo&&(l.status_geral||'').toUpperCase()===sgAlvo) return;
+  var patch={status:alvo,status_geral:sgAlvo};
+  if(alvo!=='REPESCAGEM'){ patch.cadencia_inicio=null; patch.cadencia_etapa=0; }
   var r=await sb.from('leads').update(patch).eq('id',l.id);
   if(r.error){toast('Erro ao atualizar etiqueta: '+r.error.message);return;}
   atualizarLeadLocal(l.id,patch);
@@ -3295,7 +3298,7 @@ async function addHist(id){
   // Códigos "Enviado D1..D5" do histórico alimentam a Cadência automaticamente.
   if(novoItem.cod==='TT' && l.cadencia_inicio){
     if(await cadSalvar(id,{cadencia_inicio:null,cadencia_etapa:0})){
-      toast('📞 Transferido ao Telemarketing — saiu da cadência');
+      toast('📣 Enviado para Disparos de fechamento — saiu da cadência');
       atualizarBotaoCadencia(l);
     }
   }
@@ -3333,6 +3336,7 @@ async function saveEdit(id){
   };
   if((campos.status||'').toUpperCase()==='FECHADO' && !campos.fechamento) campos.fechamento='VENDIDO';
   harmonizarSG(campos);
+  if(campos.status!==l.status && (campos.status||'').toUpperCase()!=='REPESCAGEM'){ campos.cadencia_inicio=null; campos.cadencia_etapa=0; }
   var r=await sb.from('leads').update(campos).eq('id',id);
   if(r.error){toast('Erro: '+r.error.message);return;}
   var rh = await sb.rpc('historico_append', {p_id:id, p_item:novoItem, p_tipo:novoItem.tipo, p_data:novoItem.data});
@@ -3776,7 +3780,7 @@ function renderCadencia(){
     var quando, cor;
     if(n===null){ quando='Cadência concluída'; cor='#27ae60'; }
     else if(n<0){ quando='Atrasado '+(-n)+' dia'+(n===-1?'':'s')+' ('+d.toLocaleDateString('pt-BR')+')'; cor='#c0392b'; }
-    else if(n===0){ quando=(et===5?'Encaminhar ao Telemarketing':'Enviar HOJE'); cor='#e67e22'; }
+    else if(n===0){ quando=(et===5?'Encaminhar aos Disparos de fechamento':'Enviar HOJE'); cor='#e67e22'; }
     else { quando='Em '+n+' dia'+(n===1?'':'s')+' ('+d.toLocaleDateString('pt-BR')+')'; cor='#7f8c8d'; }
     var id=JSON.stringify(l.id);
     return '<div class="agenda-item" style="cursor:pointer" onclick="openDetail('+id+')">'
@@ -3787,7 +3791,7 @@ function renderCadencia(){
       +(n===null?'':(et<5?'<span class="pill" style="margin-right:7px;background:rgba(0,0,0,.05);color:var(--text)">Enviar D'+(et+1)+' · dia '+CADENCIA_DIAS[et-1]+'</span>':'<span class="pill" style="margin-right:7px;background:rgba(231,76,60,.12);color:#c0392b">D5 enviado · encaminhar</span>'))
       +'<span style="font-size:12px;font-weight:600;color:'+cor+';margin-right:8px;white-space:nowrap">'+quando+'</span>'
       +'<button class="btn btn-wa btn-xs" onclick="event.stopPropagation();openWA('+qa(l.telefone)+','+qa(l.nome)+','+qa(l.empreendimento)+')"><i class="ti ti-brand-whatsapp"></i></button>'
-      +(n===null?'':(et<5?'<button class="btn btn-primary btn-xs" style="margin-left:6px" title="Marcar mensagem enviada" onclick="event.stopPropagation();marcarCadenciaEnviada('+id+')"><i class="ti ti-check"></i>Enviei</button>':'<button class="btn btn-primary btn-xs" style="margin-left:6px" title="Enviar ao Telemarketing e tirar da cadência" onclick="event.stopPropagation();encaminharTelemarketingCadencia('+id+')"><i class="ti ti-phone-outgoing"></i>Telemarketing</button>'))
+      +(n===null?'':(et<5?'<button class="btn btn-primary btn-xs" style="margin-left:6px" title="Marcar mensagem enviada" onclick="event.stopPropagation();marcarCadenciaEnviada('+id+')"><i class="ti ti-check"></i>Enviei</button>':'<button class="btn btn-primary btn-xs" style="margin-left:6px" title="Enviar aos Disparos de fechamento e tirar da cadência" onclick="event.stopPropagation();encaminharTelemarketingCadencia('+id+')"><i class="ti ti-phone-outgoing"></i>Disparos de fechamento</button>'))
       +'<button class="btn btn-xs" style="margin-left:6px" title="Tirar da cadência" onclick="event.stopPropagation();sairCadencia('+id+')"><i class="ti ti-x"></i></button>'
       +'</div>';
   }).join(''):'<div style="color:var(--muted);font-size:13px;padding:10px 0">'+(cadFiltro==='hoje'?'Nenhuma mensagem para enviar hoje. ✅':'Nenhum lead nesta lista.')+'</div>';
@@ -3845,16 +3849,16 @@ async function marcarCadenciaEnviada(id){
     toast(prox<5?'✅ Enviado D'+prox+' — próximo reenvio em '+d.toLocaleDateString('pt-BR'):'✅ Enviado D5 — enviado para Disparos de fechamento');
   }
 }
-// Fim da cadência: manda o lead para o Telemarketing e o tira da lista.
+// Fim da cadência: manda o lead para os Disparos de fechamento e o tira da lista.
 async function encaminharTelemarketingCadencia(id,auto){
   var l=leads.find(function(x){return String(x.id)===String(id);}); if(!l) return;
-  if(!auto && !confirm('Encaminhar "'+(l.nome||'este lead')+'" ao Telemarketing e tirar da cadência?')) return;
+  if(!auto && !confirm('Encaminhar "'+(l.nome||'este lead')+'" aos Disparos de fechamento e tirar da cadência?')) return;
   await autoEnviarTelemarketing(l.nome,l.telefone,l.interesse,l.corretor,'fim da Cadência (D5)');
-  var item={tipo:'ret',cod:'TT',texto:'TT — Transferido ao Telemarketing (fim da cadência D5)',data:nowStr(),autor:currentUser?currentUser.nome:''};
+  var item={tipo:'ret',cod:'TT',texto:'TT — Transferido aos Disparos de fechamento (fim da cadência D5)',data:nowStr(),autor:currentUser?currentUser.nome:''};
   var r=await sb.rpc('historico_append',{p_id:id,p_item:item,p_tipo:item.tipo,p_data:item.data});
   if(!r.error){ historicosCache=null; l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([item]); }
   if(await cadSalvar(id,{cadencia_inicio:null,cadencia_etapa:0,ultimo_contato_tipo:item.tipo,ultimo_contato_data:item.data, ultimo_contato_cod:item.cod||null})){
-    toast('📞 Lead encaminhado ao Telemarketing e fora da cadência');
+    toast('📞 Lead encaminhado aos Disparos de fechamento e fora da cadência');
     atualizarBotaoCadencia(l);
   }
 }
@@ -3876,7 +3880,7 @@ function toggleCadenciaDetalhe(){
   else { showPanel('cadencia',document.querySelector('[onclick*="showPanel(\'cadencia\'"]')); closeModal('detail'); }
 }
 
-// ═══ FANTASMAS (pós-Telemarketing, recontato a cada 30 dias) ═══
+// ═══ FANTASMAS (pós-Disparos de fechamento, recontato a cada 30 dias) ═══
 var fantasmaFiltro = 'prontos';
 function setFantasmaF(f, el) {
   fantasmaFiltro = f;
@@ -4275,12 +4279,12 @@ async function liberarSelecionadosParaCorretor() {
 
 async function marcarSelecionadosComoFantasma() {
   if (!teleSelecionados.length) { toast('Selecione ao menos um contato'); return; }
-  if (!confirm('Marcar ' + teleSelecionados.length + ' contato(s) como Fantasma? Eles saem do Telemarketing, viram Leads e voltam a ser recontatados em 30 dias.')) return;
+  if (!confirm('Marcar ' + teleSelecionados.length + ' contato(s) como Fantasma? Eles saem dos Disparos de fechamento, viram Leads e voltam a ser recontatados em 30 dias.')) return;
   var proximo = new Date(); proximo.setDate(proximo.getDate() + 30);
   var proximoStr = proximo.toISOString().split('T')[0];
   var selecionados = teleContatos.filter(function(t){ return teleSelecionados.indexOf(t.id) !== -1; });
   var novosLeads = selecionados.map(function(t) {
-    var itemHist = {tipo:'lig', texto:'Veio do Telemarketing sem prosseguir (marcação em massa). Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome};
+    var itemHist = {tipo:'lig', texto:'Veio dos Disparos de fechamento sem prosseguir (marcação em massa). Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome};
     return {
       nome: t.nome, telefone: t.telefone, interesse: t.interesse,
       origem: 'TELEMARKETING', status: 'DISPAROS DE FECHAMENTO', status_geral: 'MAILING',
@@ -4424,7 +4428,7 @@ async function registrarAtendimento() {
   if (resultado === 'Fantasma — recontato 30d') {
     var proximo = new Date(); proximo.setDate(proximo.getDate() + 30);
     var proximoStr = proximo.toISOString().split('T')[0];
-    var itemHistFantasma = {tipo:'lig', texto:'Veio do Telemarketing sem prosseguir. ' + (obs||'') + ' Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome};
+    var itemHistFantasma = {tipo:'lig', texto:'Veio dos Disparos de fechamento sem prosseguir. ' + (obs||'') + ' Próximo contato: ' + proximoStr, data:nowStr(), autor:currentUser.nome};
     var leadFantasma = {
       nome: upd.nome, telefone: t.telefone, interesse: upd.interesse,
       origem: 'TELEMARKETING', status: 'DISPAROS DE FECHAMENTO', status_geral: 'MAILING',
@@ -4481,7 +4485,7 @@ async function registrarAtendimento() {
   }
   // Se convertido, criar lead automaticamente
   if (resultado === 'Convertido — virou lead') {
-    var itemHistConv = {tipo:'lig', texto:'Convertido do Telemarketing. ' + (obs||''), data:nowStr(), autor:currentUser.nome};
+    var itemHistConv = {tipo:'lig', texto:'Convertido dos Disparos de fechamento. ' + (obs||''), data:nowStr(), autor:currentUser.nome};
     var novoLead = {
       nome: upd.nome, telefone: t.telefone, interesse: upd.interesse,
       origem: 'TELEMARKETING', status: 'EM QUALIFICAÇÃO', status_geral: 'ATIVO',
@@ -5414,7 +5418,7 @@ async function autoEnviarTelemarketing(nome, telefone, interesse, atendente, mot
       observacoes: 'Adicionado automaticamente via ' + motivo + ' do CRM'
     }]);
     if (ins.error) { console.error('Erro ao inserir no telemarketing:', ins.error); return; }
-    toast('📞 Lead adicionado ao Telemarketing automaticamente (' + motivo + ')!');
+    toast('📞 Lead adicionado aos Disparos de fechamento automaticamente (' + motivo + ')!');
     if (typeof loadTele === 'function') await loadTele();
   } catch (e) {
     console.error('Erro ao enviar automaticamente para o telemarketing:', e);
@@ -5424,7 +5428,6 @@ function motivoParaTelemarketing(statusNovo, statusAntigo, sgNovo, sgAntigo) {
   if (statusNovo === 'REPESCAGEM' && statusAntigo !== 'REPESCAGEM') return 'Repescagem';
   if (statusNovo === 'DISPAROS DE FECHAMENTO' && statusAntigo !== 'DISPAROS DE FECHAMENTO') return 'Disparos de fechamento';
   if (sgNovo === 'MAILING' && sgAntigo !== 'MAILING') return 'Mailing';
-  if (statusNovo === 'DESISTIU' && statusAntigo !== 'DESISTIU') return 'Desistiu';
   if (statusNovo === 'PERDIDO' && statusAntigo !== 'PERDIDO') return 'Perdido';
   return null;
 }
@@ -8026,7 +8029,7 @@ async function doLoginCorretor() {
     var ehCaptador = corretor.tipo === 'captador';
     currentUser = {
       nome: corretor.nome,
-      role: ehTelemkt ? 'Telemarketing / SDR' : ehCaptador ? 'Captador(a)' : 'Corretor',
+      role: ehTelemkt ? 'Disparos / SDR' : ehCaptador ? 'Captador(a)' : 'Corretor',
       tipo: ehTelemkt ? 'telemarketing' : ehCaptador ? 'captador' : 'corretor',
       av: ini(corretor.nome),
       cor: '#16697A',
@@ -8218,7 +8221,7 @@ function renderTelemktLogin() {
   if (!el) return;
   var lista = corretoresLogin.filter(function(c){ return c.tipo === 'telemarketing'; });
   if (!lista.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum Telemarketing/SDR cadastrado ainda.</div>';
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0">Nenhum SDR de Disparos cadastrado ainda.</div>';
     return;
   }
   el.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>CPF</th><th>Status</th><th>Ação</th></tr></thead><tbody>'
@@ -8260,7 +8263,7 @@ async function saveTelemktLogin() {
   try {
     var rr = await sb.rpc('crm_criar_login', {p_nome:nome, p_cpf:cpf, p_senha:senha, p_tipo:'telemarketing'});
     if (rr.error) { toast('❌ ' + rr.error.message); return; }
-    toast('✅ Telemarketing/SDR cadastrado!');
+    toast('✅ SDR de Disparos cadastrado!');
     closeModal('new-telemkt');
     ['nt-nome','nt-cpf','nt-senha'].forEach(function(id){ document.getElementById(id).value=''; });
     await loadCorretoresLogin();
