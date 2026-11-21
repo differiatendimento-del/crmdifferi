@@ -2499,6 +2499,9 @@ function harmonizarSG(c){
   return c;
 }
 function ini(n) { return (n||'?').trim().split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase(); }
+function histDtInput(d){return ymdLocal(d)+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function histParse(t){var m=/^(\d{2})\/(\d{2})\/(\d{4})(?:[ ,]+(\d{2}):(\d{2}))?/.exec(t||'');if(!m)return null;return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0)).getTime();}
+function histFmt(d){return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
 function nowStr() { var d=new Date(); return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 function setLoading(on) { var b=document.getElementById('loading-bar'); b.style.width=on?'70%':'100%'; if(!on)setTimeout(function(){b.style.width='0';},400); }
@@ -3081,7 +3084,7 @@ function renderTab(l,tab){
       {cod:'TT', label:'Enviado para Disparos de fechamento', cor:'#e74c3c', tipo:'ret'},
       {cod:'EC', label:'Contato encaminhado para corretor', cor:'#16a085', tipo:'env'},
     ];
-    var tlHtml=hist.length?hist.map(function(h,i){return {h:h,i:i};}).reverse().map(function(o){var h=o.h,hi=o.i;
+    var tlHtml=hist.length?hist.map(function(h,i){return {h:h,i:i};}).sort(function(a,b){var ta=histParse(a.h.data),tb=histParse(b.h.data);if(ta&&tb&&ta!==tb)return tb-ta;return b.i-a.i;}).map(function(o){var h=o.h,hi=o.i;
       var cfg=TIPO_CFG[h.tipo]||TIPO_CFG.env;
       var cor=cores[h.tipo]||'#95a5a6';
       return '<div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:'+cor+'"><i class="ti '+cfg.icon+'" style="font-size:12px;color:#fff"></i></div><div class="tl-line"></div></div>'
@@ -3103,6 +3106,7 @@ function renderTab(l,tab){
       +'<div class="hist-form">'
       +'<div class="lbl" style="margin-bottom:8px">Registrar atendimento</div>'
       +'<div class="hist-tipos" style="margin-bottom:10px">'+codigosBtns+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap"><label for="hist-data" style="font-size:12px;font-weight:600">📅 Data do atendimento</label><input type="datetime-local" class="fc" id="hist-data" value="'+histDtInput(new Date())+'" max="'+histDtInput(new Date())+'" style="width:auto;padding:4px 8px"><a href="javascript:void(0)" onclick="document.getElementById(\'hist-data\').value=histDtInput(new Date())" style="font-size:11px;color:var(--muted)">agora</a></div>'
       +'<textarea class="fc" id="hist-txt" rows="2" placeholder="Descreva o contato realizado..."></textarea>'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">'
       +'<span style="font-size:11px;color:var(--muted)" id="hist-cod-selected">Nenhum código selecionado</span>'
@@ -3285,7 +3289,12 @@ async function addHist(id){
   if(!selectedCod){toast('Selecione um código de resultado');return;}
   var l=leads.find(function(x){return String(x.id)===String(id);});if(!l)return;
   var textoFinal = selectedCod + (txt?' — '+txt:'');
-  var novoItem = {tipo:selectedTipo,cod:selectedCod,texto:textoFinal,data:nowStr(),autor:currentUser.nome};
+  var dtEl=document.getElementById('hist-data'), dtEsc=null;
+  if(dtEl&&dtEl.value){ var dtP=new Date(dtEl.value); if(!isNaN(dtP.getTime())) dtEsc=dtP; }
+  if(dtEsc && dtEsc.getTime()>Date.now()+60000){toast('A data do atendimento não pode ser no futuro');return;}
+  var novoItem = {tipo:selectedTipo,cod:selectedCod,texto:textoFinal,data:dtEsc?histFmt(dtEsc):nowStr(),autor:currentUser.nome};
+  var tNovo=histParse(novoItem.data), tUlt=histParse(l.ultimo_contato_data);
+  var ehRecente=(tUlt==null||tNovo==null||tNovo>=tUlt);
   // Grava direto no banco de forma atômica — mesmo que outra pessoa esteja
   // editando esse lead no mesmo instante, nenhum dos dois apaga o do outro.
   var r = await sb.rpc('historico_append', {p_id:id, p_item:novoItem, p_tipo:novoItem.tipo, p_data:novoItem.data});
@@ -3294,7 +3303,7 @@ async function addHist(id){
   toast('✅ Atendimento registrado!');
   historicosCache = null;
   l.historico=(Array.isArray(l.historico)?l.historico:[]).concat([novoItem]);
-  atualizarLeadLocal(id,{ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data, ultimo_contato_cod:novoItem.cod||null});
+  atualizarLeadLocal(id, ehRecente?{ultimo_contato_tipo:novoItem.tipo, ultimo_contato_data:novoItem.data, ultimo_contato_cod:novoItem.cod||null}:{});
   // Códigos "Enviado D1..D5" do histórico alimentam a Cadência automaticamente.
   if(novoItem.cod==='TT' && l.cadencia_inicio){
     if(await cadSalvar(id,{cadencia_inicio:null,cadencia_etapa:0})){
@@ -3302,11 +3311,11 @@ async function addHist(id){
       atualizarBotaoCadencia(l);
     }
   }
-  await aplicarEtiquetaPorCodigo(l,novoItem.cod);
+  if(ehRecente) await aplicarEtiquetaPorCodigo(l,novoItem.cod);
   var mDn=/^D([1-5])$/.exec(novoItem.cod||'');
   if(mDn){
     var nDn=parseInt(mDn[1],10);
-    if(await cadAplicar(l,nDn,null)){
+    if(await cadAplicar(l,nDn,null,dtEsc)){
       var dd=cadDue(l);
       toast(nDn===5?'📅 D5 registrado — enviando para Disparos de fechamento':'📅 Cadência: D'+nDn+' registrado'+(dd?' — próximo reenvio em '+dd.toLocaleDateString('pt-BR'):''));
     }
@@ -3817,7 +3826,7 @@ async function cadRegistrar(l, n, textoExtra){
   return okc;
 }
 // Atualiza só os campos da cadência (usado também pelo botão "Enviado Dn" do histórico).
-async function cadAplicar(l, n, item){
+async function cadAplicar(l, n, item, dataRef){
   var etAtual=parseInt(l.cadencia_etapa||0,10);
   // Registrar de novo um Dn que já foi feito (ou anterior) não mexe no prazo.
   if(n>1 && l.cadencia_inicio && n<=etAtual){
@@ -3827,7 +3836,7 @@ async function cadAplicar(l, n, item){
   // O envio de hoje é o marco: o próximo prazo conta a partir de HOJE,
   // com o intervalo da etapa (não da data antiga do D1). Assim o lead sai da lista
   // do dia assim que você registra, mesmo que o envio estivesse atrasado.
-  var d=new Date(); if(n>=2 && n<=5) d.setDate(d.getDate()-CADENCIA_DIAS[n-2]);
+  var d=dataRef?new Date(dataRef.getTime()):new Date(); if(n>=2 && n<=5) d.setDate(d.getDate()-CADENCIA_DIAS[n-2]);
   var patch={cadencia_inicio:ymdLocal(d),cadencia_etapa:n};
   if(item){ patch.ultimo_contato_tipo=item.tipo; patch.ultimo_contato_data=item.data; patch.ultimo_contato_cod=item.cod||null; }
   return await cadSalvar(l.id, patch);
