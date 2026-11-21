@@ -3256,7 +3256,7 @@ async function delHist(id,idx){
 }
 
 // Etiqueta/Status automáticos conforme o código registrado no histórico (funil Differi):
-// EC → ATENDIMENTO CORRETOR · R1–R3 e D1–D4 → REPESCAGEM (status ATIVO) · D5 → DISPAROS DE FECHAMENTO (status MAILING).
+// EC → ATENDIMENTO CORRETOR + corretor Pedro · R1–R3 e D1–D4 → REPESCAGEM (status ATIVO) · D5 → DISPAROS DE FECHAMENTO (status MAILING).
 async function aplicarEtiquetaPorCodigo(l,cod){
   var alvo=null;
   if(cod==='EC') alvo='ATENDIMENTO CORRETOR';
@@ -3266,13 +3266,19 @@ async function aplicarEtiquetaPorCodigo(l,cod){
   var atual=(l.status||'').toUpperCase();
   if(['FECHADO','PERDIDO','DESISTIU'].indexOf(atual)!==-1) return;
   var sgAlvo=(alvo==='DISPAROS DE FECHAMENTO')?'MAILING':'ATIVO';
-  if(atual===alvo&&(l.status_geral||'').toUpperCase()===sgAlvo) return;
+  var corrEC=null;
+  if(cod==='EC'){
+    var pe=(getAllEquipe()||[]).find(function(u){return /pedro/i.test(u.nome||'');});
+    corrEC=pe?pe.nome:'Pedro Henrque Vieira de Assunção';
+  }
+  if(atual===alvo&&(l.status_geral||'').toUpperCase()===sgAlvo&&(!corrEC||l.corretor===corrEC)) return;
   var patch={status:alvo,status_geral:sgAlvo};
+  if(corrEC) patch.corretor=corrEC;
   if(alvo!=='REPESCAGEM'){ patch.cadencia_inicio=null; patch.cadencia_etapa=0; }
   var r=await sb.from('leads').update(patch).eq('id',l.id);
   if(r.error){toast('Erro ao atualizar etiqueta: '+r.error.message);return;}
   atualizarLeadLocal(l.id,patch);
-  toast('🏷 Etiqueta → '+alvo);
+  toast('🏷 Etiqueta → '+alvo+(corrEC?' · corretor: '+corrEC.split(' ')[0]:''));
 }
 // Fim da cadência (D5 enviado): lead vai direto para Disparos de fechamento e sai da cadência.
 async function cadConcluirDisparos(id){
