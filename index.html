@@ -3092,7 +3092,7 @@ function renderTab(l,tab){
         +'<div class="tl-meta">'
         +'<span style="font-size:10px;font-weight:700;background:'+cor+'22;color:'+cor+';border-radius:99px;padding:1px 7px;border:1px solid '+cor+'44">'+(h.cod||cfg.label.split(' ')[0].toUpperCase())+'</span>'
         +'<span><i class="ti ti-clock" style="font-size:11px"></i>'+(h.data||'—')+'</span>'
-        +(h.autor?'<span><i class="ti ti-user" style="font-size:11px"></i>'+h.autor+'</span>':'')
+        +(h.autor?'<span'+(h.reg_por?' style="font-weight:700;color:#3b5bdb"':'')+'>'+(h.reg_por?'🤖 ':'<i class="ti ti-user" style="font-size:11px"></i>')+h.autor+(h.reg_por?' <span style="font-weight:400;color:var(--muted)">· registrado por '+h.reg_por+'</span>':'')+'</span>':'')
         +'</div></div></div>';
     }).join(''):'<div style="color:var(--muted);font-size:13px;padding:16px 0;text-align:center">Nenhum atendimento registrado ainda.</div>';
     
@@ -3107,6 +3107,7 @@ function renderTab(l,tab){
       +'<div class="lbl" style="margin-bottom:8px">Registrar atendimento</div>'
       +'<div class="hist-tipos" style="margin-bottom:10px">'+codigosBtns+'</div>'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap"><label for="hist-data" style="font-size:12px;font-weight:600">📅 Data do atendimento</label><input type="datetime-local" class="fc" id="hist-data" value="'+histDtInput(new Date())+'" max="'+histDtInput(new Date())+'" style="width:auto;padding:4px 8px"><a href="javascript:void(0)" onclick="document.getElementById(\'hist-data\').value=histDtInput(new Date())" style="font-size:11px;color:var(--muted)">agora</a></div>'
+      +'<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;font-weight:600;cursor:pointer;background:#f0f4ff;border:1px solid #c9d6ff;border-radius:8px;padding:6px 10px"><input type="checkbox" id="hist-diana" style="width:16px;height:16px"> 🤖 Atendimento realizado pela Diana (robô)</label>'
       +'<textarea class="fc" id="hist-txt" rows="2" placeholder="Descreva o contato realizado..."></textarea>'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">'
       +'<span style="font-size:11px;color:var(--muted)" id="hist-cod-selected">Nenhum código selecionado</span>'
@@ -3293,6 +3294,8 @@ async function addHist(id){
   if(dtEl&&dtEl.value){ var dtP=new Date(dtEl.value); if(!isNaN(dtP.getTime())) dtEsc=dtP; }
   if(dtEsc && dtEsc.getTime()>Date.now()+60000){toast('A data do atendimento não pode ser no futuro');return;}
   var novoItem = {tipo:selectedTipo,cod:selectedCod,texto:textoFinal,data:dtEsc?histFmt(dtEsc):nowStr(),autor:currentUser.nome};
+  var dianaEl=document.getElementById('hist-diana');
+  if(dianaEl&&dianaEl.checked){ novoItem.autor='Diana (robô)'; novoItem.reg_por=currentUser.nome; }
   var tNovo=histParse(novoItem.data), tUlt=histParse(l.ultimo_contato_data);
   var ehRecente=(tUlt==null||tNovo==null||tNovo>=tUlt);
   // Grava direto no banco de forma atômica — mesmo que outra pessoa esteja
